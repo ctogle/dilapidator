@@ -33,6 +33,35 @@ class model(db.base):
         self._def('reps',{},**kwargs)
         self._def('filename','modelfile.mesh',**kwargs)
 
+    # consume another model in place, adding all its data
+    def _consume(self,other):
+        ofmats = other.face_mats
+        ofacnt = len(ofmats)
+        for dx in range(len(other.mats)):
+            omat = other.mats[dx]
+            if not omat in self.mats:
+                self.mats.append(omat)
+                mdx = len(self.mats) - 1
+                for fdx in range(ofacnt):
+                    if ofmats[fdx] == dx:
+                        ofmats[fdx] = mdx
+            else:
+                mdx = self.mats.index(omat)
+                if not mdx == dx:
+                    for fdx in range(ofacnt):
+                        if ofmats[fdx] == dx:
+                            ofmats[fdx] = mdx
+
+        other_offset = len(self.pcoords)
+        dpr.offset_faces(other.faces,other_offset)
+        self.pcoords.extend(other.pcoords)
+        self.ncoords.extend(other.ncoords)
+        self.ucoords.extend(other.ucoords)
+        self.faces.extend(other.faces)
+        self.face_mats.extend(other.face_mats)
+        self.reps = {}
+        return self
+
     # return geometry data organized as dict of materials
     def _face_dict(self):
         mcnt = len(self.mats)
@@ -107,11 +136,11 @@ class model(db.base):
             for fdx in face:
                 p = self.pcoords[fdx]
                 n = self.ncoords[fdx]
-                if cv.near(n,cv.nxhat) or cv.near(n,cv.xhat):
+                if dpv.near(n,dpv.nxhat) or dpv.near(n,dpv.xhat):
                     nu = p.copy().yz2d()
-                elif cv.near(n,cv.nyhat) or cv.near(n,cv.yhat):
+                elif dpv.near(n,dpv.nyhat) or dpv.near(n,dpv.yhat):
                     nu = p.copy().xz2d()
-                elif cv.near(n,cv.nzhat) or cv.near(n,cv.zhat):
+                elif dpv.near(n,dpv.nzhat) or dpv.near(n,dpv.zhat):
                     nu = p.copy().xy2d()
                 else:continue
                 self.ucoords[fdx] = nu
@@ -198,21 +227,6 @@ class model(db.base):
         else:nus = us
         return nus
 
-    # given three points, add new triangle face
-    def _triangle(self,v1,v2,v3,ns = None,us = None,m = None):
-        nfstart = len(self.faces)
-        nps = [v1.copy(),v2.copy(),v3.copy()]
-        nns = self._def_normals(nps,ns)
-        nus = self._def_uvs(nps,us)
-        self._add_vdata(nps,nns,nus)
-        foffset = len(self.pcoords) - len(nps)
-        nfs = [[foffset,foffset+1,foffset+2]]
-        m = self._lookup_mat(m)
-        nfms = [m]
-        self._add_fdata(nfs,nfms)
-        nfend = len(self.faces)
-        return range(nfstart,nfend)
-
     # given four points, add two new triangle faces
     def _quad(self,v1,v2,v3,v4,ns = None,us = None,m = None):
         nfstart = len(self.faces)
@@ -229,11 +243,60 @@ class model(db.base):
         nfend = len(self.faces)
         return range(nfstart,nfend)
 
-    # given two loops of equal length, bridge with quads
-    def _bridge(self,loop1,loop2,ns = None,us = None,m = None):
-        if not len(loop1) == len(loop2):
+    # given three points, add new triangle face
+    def _triangle(self,v1,v2,v3,ns = None,us = None,m = None):
+        nfstart = len(self.faces)
+        nps = [v1.copy(),v2.copy(),v3.copy()]
+        nns = self._def_normals(nps,ns)
+        nus = self._def_uvs(nps,us)
+        self._add_vdata(nps,nns,nus)
+        foffset = len(self.pcoords) - len(nps)
+        nfs = [[foffset,foffset+1,foffset+2]]
+        m = self._lookup_mat(m)
+        nfms = [m]
+        self._add_fdata(nfs,nfms)
+        nfend = len(self.faces)
+        return range(nfstart,nfend)
+
+    # given a point apex and a list of points blade, add fan of tris
+    def _trifan(self,apex,blade,ns = None,us = None,m = None):
+        nfstart = len(self.faces)
+        tcnt = len(blade) - 1
+        for trdx in range(tcnt):
+            c2dx = trdx
+            c3dx = trdx+1
+            c1 = apex.copy()
+            c2 = blade[c2dx].copy()
+            c3 = blade[c3dx].copy()
+            self._triangle(c1,c2,c3,ns,us,m)
+        nfend = len(self.faces)
+        return range(nfstart,nfend)
+
+    # given one loop, fill with a fan of triangles
+    def _tripie(self,loop,ns = None,us = None,m = None):
+        nfstart = len(self.faces)
+        lcom = dpv.center_of_mass(loop)
+        tcnt = len(loop)
+        for trdx in range(tcnt):
+            c2dx = trdx
+            c3dx = trdx+1
+            if c3dx == tcnt: c3dx = 0
+            c1 = lcom.copy()
+            c2 = loop[c2dx].copy()
+            c3 = loop[c3dx].copy()
+            self._triangle(c1,c2,c3,ns,us,m)
+        nfend = len(self.faces)
+        return range(nfstart,nfend)
+
+    # raise ValueError if l1 and l2 differ in length
+    def _check_loop_equality(self,l1,l2):
+        if not len(l1) == len(l2):
             print '_bridge loops must have equal length'
             raise ValueError
+
+    # given two loops of equal length, bridge with quads
+    def _bridge(self,loop1,loop2,ns = None,us = None,m = None):
+        self._check_loop_equality(loop1,loop2)
         nfstart = len(self.faces)
         lcnt = len(loop1)
         for ldx in range(1,lcnt):
@@ -242,6 +305,80 @@ class model(db.base):
             v3 = loop2[ldx]
             v4 = loop1[ldx]
             self._quad(v1,v2,v3,v4,ns,us,m)
+        nfend = len(self.faces)
+        return range(nfstart,nfend)
+
+    # given two loops of equal length bridge with a spline extrusion
+    def _bridge_spline(self,loop1,loop2,n = 3,
+            n1 = None,n2 = None,ns = None,us = None,m = None):
+        self._check_loop_equality(loop1,loop2)
+        nfstart = len(self.faces)
+
+        if n1 is None:n1 = normal(*loop1[:3])
+        if n2 is None:n2 = normal(*loop2[:3]).flip()
+
+        curves = []
+        lcnt = len(loop1)
+        for x in range(lcnt):
+            v2 = loop1[x].copy()
+            v3 = loop2[x].copy()
+            v1 = v2.copy().translate(n1)
+            v4 = v3.copy().translate(n2)
+            curve = dpv.spline(v1,v2,v3,v4,n)
+            curves.append(curve)
+
+        ccnt = len(curves)
+        for y in range(1,ccnt):
+            lp2 = curves[y-1]
+            lp1 = curves[y]
+            self._bridge(lp1,lp2,ns,us,m)
+        
+        nfend = len(self.faces)
+        return range(nfstart,nfend)
+
+    # given a loop, incrementally fill with loops 
+    # and then seal with tripie
+    def _bridge_patch(self,loop,n = 10,m = None):
+        nfstart = len(self.faces)
+        def move(oloop):
+            iloop = [l.copy() for l in oloop]
+            [l.translate(ray) for l,ray in zip(iloop,rays)]
+            self._bridge(iloop,oloop,m = m)
+            return iloop
+
+        com = dpv.center_of_mass(loop)
+        loop.append(loop[0])
+        rays = [dpv.v1_v2(l,com).scale_u(1.0/n) for l in loop]
+        for x in range(n):loop = move(loop)
+        self._tripie(loop,m = m)
+        nfend = len(self.faces)
+        return range(nfstart,nfend)
+
+    # given a line of points make n faces between angles a1 and a2
+    def _revolve_z(self,loop,a1,a2,n,ns = None,us = None,m = None):
+        nfstart = len(self.faces)
+        rotstep = (a2-a1)/float(n)
+        for step in range(n):
+            ta1 = a1+step*rotstep
+            ta2 = a1+(step+1)*rotstep
+            loop1 = [p.copy().rotate_z(ta1) for p in loop]
+            loop2 = [p.copy().rotate_z(ta2) for p in loop]
+            self._bridge(loop1,loop2,ns = ns,us = us,m = m)
+        nfend = len(self.faces)
+        return range(nfstart,nfend)
+
+    # given a curve of points make faces to extrude loop along the curve
+    def _extrude(self,loop,curve,ns = None,us = None,m = None):
+        nfstart = len(self.faces)
+        tailloop = [l.copy() for l in loop]
+        n = len(curve)
+        for step in range(1,n):
+            tn = dpv.v1_v2(curve[step-1],curve[step])
+            tiploop = [l.copy().translate(tn) for l in tailloop]
+            # i want to rotate tiploop according to tangents - need quat
+            # rotation...
+            self._bridge(tailloop,tiploop,ns = ns,us = us,m = m)
+            tailloop = [l.copy() for l in tiploop]
         nfend = len(self.faces)
         return range(nfstart,nfend)
 
@@ -289,20 +426,19 @@ class model(db.base):
 
     #######################################################
 
-    def scale_x(self, sx):
-        cv.scale_coords_x(self.coords, sx)
-        if self._scale_uvs_: self.scale_uvs(cv.vector(sx,0,0))
-        self.modified = True
+    def scale_x(self,sx):
+        dpv.scale_coords_x(self.pcoords,sx)
+        #if self._scale_uvs_: self.scale_uvs(dpv.vector(sx,0,0))
         return self
 
     def scale_y(self,sy):
         dpv.scale_coords_y(self.pcoords,sy)
-        #if self._scale_uvs_: self.scale_uvs(cv.vector(0,sy,0))
+        #if self._scale_uvs_: self.scale_uvs(dpv.vector(0,sy,0))
         return self
 
     def scale_z(self,sz):
         dpv.scale_coords_z(self.pcoords,sz)
-        #if self._scale_uvs_: self.scale_uvs(cv.vector(0,0,sz))
+        #if self._scale_uvs_: self.scale_uvs(dpv.vector(0,0,sz))
         return self
 
     def scale_u(self,u):

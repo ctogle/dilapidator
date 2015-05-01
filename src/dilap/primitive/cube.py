@@ -12,7 +12,7 @@ class cube(dmo.model):
         self._geo()
 
     def _geo(self):
-        og = dpv.zero()
+        og = dpv.one().scale_u(0.5).flip()
         bottom = [og.copy(),
             og.copy().translate_x(1),
             og.copy().translate_x(1).translate_y(1),

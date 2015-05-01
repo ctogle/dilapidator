@@ -1,5 +1,6 @@
 import dilap.core.base as db
 import dilap.core.uinfo as di
+import dilap.core.material as dma
 
 import cStringIO as sio
 import os,pdb
@@ -12,81 +13,25 @@ world_dir = user_info['contentdir']
 ### materials
 #########################################################################
 
-matstring = sio.StringIO()
-
 # initialize the materials script
-def reset_materials_script():
-    matfile = os.path.join(world_dir, 'materials.mtl')
+def write_materials():
+    matfile = os.path.join(world_dir,'materials.mtl')
+    matstring = sio.StringIO()
     matstring.write('\n')
     write_default_materials_mtl(matstring)
     matstring.write('\n')
-    with open(matfile, 'w') as handle:
-        handle.write(matstring.getvalue())
+    with open(matfile,'w') as h:
+        h.write(matstring.getvalue())
+    print 'new materials file',matfile
 
 def write_default_materials_mtl(msio):
-    cubemat = material('cubemat',diffuseMap = 'textures/generic/orangeboxtex.png')
-    sidewalk1 = material('sidewalk1',diffuseMap = 'textures/concrete/sidewalk1.jpg')
-    asphalt = material('asphalt',diffuseMap = 'textures/concrete/asphalt.jpg')
-    roadline_y = material('roadline_y',diffuseMap = 'textures/concrete/roadline.png')
-    roadline_y_cont = material('roadline_y_cont',diffuseMap = 'textures/concrete/roadline_w_continuous.png')
-    roadline_w_cont = material('roadline_w_cont',diffuseMap = 'textures/concrete/roadline_w_continuous.png')
-    def_mats = [cubemat,sidewalk1,asphalt,roadline_y,roadline_y_cont,roadline_w_cont]
-
+    generic = dma.material('generic',dtexture = 'generic/orangeboxtex.png')
+    def_mats = [generic]
     mcount = len(def_mats)
     msio.write('# Material Count: ')
     msio.write(str(mcount))
     msio.write('\n')
-    for dm in def_mats: dm._write(msio)
-
-class material(db.base):
-
-    def _write_path_property(self,msio,prop,val):
-        if val is None:return
-        msio.write(prop)
-        msio.write(' ')
-        msio.write(val)
-        msio.write('\n')
-
-    def _write(self,msio):
-        msio.write('\nnewmtl ')
-        msio.write(self.name)
-        msio.write('\n')
-        msio.write('Ka 1.000 1.000 1.000\n')
-        msio.write('Kd 1.000 1.000 1.000\n')
-        msio.write('Ks 0.000 0.000 0.000\n')
-        msio.write('d 1.0\n')
-        msio.write('illum 2\n')
-        self._write_properties(msio)
-        msio.write('\n')
-
-    def _write_properties(self,msio):
-        self._write_diffuse_properties(msio)
-
-    def _write_diffuse_properties(self,msio):
-        #self._write_vector_property(msio,'diffuseColour',self.diffuseColour)
-        #self._write_path_property(msio,'diffuseMap',self.diffuseMap)
-        #self._write_bool_property(msio,'vertexDiffuse',self.vertexDiffuse)
-        self._write_path_property(msio,'map_Kd',self.diffuseMap)
-
-    def __init__(self,name,**kwargs):
-        self.name = name
-        self._default_('diffuseMap',None,**kwargs)
-
-'''#
-newmtl Textured
-   Ka 1.000 1.000 1.000
-   Kd 1.000 1.000 1.000
-   Ks 0.000 0.000 0.000
-   d 1.0
-   illum 2
-   map_Ka lenna.tga           # the ambient texture map
-   map_Kd lenna.tga           # the diffuse texture map (most of the time, it will
-                              # be the same as the ambient texture map)
-   map_Ks lenna.tga           # specular color texture map
-   map_Ns lenna_spec.tga      # specular highlight component
-   map_d lenna_alpha.tga      # the alpha texture map
-   map_bump lenna_bump.tga    # some implementations use 'map_bump' instead of 'bump' below
-'''#
+    for dm in def_mats:dm._write('obj',msio)
 
 #########################################################################
 
@@ -94,10 +39,9 @@ obj_filenames = []
 def unique_objfile(ofile):
     if not ofile.endswith('.obj'):ofile += '.obj'
     if ofile in obj_filenames:
-        ob = ofile[:ofile.rfind('mesh.obj')]
+        ofile = ofile[:ofile.rfind('mesh.obj')]
         onum = len(obj_filenames) + 1
-        om += '.'.join([str(onum),'mesh','obj'])
-        ofile = ofile.replace(ob,om)
+        ofile += '.'.join([str(onum),'mesh','obj'])
     print 'new objfile',ofile
     obj_filenames.append(ofile)
     return ofile
@@ -169,14 +113,5 @@ def build_model(mod,**kwargs):
     with open(objpath,'w') as h:h.write(orep)
 
 #########################################################################
-#########################################################################
-
-
-
-
-
-
-
-
 
 

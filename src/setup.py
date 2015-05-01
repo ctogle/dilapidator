@@ -18,7 +18,15 @@ ext_modules = [
 
 resourcesdir = os.path.join(appdirs.user_data_dir(),'dilap_resources')
 resourcesrcd = os.path.join(os.getcwd(),'resources')
-resourcefils = ['resources/'+x for x in os.listdir(resourcesrcd)]
+resourcefils = []
+
+import pdb
+for rpath in os.walk(resourcesrcd):
+    rsrcp = rpath[0][len(os.getcwd())+1:]
+    for rfile in rpath[2]:
+        rfi = '/'.join([rsrcp,rfile])
+        resourcefils.append(rfi)
+#resourcefils = ['resources/'+x for x in os.listdir(resourcesrcd)]
     
 pkgs = ['dilap','dilap.io','dilap.core','dilap.primitive']
 

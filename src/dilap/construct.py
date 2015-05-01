@@ -12,13 +12,16 @@ iotypes = {
 
 # given either one or many models or nodes
 # build all models in world space using iotype io
-def build(mods,io = None):
+def build(mods,consume = False,io = None):
     if io is None:io = di.fetch_info()['exporter']
     if not type(mods) is types.ListType:mods = [mods]
     for mdx in range(len(mods)):
         m = mods[mdx]
         if issubclass(m.__class__,dm.model): 
             mods[mdx] = dsg.node(models = [m])
+    if consume:
+        consumenode = dsg.node(children = mods,consumption = True)
+        mods = [consumenode]
     sgr = dsg.sgraph(nodes = mods)
     sgr.graph(iotypes[io])
 

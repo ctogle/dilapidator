@@ -27,6 +27,7 @@ class sgraph(db.base):
         self._def('nodes',[],**kwargs)
 
     def graph(self,iotype):
+        iotype.write_materials()
         for nd in self.nodes:
             nd._realize(iotype)
 
@@ -54,11 +55,11 @@ class node(db.base):
     def _def_tform(self,*args,**kwargs):
         if hasattr(self,'tform'):return
         kweys = kwargs.keys()
-        pos = kwargs[ke] if 'pos' in kweys else dpv.zero()
-        rot = kwargs[ke] if 'rot' in kweys else dpv.zero()
-        scl = kwargs[ke] if 'scl' in kweys else dpv.one()
-        tpar = kwargs[ke] if 'parent' in kweys else None
-        tchi = kwargs[ke] if 'children' in kweys else []
+        pos = kwargs['pos'] if 'pos' in kweys else dpv.zero()
+        rot = kwargs['rot'] if 'rot' in kweys else dpv.zero()
+        scl = kwargs['scl'] if 'scl' in kweys else dpv.one()
+        tpar = kwargs['parent'] if 'parent' in kweys else None
+        tchi = kwargs['children'] if 'children' in kweys else []
 
         ntf = dtf.tform(self,parent = tpar,
             pos = pos,rot = rot,scl = scl,

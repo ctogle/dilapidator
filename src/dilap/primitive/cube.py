@@ -12,15 +12,18 @@ class cube(dmo.model):
         self._geo()
 
     def _geo(self):
-        #bottom = dpr.point_ring(0.5,4)
         og = dpv.zero()
         bottom = [og.copy(),
-            og.copy().translate_x(1),og.copy().translate_y(1),
-            og.copy().translate_x(1).translate_y(1)]
+            og.copy().translate_x(1),
+            og.copy().translate_x(1).translate_y(1),
+            og.copy().translate_y(1)]
         top = [b.copy().translate_z(1) for b in bottom]
-
-        pdb.set_trace()
-
-        print 'cube geometry!'
+        bottom.reverse()
+        self._quad(*bottom)
+        self._quad(*top)
+        top.reverse()
+        bottom.append(bottom[0])
+        top.append(top[0])
+        self._bridge(bottom,top)
 
 

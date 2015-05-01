@@ -30,6 +30,22 @@ class model(db.base):
         self._def('faces',[],**kwargs)
         self._def('face_mats',[],**kwargs)
         self._def('mats',['generic'],**kwargs)
+        self._def('reps',{},**kwargs)
+        self._def('filename','modelfile.mesh',**kwargs)
+
+    # return geometry data organized as dict of materials
+    def _face_dict(self):
+        mcnt = len(self.mats)
+        fcnt = len(self.face_mats)
+        fa = {}
+        for mdx in range(mcnt):
+            ma = self.mats[mdx]
+            fa[ma] = []
+            for fmdx in range(fcnt):
+                if self.face_mats[fmdx] == mdx:
+                    fa[ma].append(self.faces[fmdx])
+            if not fa[ma]:del fa[ma]
+        return fa
 
     #######################################################
     #methods for modifying the models material data
@@ -44,6 +60,95 @@ class model(db.base):
                 self.mats.append(m)
                 m = len(self.mats) - 1
         return m
+
+    # assign material m to range of faces rng
+    def _assign_material(self,m,rng):
+        m = self._lookup_mat(m)
+        for dx in rng:
+            self.face_mats[dx] = m
+
+    #######################################################
+
+    #######################################################
+    #methods for modifying uv coordinate data
+    #######################################################
+
+    # for range of faces rng, project uvs xy
+    def _project_uv_xy(self,rng):
+        for nf in rng:
+            face = self.faces[nf]
+            for fdx in face:
+                p = self.pcoords[fdx]
+                nu = p.copy().xy2d()
+                self.ucoords[fdx] = nu
+
+    # for range of faces rng, project uvs yz
+    def _project_uv_yz(self,rng):
+        for nf in rng:
+            face = self.faces[nf]
+            for fdx in face:
+                p = self.pcoords[fdx]
+                nu = p.copy().yz2d()
+                self.ucoords[fdx] = nu
+
+    # for range of faces rng, project uvs xz
+    def _project_uv_xz(self,rng):
+        for nf in rng:
+            face = self.faces[nf]
+            for fdx in face:
+                p = self.pcoords[fdx]
+                nu = p.copy().xz2d()
+                self.ucoords[fdx] = nu
+
+    # for range of faces rng, project uvs flat
+    def _project_uv_flat(self,rng):
+        for nf in rng:
+            face = self.faces[nf]
+            for fdx in face:
+                p = self.pcoords[fdx]
+                n = self.ncoords[fdx]
+                if cv.near(n,cv.nxhat) or cv.near(n,cv.xhat):
+                    nu = p.copy().yz2d()
+                elif cv.near(n,cv.nyhat) or cv.near(n,cv.yhat):
+                    nu = p.copy().xz2d()
+                elif cv.near(n,cv.nzhat) or cv.near(n,cv.zhat):
+                    nu = p.copy().xy2d()
+                else:continue
+                self.ucoords[fdx] = nu
+
+    # for range of faces rng, 
+    # scale uvs along u coordinate by du
+    def _scale_uv_u(self,rng,du):
+        for nf in rng:
+            face = self.faces[nf]
+            for fdx in face:
+                u = self.ucoords[fdx]
+                u.scale_x(du)
+
+    # for range of faces rng, 
+    # scale uvs along v coordinate by dv
+    def _scale_uv_v(self,rng,dv):
+        for nf in rng:
+            face = self.faces[nf]
+            for fdx in face:
+                u = self.ucoords[fdx]
+                u.scale_y(dv)
+
+    # given a tform for world space, scale uvs to local space
+    def _uvs_to_local(self,uv_ttf):
+        sx = uv_ttf.scl.x
+        sy = uv_ttf.scl.y
+        for uvc in self.ucoords:
+            uvc.x *= sx
+            uvc.y *= sy
+
+    # given a tform for world space, scale uvs to world space
+    def _uvs_to_world(self,uv_ttf):
+        sx = uv_ttf.scl.x
+        sy = uv_ttf.scl.y
+        for uvc in self.ucoords:
+            uvc.x /= sx
+            uvc.y /= sy
 
     #######################################################
 
@@ -123,6 +228,30 @@ class model(db.base):
         self._triangle(v1,v3,v4,ns = ns2,us = us2,m = m)
         nfend = len(self.faces)
         return range(nfstart,nfend)
+
+    # given two loops of equal length, bridge with quads
+    def _bridge(self,loop1,loop2,ns = None,us = None,m = None):
+        if not len(loop1) == len(loop2):
+            print '_bridge loops must have equal length'
+            raise ValueError
+        nfstart = len(self.faces)
+        lcnt = len(loop1)
+        for ldx in range(1,lcnt):
+            v1 = loop1[ldx-1]
+            v2 = loop2[ldx-1]
+            v3 = loop2[ldx]
+            v4 = loop1[ldx]
+            self._quad(v1,v2,v3,v4,ns,us,m)
+        nfend = len(self.faces)
+        return range(nfstart,nfend)
+
+    # for range of faces rng, flip each face and its normals
+    def _flip_faces(self,rng):
+        for nf in rng:
+            face = self.faces[nf]
+            face.reverse()
+            for fdx in face:
+                self.ncoords[fdx].flip()
 
     #######################################################
 

@@ -1,16 +1,12 @@
 import dilap.core.base as db
 import dilap.core.uinfo as di
 
-#import dp_vector as dpv
-
 import cStringIO as sio
-
 import os,pdb
 
 user_info = di.fetch_info()
 
 world_dir = user_info['contentdir']
-last_origin = None
 
 #########################################################################
 ### materials
@@ -93,6 +89,70 @@ newmtl Textured
 '''#
 
 #########################################################################
+
+obj_filenames = []
+def unique_objfile(ofile):
+    if not ofile.endswith('.obj'):ofile += '.obj'
+    if ofile in obj_filenames:
+        ob = ofile[:ofile.rfind('mesh.obj')]
+        onum = len(obj_filenames) + 1
+        om += '.'.join([str(onum),'mesh','obj'])
+        ofile = ofile.replace(ob,om)
+    print 'new objfile',ofile
+    obj_filenames.append(ofile)
+    return ofile
+
+# represent the model mod as a string and give it a safe filename
+def obj_from_model(mod):
+    ofile = unique_objfile(mod.filename)
+    faces = mod._face_dict()
+    mats = faces.keys()
+    mcnt = len(mats)
+
+    sioio = sio.StringIO()
+    sioio.write('mtllib materials.mtl\n')
+    for vdx in range(len(mod.pcoords)):
+        pvert = mod.pcoords[vdx]
+        nvert = mod.ncoords[vdx]
+        uvert = mod.ucoords[vdx]
+        sioio.write( 'v %f %f %f\n'%(pvert.x,pvert.y,pvert.z))
+        sioio.write('vn %f %f %f\n'%(nvert.x,nvert.y,nvert.z))
+        sioio.write('vt %f %f\n'   %(uvert.x,uvert.y))
+        
+    for mdx in range(mcnt):
+        m = mats[mdx]
+        mfaces = faces[m]
+        fcnt = len(mfaces)
+        sioio.write('usemtl ')
+        sioio.write(m)
+        sioio.write('\n')
+        sioio.write('s off\n')
+        for fdx in range(fcnt):
+            f = mfaces[fdx]
+            f1 = f[0] + 1
+            f2 = f[1] + 1
+            f3 = f[2] + 1
+            sioio.write('f')
+            sioio.write(' %i/%i/%i'%(f1,f1,f1))
+            sioio.write(' %i/%i/%i'%(f2,f2,f2))
+            sioio.write(' %i/%i/%i'%(f3,f3,f3))
+            sioio.write('\n')
+
+    '''#
+    sioio.write('usemtl Material\n')
+    sioio.write('s off\n')
+    for face in prim.faces:
+        sioio.write('f')
+        for vert in face:
+            vi = vert + 1
+            sioio.write( ' %i/%i/%i' % (vi,vi,vi) )
+        sioio.write('\n')
+    '''#
+
+    orep = sioio.getvalue()
+    return orep,ofile
+
+#########################################################################
 #########################################################################
 
 # create models as obj files
@@ -101,32 +161,12 @@ def build_models(*mods,**kwargs):
         if m is None:return         
         else:build_model(m,**kwargs)
     
-# create one primitive as one obj file
-def build_model(prim,name = None,center = False, 
-        world_rotation = None,rdist = 200, 
-                lodrdist = 2000,**kwargs):
-
-    pdb.set_trace()
-
-    # this should take one primitive and create one obj/mtl file in a content directory
-
-    global last_origin
-    #if world_rotation is None:
-    #    world_rotation = dpv.zero()
-
-    if prim.is_lod:
-        prim.origin = last_origin
-        last_origin = prim.reposition_origin()
-    else:last_origin = prim.reposition_origin()
-
-    if last_origin is None:
-        print 'must skip empty primitive creation!'
-        return
-
-    w_position = prim.origin
-    w_rotation = world_rotation
-
-    is_new = prim.write_as_obj(world_dir)
+# create one model as one obj file
+def build_model(mod,**kwargs):
+    orep,ofile = obj_from_model(mod)
+    mod.reps['obj'] = orep
+    objpath = os.path.join(world_dir,ofile)
+    with open(objpath,'w') as h:h.write(orep)
 
 #########################################################################
 #########################################################################

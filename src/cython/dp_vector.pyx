@@ -43,6 +43,11 @@ cdef class vector2d:
         self.y *= -1.0
         return self
 
+    cpdef vector2d reciprocate(self):
+        self.x = 1.0/self.x
+        self.y = 1.0/self.y
+        return self
+
     cpdef vector2d translate(self, vector2d tv):
         self.x += tv.x
         self.y += tv.y
@@ -170,6 +175,12 @@ cdef class vector:
         self.x *= -1.0
         self.y *= -1.0
         self.z *= -1.0
+        return self
+
+    cpdef vector reciprocate(self):
+        self.x = 1.0/self.x
+        self.y = 1.0/self.y
+        self.z = 1.0/self.z
         return self
 
     cpdef vector rotate_x(self, float zang):

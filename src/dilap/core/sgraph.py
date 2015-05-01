@@ -34,12 +34,12 @@ class sgraph(db.base):
 ###############################################################################
 
 ###############################################################################
-### dpnode is the basic scenegraph node of dilap
+### node is the basic scenegraph node of dilap
 ### it references a transform that contains references to children and parent
 ###############################################################################
 
 unused_dpnode_id = 0
-class dpnode(db.base):
+class node(db.base):
 
     def _dpid(self):
         global unused_dpnode_id
@@ -119,82 +119,58 @@ class dpnode(db.base):
         if not self.tform in parent.tform.children:
             parent.tform.children.append(self.tform)
 
+    # this changes the model to local space given a world space tform
+    def _transform_to_local(self,mod,ttf,uv_ttf):
+        mod.translate(ttf.pos.copy().flip())
+        #tpm.rotate_z(ttf.rot.copy().flip().z)
+        mod.scale(ttf.scl.copy().reciprocate())
+        mod._uvs_to_local(uv_ttf)
 
+    # this changes the model to world space given a world space tform
+    def _transform_to_world(self,mod,ttf,uv_ttf):
+        mod.scale(ttf.scl)
+        mod._uvs_to_world(uv_ttf)
+        #mod.rotate_z(ttf.rot.z)
+        mod.translate(ttf.pos)
 
-
-
-
-
-
-
-
-    def assign_material(self, mat, propagate = True):
-        if propagate:
-            for ch in self.tform.children:
-                ch.owner.assign_material(mat)
-        for p in self.primitives: p.assign_material(mat)
-        for p in self.lod_primitives: p.assign_material(mat)
-
-    def worldly_primitive(self, prim, ttf, uv_ttf, **kwargs):
-        tpm = prim
-        tpm.scale(ttf.scales)
-        tpm.worldly_uvs(uv_ttf)
-        tpm.rotate_z(ttf.rotation.z)
-        tpm.translate(ttf.position)
-        kwargs['name'] = self.name
-        kwargs['rdist'] = self.grit_renderingdistance
-        kwargs['lodrdist'] = self.grit_lod_renderingdistance
-        return tpm, kwargs
-
-    def worldly_children(self, **kwargs):
+    # transform models and childrens models to world space
+    def _transform_to_world_walk(self,lod):
         ttf = self.tform.true()
         uv_ttf = self.uv_tform.true()
         newpms = []
-        for pm in self.models:
-            tpm,kwargs = self.worldly_primitive(pm,ttf,uv_ttf,**kwargs)
-            newpms.append(tpm)
+        if lod:which = self.lod_models
+        else:which = self.models
+        for pm in which:
+            self._transform_to_world(pm,ttf,uv_ttf)
+            newpms.append(pm)
         for ch in self.tform.children:
-            chpms = ch.owner.worldly_children()
-            newpms.extend(chpms)
-        return newpms
-
-    def lod_worldly_children(self, **kwargs):
-        ttf = self.tform.true()
-        uv_ttf = self.uv_tform.true()
-        newpms = []
-        for pm in self.lod_primitives:
-            tpm, kwargs = self.worldly_primitive(pm,ttf,uv_ttf,**kwargs)
-            newpms.append(tpm)
-        for ch in self.tform.children:
-            chpms = ch.owner.lod_worldly_children()
+            chpms = ch.owner._transform_to_world_walk(lod)
             newpms.extend(chpms)
         return newpms
 
     # consume geometry of children into this nodes models/lods
+    # combine all models/lods into one model/lod
+    # this is irreverisble so long as _transform_to_world_walk is
     def _consume(self):
         chps = []
         chlps = []
         for ch in self.tform.children:
-            ch.owner.consume()
+            ch.owner._consume()
             ch.parent = None
-            chps.extend(ch.owner.worldly_children())
-            chlps.extend(ch.owner.lod_worldly_children())
+            chps.extend(ch.owner._transform_to_world_walk(False))
+            chlps.extend(ch.owner._transform_to_world_walk(True))
         self.tform.children = []
         self.models.extend(chps)
         self.lod_models.extend(chlps)
         if self.models:
             final_prim = dpr.combine(self.models)
             self.models = [final_prim]
-        if self.lod_primitives:
-            final_lod_prim = dpr.combine(self.lod_primitives)
+        if self.lod_models:
+            final_lod_prim = dpr.combine(self.lod_models)
             self.lod_models = [final_lod_prim]
-
             if self.models:
                 self.models[0].has_lod = True
             self.lod_models[0].is_lod = True
-
-
-
 
     # return models and lods in 1-1 with Nones filled in
     # also return total model count
@@ -212,30 +188,25 @@ class dpnode(db.base):
         else:apcnt = pcnt
         return ms,ls,apcnt
 
+    # transform models/lods to world space
+    # use iotype to build the models
+    # transform models/lods back to local spaces
     def _modelize(self,iotype,**kwargs):
         ttf = self.tform.true()
         uv_ttf = self.uv_tform.true()
-
         models,lods,mcnt = self._model_listing()
         for pmdx in range(mcnt):
             pm = models[pmdx]
             lpm = lods[pmdx]
-
-            
-            print 'this is where it gets real'
-            pdb.set_trace()
-
-
             if not pm is None:
-                tpm,kwargs = self.worldly_primitive(pm,ttf,uv_ttf)
-                
-                iotype.build_model(tpm,**kwargs)
-
+                self._transform_to_world(pm,ttf,uv_ttf)
+                iotype.build_model(pm,**kwargs)
+                self._transform_to_local(pm,ttf,uv_ttf)
             if not lpm is None:
-                tpm,kwargs = self.worldly_primitive(lpm,ttf,uv_ttf)
-                tpm.is_lod = True
-
-                iotype.build_model(tpm,**kwargs)
+                self._transform_to_world(lpm,ttf,uv_ttf)
+                #lpm.is_lod = True
+                iotype.build_model(lpm,**kwargs)
+                self._transform_to_local(lpm,ttf,uv_ttf)
 
     # given an io module, produce model outputs 
     # for this node and its children
@@ -245,5 +216,21 @@ class dpnode(db.base):
             for ch in self.tform.children:
                 ch.owner._realize(iotype)
         self._modelize(iotype)
+
+
+
+
+
+
+
+
+
+    def _assign_material(self,mat,propagate = True):
+        if propagate:
+            for ch in self.tform.children:
+                ch.owner._assign_material(mat)
+        # doesnt make sense as modle._assign_material takes face range
+        for p in self.models: p._assign_material(mat)
+        for p in self.lod_models: p._assign_material(mat)
 
 

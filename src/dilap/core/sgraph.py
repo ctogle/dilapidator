@@ -1,9 +1,10 @@
 import dilap.core.base as db
 import dilap.core.tform as dtf
-
-#import make_places.core.primitives as pr
+import dilap.primitive.tools as dpr
 
 import dp_vector as dpv
+
+import pdb
 
 ###############################################################################
 ### sgraph represents a scenegraph and contains references to all
@@ -25,9 +26,9 @@ class sgraph(db.base):
     def __init__(self,*args,**kwargs):
         self._def('nodes',[],**kwargs)
 
-    def make_scene(self, scenetype, center = False):
+    def graph(self,iotype):
         for nd in self.nodes:
-            nd.make(scenetype = scenetype,center = center)
+            nd._realize(iotype)
 
 ###############################################################################
 ###############################################################################
@@ -182,15 +183,18 @@ class dpnode(db.base):
         self.models.extend(chps)
         self.lod_models.extend(chlps)
         if self.models:
-            final_prim = pr.sum_primitives(self.models)
+            final_prim = dpr.combine(self.models)
             self.models = [final_prim]
         if self.lod_primitives:
-            final_lod_prim = pr.sum_primitives(self.lod_primitives)
+            final_lod_prim = dpr.combine(self.lod_primitives)
             self.lod_models = [final_lod_prim]
 
             if self.models:
                 self.models[0].has_lod = True
             self.lod_models[0].is_lod = True
+
+
+
 
     # return models and lods in 1-1 with Nones filled in
     # also return total model count
@@ -217,16 +221,21 @@ class dpnode(db.base):
             pm = models[pmdx]
             lpm = lods[pmdx]
 
+            
+            print 'this is where it gets real'
+            pdb.set_trace()
+
+
             if not pm is None:
                 tpm,kwargs = self.worldly_primitive(pm,ttf,uv_ttf)
                 
-                iotype.create_primitive(tpm,**kwargs)
+                iotype.build_model(tpm,**kwargs)
 
             if not lpm is None:
                 tpm,kwargs = self.worldly_primitive(lpm,ttf,uv_ttf)
                 tpm.is_lod = True
 
-                iotype.create_primitive(tpm,**kwargs)
+                iotype.build_model(tpm,**kwargs)
 
     # given an io module, produce model outputs 
     # for this node and its children

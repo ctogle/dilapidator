@@ -24,7 +24,7 @@ setup(
     author_email = "cogle@vt.edu",
     license = "MIT License",
     long_description = 'procedural model construction/dilapidation', 
-    packages = ['dilap'], 
+    packages = ['dilap','dilap.io','dilap.core','dilap.primitive'], 
     py_modules = core_modules, 
     ext_modules = ext_modules, 
     include_dirs = [numpy.get_include()]

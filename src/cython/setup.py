@@ -8,7 +8,7 @@ from Cython.Distutils import build_ext
 
 #ext_modules1 = ('mp_utils', [Extension('mp_utils',['mp_utils.pyx'])])
 #ext_modules2 = ('mp_bboxes', [Extension('mp_bboxes',['mp_bboxes.pyx'])])
-vectorext = ('dp_vector',[Extension('mp_vector',['dp_vector.pyx','dp_vector.pxd'])])
+vectorext = ('dp_vector',[Extension('dp_vector',['dp_vector.pyx','dp_vector.pxd'])])
 #ext_modules4 = ('mp_terrain', [Extension('mp_terrain',['mp_terrain.pyx','mp_utils.pyx'])])
 #ext_modules5 = ('mp_primitives', [Extension('mp_primitives',['mp_primitives.pyx'])])
 

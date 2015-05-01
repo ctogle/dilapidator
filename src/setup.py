@@ -1,7 +1,7 @@
 from distutils.core import setup
 from Cython.Build import cythonize
 
-import numpy
+import os,numpy,appdirs
 
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
@@ -16,6 +16,12 @@ ext_modules = [
     #Extension('dp_terrain', ['support/mp_terrain.c']), 
             ]
 
+resourcesdir = os.path.join(appdirs.user_data_dir(),'dilap_resources')
+resourcesrcd = os.path.join(os.getcwd(),'resources')
+resourcefils = ['resources/'+x for x in os.listdir(resourcesrcd)]
+    
+pkgs = ['dilap','dilap.io','dilap.core','dilap.primitive']
+
 setup(
     name="dilapidator",
     version = '1.0',
@@ -24,10 +30,11 @@ setup(
     author_email = "cogle@vt.edu",
     license = "MIT License",
     long_description = 'procedural model construction/dilapidation', 
-    packages = ['dilap','dilap.io','dilap.core','dilap.primitive'], 
+    packages = pkgs, 
     py_modules = core_modules, 
     ext_modules = ext_modules, 
-    include_dirs = [numpy.get_include()]
+    include_dirs = [numpy.get_include()], 
+    data_files=[(resourcesdir,resourcefils)], 
     )
 
 

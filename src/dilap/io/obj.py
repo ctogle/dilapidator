@@ -1,14 +1,15 @@
 import dilap.core.base as db
+import dilap.core.uinfo as di
 
-import make_places.core.user_info as ui
-
-import dp_vector as dpv
+#import dp_vector as dpv
 
 import cStringIO as sio
 
 import os,pdb
 
-world_dir = ui.info['contentdir']
+user_info = di.fetch_info()
+
+world_dir = user_info['contentdir']
 last_origin = None
 
 #########################################################################
@@ -110,8 +111,8 @@ def build_model(prim,name = None,center = False,
     # this should take one primitive and create one obj/mtl file in a content directory
 
     global last_origin
-    if world_rotation is None:
-        world_rotation = dpv.zero()
+    #if world_rotation is None:
+    #    world_rotation = dpv.zero()
 
     if prim.is_lod:
         prim.origin = last_origin

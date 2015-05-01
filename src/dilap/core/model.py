@@ -1,4 +1,5 @@
 import dilap.core.base as db
+import dilap.primitive.tools as dpr
 
 import dp_vector as dpv
 
@@ -14,7 +15,7 @@ import dp_vector as dpv
 ###############################################################################
 
 unused_model_id = 0
-class model(base):
+class model(db.base):
 
     def _dpid(self):
         global unused_model_id
@@ -27,34 +28,99 @@ class model(base):
         self._def('ncoords',[],**kwargs)
         self._def('ucoords',[],**kwargs)
         self._def('faces',[],**kwargs)
+        self._def('face_mats',[],**kwargs)
+        self._def('mats',['generic'],**kwargs)
+
+    #######################################################
+    #methods for modifying the models material data
+    #######################################################
+
+    # provide the index of a material
+    def _lookup_mat(self,m):
+        if m is None:m = 0
+        else:
+            if m in self.mats:m = self.mats.index(m)
+            else:
+                self.mats.append(m)
+                m = len(self.mats) - 1
+        return m
+
+    #######################################################
 
     #######################################################
     #methods for modifying the models geometry data
     #######################################################
 
+    # add vertex data given coords,normals,uvs
+    def _add_vdata(self,ps,ns,us):
+        self.pcoords.extend(ps)
+        self.ncoords.extend(ns)
+        self.ucoords.extend(us)
+
+    # add face data given face indices,materials
+    def _add_fdata(self,fs,fms):
+        self.faces.extend(fs)
+        self.face_mats.extend(fms)
+
+    # given 3 verts(vs) and the passed in normals(ns)
+    # return a list of certainly acceptable normals
+    def _def_normals(self,vs,ns):
+        if ns is None:
+            if len(vs) == 3:
+                n = dpr.normal(*vs)
+                nns = [n,n,n]
+            elif len(vs) == 4:
+                n = dpr.normal(*vs[:-1])
+                nns = [n,n,n,n]
+            else:
+                print '_def_normals requires 3 or 4 vertices only'
+                raise ValueError
+        else:nns = ns
+        return nns
+
+    # given 3 verts(vs) and the passed in uvs(us)
+    # return a list of certainly acceptable uvs
+    def _def_uvs(self,vs,us):
+        if us is None:
+            if len(vs) == 3:
+                nus = [dpv.vector2d(0,1),dpv.vector2d(0,0),dpv.vector2d(1,0)]
+            elif len(vs) == 4:
+                nus = [dpv.vector2d(0,1),dpv.vector2d(0,0),
+                      dpv.vector2d(1,0),dpv.vector2d(1,1)]
+            else:
+                print '_def_uvs requires 3 or 4 vertices only'
+                raise ValueError
+        else:nus = us
+        return nus
+
     # given three points, add new triangle face
-    def _triangle(self,v1,v2,v3,ns = None,us = None,m = None,pm = None):
+    def _triangle(self,v1,v2,v3,ns = None,us = None,m = None):
         nfstart = len(self.faces)
         nps = [v1.copy(),v2.copy(),v3.copy()]
-        if ns is None:
-            n = normal(*nps)
-            nns = [n,n,n]
-        else: nns = ns
-        if us is None:
-            nus = [cv.vector2d(0,1),cv.vector2d(0,0),cv.vector2d(1,0)]
-        else: nus = us
+        nns = self._def_normals(nps,ns)
+        nus = self._def_uvs(nps,us)
         self._add_vdata(nps,nns,nus)
-
         foffset = len(self.pcoords) - len(nps)
-        nfs = mpu.offset_faces([[0,1,2]],foffset)
-
+        nfs = [[foffset,foffset+1,foffset+2]]
         m = self._lookup_mat(m)
-        pm = self._lookup_pmat(pm)
-
         nfms = [m]
-        nfpms = [pm]
+        self._add_fdata(nfs,nfms)
+        nfend = len(self.faces)
+        return range(nfstart,nfend)
 
-        self._add_fdata(nfs,nfms,nfpms)
+    # given four points, add two new triangle faces
+    def _quad(self,v1,v2,v3,v4,ns = None,us = None,m = None):
+        nfstart = len(self.faces)
+        vs = [v1,v2,v3,v4]
+        nns = self._def_normals(vs,ns)
+        nus = self._def_uvs(vs,us)
+        us1 = [nus[0],nus[1],nus[2]]
+        us2 = [nus[0],nus[2],nus[3]]
+        ns1 = [nns[0],nns[1],nns[2]]
+        ns2 = [nns[0],nns[2],nns[3]]
+
+        self._triangle(v1,v2,v3,ns = ns1,us = us1,m = m)
+        self._triangle(v1,v3,v4,ns = ns2,us = us2,m = m)
         nfend = len(self.faces)
         return range(nfstart,nfend)
 
@@ -62,6 +128,13 @@ class model(base):
 
     #######################################################
     #methods for transforming the model in world space
+    #######################################################
+
+    def center(self):
+        com = dpv.center_of_mass(self.pcoords)
+        self.translate(com.flip())
+        return self
+
     #######################################################
 
     def translate_x(self,dx):

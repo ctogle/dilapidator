@@ -1,6 +1,6 @@
 
 *.pyc
 
-./src/build/*
-./src/cython/build/*
+src/build/*
+src/cython/build/*
 

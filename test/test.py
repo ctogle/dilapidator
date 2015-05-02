@@ -30,9 +30,16 @@ def perim():
     pm = dlc.perimeter(vs,3,0.25)
     dlc.build(pm)
 
+def floor():
+    gap = (dpv.zero(),2,3)
+    f = dlc.floor(gap = gap)
+    dlc.build(f)
+
 #cube()
 #cone()
 #stonehenge()
 #wall()
-perim()
+#perim()
+floor()
+
 

@@ -6,6 +6,7 @@ import dilap.primitive.cube as dcu
 import dilap.primitive.cone as dco
 import dilap.primitive.cylinder as dcyl
 import dilap.primitive.wall as dw
+import dilap.primitive.floor as df
 
 import types
 
@@ -58,5 +59,9 @@ def perimeter(vs,h = 1.0,w = 0.5):
         wa = wall(v1,v2,h = h,w = w)
         pwa._consume(wa)
     return pwa
+
+def floor(l = 10.0,w = 10.0,h = 0.5,gap = None,m = 'generic'):
+    fl = df.floor(l,w,h = h,gap = gap,m = m)
+    return fl
 
                                                                                   

@@ -2,7 +2,10 @@ import dilap.core.uinfo as di
 import dilap.core.sgraph as dsg
 import dilap.core.model as dm
 import dilap.io.obj as objio
-import dilap.primitive.cube as dc
+import dilap.primitive.cube as dcu
+import dilap.primitive.cone as dco
+import dilap.primitive.cylinder as dcyl
+import dilap.primitive.wall as dw
 
 import types
 
@@ -27,8 +30,33 @@ def build(mods,consume = False,io = None):
 
 # return a cube model with sidelength l
 def cube(l = 1.0):
-    cu = dc.cube()
+    cu = dcu.cube()
     cu.scale_u(l)
     return cu
 
+# return a cylinder model of radius r, height h, with n sides
+def cylinder(r = 1.0,h = 1.0,n = 8):
+    cu = dcyl.cylinder(n = n)
+    cu.scale_u(r).scale_z(h/float(r))
+    return cu
 
+# return a cylinder model of radius r, height h, with n sides
+def cone(r = 1.0,h = 1.0,n = 8):
+    cu = dco.cone(n = n)
+    cu.scale_u(r).scale_z(h/float(r))
+    return cu
+
+def wall(v1,v2,h = 1.0,w = 0.5,gs = []):
+    wa = dw.wall(v1,v2,h = h,w = w,gaps = gs)
+    return wa
+
+def perimeter(vs,h = 1.0,w = 0.5):
+    v1,v2 = vs[0],vs[1]
+    pwa = wall(v1,v2,h = h,w = w)
+    for vdx in range(2,len(vs)):
+        v1,v2 = vs[vdx-1],vs[vdx]
+        wa = wall(v1,v2,h = h,w = w)
+        pwa._consume(wa)
+    return pwa
+
+                                                                                  

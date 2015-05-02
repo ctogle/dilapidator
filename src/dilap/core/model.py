@@ -91,8 +91,9 @@ class model(db.base):
         return m
 
     # assign material m to range of faces rng
-    def _assign_material(self,m,rng):
+    def _assign_material(self,m,rng = None):
         m = self._lookup_mat(m)
+        if rng is None:rng = range(len(self.faces))
         for dx in rng:
             self.face_mats[dx] = m
 

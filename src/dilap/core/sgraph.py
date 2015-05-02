@@ -149,6 +149,15 @@ class node(db.base):
             newpms.extend(chpms)
         return newpms
 
+    # assign a material mat to all faces of all models/lods
+    # if propagate, also assign the material recursively to children
+    def _assign_material(self,mat,propagate = True):
+        if propagate:
+            for ch in self.tform.children:
+                ch.owner._assign_material(mat)
+        for p in self.models: p._assign_material(mat)
+        for p in self.lod_models: p._assign_material(mat)
+
     # consume geometry of children into this nodes models/lods
     # combine all models/lods into one model/lod
     # this is irreverisble so long as _transform_to_world_walk is
@@ -217,21 +226,5 @@ class node(db.base):
             for ch in self.tform.children:
                 ch.owner._realize(iotype)
         self._modelize(iotype)
-
-
-
-
-
-
-
-
-
-    def _assign_material(self,mat,propagate = True):
-        if propagate:
-            for ch in self.tform.children:
-                ch.owner._assign_material(mat)
-        # doesnt make sense as modle._assign_material takes face range
-        for p in self.models: p._assign_material(mat)
-        for p in self.lod_models: p._assign_material(mat)
 
 

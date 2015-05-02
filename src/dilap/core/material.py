@@ -1,5 +1,7 @@
 import dilap.core.base as db
 
+import pdb
+
 unused_material_id = 0
 class material(db.base):
 
@@ -37,7 +39,8 @@ class material(db.base):
         msio.write('Ks 0.000 0.000 0.000\n')
         msio.write('d 1.0\n')
         msio.write('illum 2\n')
-        msio.write('map_Kd '+self.dtexture+'\n')
+        dtexture = db.resource_path(self.dtexture)
+        msio.write('map_Kd '+dtexture+'\n')
         msio.write('\n')
 
     def _write(self,exp,msio):

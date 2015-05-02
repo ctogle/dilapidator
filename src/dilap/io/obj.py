@@ -25,7 +25,7 @@ def write_materials():
     print 'new materials file',matfile
 
 def write_default_materials_mtl(msio):
-    generic = dma.material('generic',dtexture = 'generic/orangeboxtex.png')
+    generic = dma.material('generic',dtexture = 'orangeboxtex.png')
     def_mats = [generic]
     mcount = len(def_mats)
     msio.write('# Material Count: ')
@@ -33,6 +33,10 @@ def write_default_materials_mtl(msio):
     msio.write('\n')
     for dm in def_mats:dm._write('obj',msio)
 
+#########################################################################
+
+#########################################################################
+### obj file creation
 #########################################################################
 
 obj_filenames = []
@@ -97,6 +101,9 @@ def obj_from_model(mod):
     return orep,ofile
 
 #########################################################################
+
+#########################################################################
+### build functions
 #########################################################################
 
 # create models as obj files
@@ -111,7 +118,5 @@ def build_model(mod,**kwargs):
     mod.reps['obj'] = orep
     objpath = os.path.join(world_dir,ofile)
     with open(objpath,'w') as h:h.write(orep)
-
-#########################################################################
 
 

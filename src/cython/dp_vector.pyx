@@ -38,6 +38,10 @@ cdef class vector2d:
         cdef list new = [self.x,self.y]
         return new
 
+    cpdef tuple to_tuple(self):
+        cdef tuple new = (self.x,self.y)
+        return new
+
     cpdef vector2d flip(self):
         self.x *= -1.0
         self.y *= -1.0
@@ -147,6 +151,11 @@ cdef class vector:
     cpdef vector copy(self):
         cdef vector new = vector(self.x,self.y,self.z)
         return new
+
+    def __iter__(self):
+        yield self.x
+        yield self.y
+        yield self.z
 
     cpdef list to_list(self):
         cdef list new = [self.x,self.y,self.z]

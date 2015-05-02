@@ -1,24 +1,21 @@
 import dilap.core.uinfo as di
 import dilap.core.sgraph as dsg
 import dilap.core.model as dm
-import dilap.io.obj as objio
+import dilap.io.io as dio
 import dilap.primitive.cube as dcu
 import dilap.primitive.cone as dco
 import dilap.primitive.cylinder as dcyl
 import dilap.primitive.wall as dw
 import dilap.primitive.floor as df
+import dilap.generate.context as dgc
 
-import types
-
-iotypes = {
-    'obj':objio,
-        }
+iotypes = dio.iotypes
 
 # given either one or many models or nodes
 # build all models in world space using iotype io
 def build(mods,consume = False,io = None):
     if io is None:io = di.fetch_info()['exporter']
-    if not type(mods) is types.ListType:mods = [mods]
+    if not type(mods) is type([]):mods = [mods]
     for mdx in range(len(mods)):
         m = mods[mdx]
         if issubclass(m.__class__,dm.model): 
@@ -63,5 +60,9 @@ def perimeter(vs,h = 1.0,w = 0.5):
 def floor(l = 10.0,w = 10.0,h = 0.5,gap = None,m = 'generic'):
     fl = df.floor(l,w,h = h,gap = gap,m = m)
     return fl
+
+def context(io = 'obj'):
+    cx = dgc.context(iotype = io)
+    return cx
 
                                                                                   

@@ -26,7 +26,13 @@ for rpath in os.walk(resourcesrcd):
         rfi = '/'.join([rsrcp,rfile])
         resourcefils.append(rfi)
 
-pkgs = ['dilap','dilap.io','dilap.core','dilap.primitive']
+pkgs = [
+    'dilap',
+    'dilap.io',
+    'dilap.core',
+    'dilap.primitive',
+    'dilap.generate',
+]
 
 setup(
     name="dilapidator",

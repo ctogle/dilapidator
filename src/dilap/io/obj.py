@@ -2,7 +2,8 @@ import dilap.core.base as db
 import dilap.core.uinfo as di
 import dilap.core.material as dma
 
-import cStringIO as sio
+#import cStringIO as sio
+from io import StringIO as sio
 import os,pdb
 
 user_info = di.fetch_info()
@@ -22,7 +23,7 @@ def write_materials():
     matstring.write('\n')
     with open(matfile,'w') as h:
         h.write(matstring.getvalue())
-    print 'new materials file',matfile
+    print('new materials file',matfile)
 
 def write_default_materials_mtl(msio):
     generic = dma.material('generic',dtexture = 'orangeboxtex.png')
@@ -46,7 +47,7 @@ def unique_objfile(ofile):
         ofile = ofile[:ofile.rfind('mesh.obj')]
         onum = len(obj_filenames) + 1
         ofile += '.'.join([str(onum),'mesh','obj'])
-    print 'new objfile',ofile
+    print('new objfile',ofile)
     obj_filenames.append(ofile)
     return ofile
 

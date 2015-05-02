@@ -7,6 +7,7 @@ cdef class vector2d:
     cdef public float y
     cpdef vector2d copy(self)
     cpdef list to_list(self)
+    cpdef tuple to_tuple(self)
     cpdef vector2d flip(self)
     cpdef vector2d reciprocate(self)
     cpdef vector2d scale(self, vector2d sv)

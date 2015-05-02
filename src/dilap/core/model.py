@@ -208,7 +208,7 @@ class model(db.base):
                 n = dpr.normal(*vs[:-1])
                 nns = [n,n,n,n]
             else:
-                print '_def_normals requires 3 or 4 vertices only'
+                print('_def_normals requires 3 or 4 vertices only')
                 raise ValueError
         else:nns = ns
         return nns
@@ -223,7 +223,7 @@ class model(db.base):
                 nus = [dpv.vector2d(0,1),dpv.vector2d(0,0),
                       dpv.vector2d(1,0),dpv.vector2d(1,1)]
             else:
-                print '_def_uvs requires 3 or 4 vertices only'
+                print('_def_uvs requires 3 or 4 vertices only')
                 raise ValueError
         else:nus = us
         return nus
@@ -292,7 +292,7 @@ class model(db.base):
     # raise ValueError if l1 and l2 differ in length
     def _check_loop_equality(self,l1,l2):
         if not len(l1) == len(l2):
-            print '_bridge loops must have equal length'
+            print('_bridge loops must have equal length')
             raise ValueError
 
     # given two loops of equal length, bridge with quads

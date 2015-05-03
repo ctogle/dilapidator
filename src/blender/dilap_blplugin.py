@@ -1,5 +1,5 @@
 import dilap.core.base as db
-import dilap.primitive.tools as dpr
+import dilap.core.tools as dpr
 import dilap.construct as dlc
 
 import bpy,sys
@@ -97,7 +97,8 @@ class dilap_run(bpy.types.Operator):
 
     # execute() is called by blender when running the operator.
     def execute(self,context):
-        dcx = dlc.context(sys.modules[__name__])
+        #dcx = dlc.context(sys.modules[__name__])
+        dcx = dlc.lot(sys.modules[__name__])
         dcx.generate(worn = self.years)
         dcx.graph()
         return {'FINISHED'}
@@ -140,7 +141,7 @@ class dilap_purge(bpy.types.Operator):
 # create material from texture image
 def material_image(name,texture):
     mat = bpy.data.materials.new(name)
-    imgpath = db.resource_path(texture)
+    imgpath = dpr.resource_path(texture)
     tex = bpy.data.textures.new(name,type = 'IMAGE')
     tex.image = bpy.data.images.load(imgpath)
     tex.use_alpha = True
@@ -187,6 +188,7 @@ def write_materials():
 def object_to_scene(obj,make_active = True):
     bpy.context.scene.objects.link(obj)
     if make_active:bpy.context.scene.objects.active = obj
+    dmodels_bobjs.append(obj)
 
 # create a blender object from a blender mesh
 def object_from_mesh(name,mesh,obj_loc = (0,0,0),mats = None):
@@ -233,7 +235,7 @@ def build_models(*args,**kwargs):
         if not type(ag) is type([]):
             bobjs.append(build_model(ag,**kwargs))
         else:[bobjs.append(build_model(p,**kwargs)) for p in ag]
-    dmodels_bobjs.extend(bobjs)
+    #dmodels_bobjs.extend(bobjs)
     return bobjs
     
 # build a single model into the blender world

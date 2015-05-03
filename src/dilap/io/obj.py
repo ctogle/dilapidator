@@ -17,7 +17,8 @@ world_dir = user_info['contentdir']
 # initialize the materials script
 def write_materials():
     matfile = os.path.join(world_dir,'materials.mtl')
-    matstring = sio.StringIO()
+    matstring = sio()
+    #matstring = sio.StringIO()
     matstring.write('\n')
     write_default_materials_mtl(matstring)
     matstring.write('\n')
@@ -58,7 +59,8 @@ def obj_from_model(mod):
     mats = faces.keys()
     mcnt = len(mats)
 
-    sioio = sio.StringIO()
+    sioio = sio()
+    #sioio = sio.StringIO()
     sioio.write('mtllib materials.mtl\n')
     for vdx in range(len(mod.pcoords)):
         pvert = mod.pcoords[vdx]

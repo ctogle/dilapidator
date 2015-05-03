@@ -1,5 +1,5 @@
 import dilap.core.model as dmo
-import dilap.primitive.tools as dpr
+import dilap.core.tools as dpr
 
 import dp_vector as dpv
 

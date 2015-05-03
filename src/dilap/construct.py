@@ -8,6 +8,7 @@ import dilap.primitive.cylinder as dcyl
 import dilap.primitive.wall as dw
 import dilap.primitive.floor as df
 import dilap.generate.context as dgc
+import dilap.generate.lot as dlot
 
 iotypes = dio.iotypes
 
@@ -63,6 +64,10 @@ def floor(l = 10.0,w = 10.0,h = 0.5,gap = None,m = 'generic'):
 
 def context(io = 'obj'):
     cx = dgc.context(iotype = io)
+    return cx
+
+def lot(io = 'obj'):
+    cx = dlot.lot(iotype = io)
     return cx
 
                                                                                   

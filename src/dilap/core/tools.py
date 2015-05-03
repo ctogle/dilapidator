@@ -1,7 +1,7 @@
 import dilap.core.base as db
 import dp_vector as dpv
 
-import numpy
+import numpy,os,appdirs
 
 PI = numpy.pi
 
@@ -23,13 +23,25 @@ def polygon(n):
     for si in range(n):
         l,t = 1.0,turns[si]
         current_angle = t
-        dx = l*numpy.cos(db.rad(current_angle))
-        dy = l*numpy.sin(db.rad(current_angle))
+        dx = l*numpy.cos(rad(current_angle))
+        dy = l*numpy.sin(rad(current_angle))
         new = poly[-1].copy().translate_x(dx).translate_y(dy)
         poly.append(new)
     poly.pop()
     dpv.translate_coords(poly,dpv.center_of_mass(poly).flip())
     return poly
+
+# given start point s, end point e, and n segments, 
+# return a colinear set of points equally spaced between s and e
+def point_line(s,e,n):
+    line = [s.copy()]
+    tn = dpv.v1_v2(s,e)
+    l = tn.magnitude()
+    tn.normalize()
+    tn.scale_u(float(l)/n)
+    for x in range(n):
+        line.append(line[-1].copy().translate(tn))
+    return line
 
 # return a ring of points of radius r with n corners
 def point_ring(r,n):
@@ -65,5 +77,19 @@ def offset_faces(faces,offset):
         for tfdx in range(tfcnt):
             fa[tfdx] += offset
     return faces
+
+def clamp(v,f,c):
+    if v < f: return f
+    elif v > c: return c
+    else: return v
+
+def rad(deg):return numpy.pi*deg/180.0
+def deg(rad):return 180.0*rad/numpy.pi
+
+res_path = os.path.join(appdirs.user_data_dir(),'dilap_resources')
+def resource_path(res = None):
+    if res is None:rpath = res_path[:]
+    else:rpath = os.path.join(res_path,res)
+    return rpath
 
 

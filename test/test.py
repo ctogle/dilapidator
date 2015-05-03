@@ -35,11 +35,17 @@ def floor():
     f = dlc.floor(gap = gap)
     dlc.build(f)
 
+def houselot():
+    dcx = dlc.lot()
+    dcx.generate()
+    dcx.graph()
+
 #cube()
 #cone()
 #stonehenge()
 #wall()
 #perim()
-floor()
+#floor()
+houselot()
 
 

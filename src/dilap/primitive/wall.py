@@ -1,6 +1,6 @@
 import dilap.core.base as db
+import dilap.core.tools as dpr
 import dilap.core.model as dmo
-import dilap.primitive.tools as dpr
 
 import dp_vector as dpv
 
@@ -24,7 +24,7 @@ class wall(dmo.model):
         self.center = dpv.midpoint(v1,v2)
         self.tangent = dpv.v1_v2(v1,v2).normalize()
         self.normal = self.tangent.copy()
-        self.normal.rotate_z(db.rad(90)).normalize()
+        self.normal.rotate_z(dpr.rad(90)).normalize()
 
     # given gap tang. coord gx and gap width gw, add gap
     def _gap(self,gx,gw):
@@ -69,8 +69,8 @@ class wall(dmo.model):
 
     # add a wall gap characteristic of a door
     def _door_gap(self,dx,fh):
-        wh,ch = self.h,self.fh
-        dw,dh,dz = 1.5,mpu.clamp(0.8*(wh-fh-ch),2,3),fh
+        wh,ch = self.h,fh
+        dw,dh,dz = 1.5,dpr.clamp(0.8*(wh-fh-ch),2,3),fh
         dpts = self._gap(dx,dw)
         if dpts is None:return
 
@@ -79,6 +79,7 @@ class wall(dmo.model):
 
     # build segments of wall skipping regions from self.gaps
     def _geo(self):
+        #self._door_gap(0.5,0.25)
         spts = []
         spts.append(self.v1)
         for g in self.gaps:spts.extend(g)

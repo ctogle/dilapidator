@@ -1,6 +1,6 @@
 import dilap.core.base as db
 import dilap.core.tform as dtf
-import dilap.primitive.tools as dpr
+import dilap.core.tools as dpr
 
 import dp_vector as dpv
 
@@ -102,6 +102,22 @@ class node(db.base):
         self._def_uv_tform(*args,**kwargs)
 
         self._def('consumption',False,**kwargs)
+
+    def translate(self,v):
+        self.tform.pos.translate(v)
+        return self
+
+    def translate_x(self,dx):
+        self.tform.pos.translate_x(dx)
+        return self
+
+    def translate_y(self,dy):
+        self.tform.pos.translate_y(dy)
+        return self
+
+    def translate_z(self,dz):
+        self.tform.pos.translate_z(dz)
+        return self
 
     def _add_child(self,*chil):
         for ch in chil:

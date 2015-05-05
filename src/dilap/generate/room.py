@@ -27,20 +27,12 @@ class room(dgc.context):
         self._def('shafted',False,**kwargs)
 
     def generate(self,wallheight = 4.0,worn = 0):
-        #vs = dpr.corners(self.l,self.w,dpv.vector(self.x,self.y,0))
-        #walls = []
-        #for vdx in range(len(vs)):
-        #    v1,v2 = vs[vdx-1],vs[vdx]
-        #    walls.append(dw.wall(v1,v2,h = wallheight,w = 0.25))
-
         fgap,cgap = self.fgap,self.cgap
         fl = df.floor(self.l,self.w,h = self.fh,gap = fgap)
         fl.translate_x(self.x).translate_y(self.y).translate_z(self.fh)
         cl = df.floor(self.l,self.w,h = self.ch,gap = cgap)
         cl.translate_x(self.x).translate_y(self.y).translate_z(wallheight)
-        rnode = self._node_consume(
-            #self._node_wrap(*walls),
-            self._node_wrap(fl,cl))
+        rnode = self._node_consume(self._node_wrap(fl,cl))
         self._nodes_to_graph(rnode)
 
 

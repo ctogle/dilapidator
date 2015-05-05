@@ -54,10 +54,6 @@ class house(dgc.context):
             self.fplan.generate(self.wheights[x],worn)
             if x == 0:self.generate_stoop(worn)
             self.generate_story(x,worn)
-
-        # modify the shaft plans to have the right f/c/w-heights
-        print('modify the shaft plans to have the right f/c/w-heights')
-
         for s in self.fplan.generate_shafts(worn):self._consume(s)
 
 

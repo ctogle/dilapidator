@@ -62,7 +62,8 @@ class shaft(dgc.context):
 
         p3h = 2.0*sheight;p3l = l;p3w = 3.0
         p3x = 0.0;p3y = (w - p3w)/2.0;p3z = diff-sheight
-        pform3 = dcu.cube().translate_z(0.5)
+        # this next line is suspect
+        pform3 = dcu.cube().translate_z(0.25)  
         pform3.scale(dpv.vector(p3l,p3w,p3h))
         pform3.translate(dpv.vector(p3x,p3y,p3z))
 
@@ -74,8 +75,7 @@ class shaft(dgc.context):
         sopts2 = {'steps':s,'l':rl,'w':rw,'h':diff}
         lside = ds.stairs(**sopts1)
         rside = ds.stairs(**sopts2)
-        #lside.rotate_z(dpr.PI).translate_y(rl).translate_z(diff)
-        lside.translate_y(rl).translate_z(diff)
+        lside.rotate_z(dpr.PI).translate_y(rl).translate_z(diff)
         lside.translate_x(-rwoffx).translate_y(-rwoffy).translate_z(fh-sheight)
         rside.translate_x( rwoffx).translate_y(-rwoffy).translate_z(fh-sheight)
         final = dpr.combine([pform1,pform2,pform3,lside,rside,extra])

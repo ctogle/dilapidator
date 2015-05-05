@@ -69,7 +69,9 @@ class floorplan(dgc.context):
         margs = ((),{'x':mx,'y':my,'l':subl,'w':subw,'shafted':False})
         splan = self.should_shaft(margs)
         cpairs = self.wall_verts(margs)
-        ewargs = [(cp,{'h':4.0,'w':0.5}) for cp in cpairs]
+        ewargs = [[cp,{'h':4.0,'w':0.5,'switchable':True}] for cp in cpairs]
+        # 0 may not be the front wall, i did not check
+        ewargs[0][1]['switchable'] = False
 
         rmplans = [margs]
         ewplans = ewargs[:]
@@ -77,28 +79,39 @@ class floorplan(dgc.context):
         shplans = [splan] if splan else []
         return rmplans,ewplans,iwplans,shplans
 
+    # choose a side if necessary
+    def grow_side(self,plans,side):
+        if side is None:
+            options = plans[1][:]
+            while options:
+                which = rm.choice(options)
+                if not which[1]['switchable']:
+                    side = which
+                    break
+                options.remove(which)
+        return side
 
-
+    # choose a grow length if necessary
+    def grow_length(self,plans,length):
+        if length is None:return rm.choice([8,12,16,20,24,28,32])
+        else:return length
 
     # plans is a tuple of 4 lists of plans
     #def grow(self,length = None,side = None,force = False):
     def grow(self,plans,length = None,side = None,force = False):
-        if side is None:
-            side = rm.choice(self.exterior_walls)
-            if side.unswitchable:
-                #print 'found the entrance while growing'
-                return False
+        side = self.grow_side(plans,side)
+        if side is None:return False
+        gleng = self.grow_length(plans,length)
 
-        if length is None:
-            glengmax = 20 # this is decided by projecting each v1v2
-            gleng = rm.choice([8,12,16,20,24,28,32])
-        else: gleng = length
+        #bdist = side._distance_to_border(self.corners)
+        #if bdist < 8 and not force:
+        #    #print 'too close to a border to grow'
+        #    return False
+        #elif gleng > bdist: gleng = bdist
 
-        bdist = side._distance_to_border(self.corners)
-        if bdist < 8 and not force:
-            #print 'too close to a border to grow'
-            return False
-        elif gleng > bdist: gleng = bdist
+        pdb.set_trace()
+        # THIS IS WHERE IT GOES OFF THE RAILS
+
 
         side._face_away()
         c1 = side.v2.copy()
@@ -155,7 +168,7 @@ class floorplan(dgc.context):
 
     def plan(self):
         plans = self.entry()
-
+        
         self.allplans = plans
         return
 

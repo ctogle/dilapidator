@@ -455,4 +455,26 @@ class model(db.base):
 
     #######################################################
 
+    def rotate(self,q):
+        print('its time to try the quaternion')
+        pdb.set_trace()
+
+        dpv.scale_coords_x(self.pcoords,sx)
+        #if self._scale_uvs_: self.scale_uvs(dpv.vector(sx,0,0))
+        return self
+
+    def rotate_x(self,rx):
+        dpv.rotate_x_coords(self.pcoords,rx)
+        return self
+
+    def rotate_y(self,ry):
+        dpv.rotate_y_coords(self.pcoords,ry)
+        return self
+
+    def rotate_z(self,rz):
+        dpv.rotate_z_coords(self.pcoords,rz)
+        return self
+
+    #######################################################
+
 

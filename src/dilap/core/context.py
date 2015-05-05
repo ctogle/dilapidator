@@ -24,6 +24,7 @@ class context(db.base):
     def __init__(self,*args,**kwargs):
         self.sgraph = dsg.sgraph()
         self._def('iotype','obj',**kwargs)
+        self._def('dilapidors',[],**kwargs)
 
     # for one or many nodes, return a node consuming them
     def _node_consume(self,*nodes):
@@ -55,6 +56,9 @@ class context(db.base):
         dcone = dco.cone()
         self._models_to_graph(dcone)
         return self
+
+    def passtime(self,years):
+        for d in self.dilapidors:d.wither(self,years)
 
     def graph(self):
         iotype = self.iotype

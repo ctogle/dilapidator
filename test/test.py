@@ -1,4 +1,5 @@
 import dilap.construct as dlc
+import dilap.destruct as dld
 import dilap.primitive.tools as pdr
 
 import dp_vector as dpv
@@ -36,9 +37,8 @@ def floor():
     dlc.build(f)
 
 def houselot():
-    dcx = dlc.lot()
-    dcx.generate()
-    dcx.graph()
+    dds = dld.dilapidors['ivy'](4)
+    dlc.realize(dlc.contextualizer['lot'](dilaps = [dds]),7)
 
 #cube()
 #cone()

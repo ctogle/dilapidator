@@ -1,8 +1,8 @@
 #imports
 # cython: profile=True
 #cimport cython
-
-import matplotlib.pyplot as plt
+cimport dp_vector as dpv
+import dp_vector as dpv
 
 from libc.math cimport sqrt
 from libc.math cimport cos
@@ -10,276 +10,204 @@ from libc.math cimport sin
 from libc.math cimport tan
 from libc.math cimport hypot
 import numpy as np
- 
-#cimport mp_utils as mpu
-#import make_places.core.support.mp_utils as mpu
-
-
 
 stuff = 'hi'
 
-# 2d classes/functions
-
-cdef class vector2d:
-
-    def __cinit__(self,float x,float y):
-        self.x = x
-        self.y = y
-
-    def __str__(self):
-        strr = 'vector2d:' + str((self.x,self.y))
-        return strr
-
-    cpdef vector2d copy(self):
-        cdef vector2d new = vector2d(self.x,self.y)
-        return new
-
-    cpdef list to_list(self):
-        cdef list new = [self.x,self.y]
-        return new
-
-    cpdef tuple to_tuple(self):
-        cdef tuple new = (self.x,self.y)
-        return new
-
-    cpdef vector2d flip(self):
-        self.x *= -1.0
-        self.y *= -1.0
-        return self
-
-    cpdef vector2d reciprocate(self):
-        self.x = 1.0/self.x
-        self.y = 1.0/self.y
-        return self
-
-    cpdef vector2d translate(self, vector2d tv):
-        self.x += tv.x
-        self.y += tv.y
-        return self
-
-    cpdef vector2d scale(self, vector2d sv):
-        self.x *= sv.x
-        self.y *= sv.y
-        return self
-
-    cpdef vector2d scale_x(self, float sx):
-        self.x *= sx
-        return self
-
-    cpdef vector2d scale_y(self, float sy):
-        self.y *= sy
-        return self
-
-cdef vector2d midpoint2d_c(vector2d v1, vector2d v2):
-    cdef float x = (v1.x + v2.x)/2.0
-    cdef float y = (v1.y + v2.y)/2.0
-    cdef vector2d new = vector2d(x,y)
-    return new
-
-cpdef vector2d midpoint2d(vector2d v1, vector2d v2):
-    cdef vector2d pt = midpoint2d_c(v1, v2)
-    return pt
-
-cdef void translate_coords2d_c(list coords, vector2d t):
-    cdef int ccnt = len(coords)
-    cdef int cdx
-    cdef vector2d coo
-    for cdx in range(ccnt):
-        coo = <vector2d>coords[cdx]
-        coo.translate(t)
-
-cpdef translate_coords2d(list coords, vector2d t):
-    translate_coords2d_c(coords,t)
-
-cdef void scale_coords2d_c(list coords, vector2d s):
-    cdef int ccnt = len(coords)
-    cdef int cdx
-    cdef vector2d coo
-    for cdx in range(ccnt):
-        coo = <vector2d>coords[cdx]
-        coo.scale(s)
-
-cpdef scale_coords2d(list coords, vector2d s):
-    scale_coords2d_c(coords,s)
-
 # 3d classes/functions
 
-cdef class vector:
+cdef class quaternion:
 
-    def plot_xy(self):
-        return [(self.x,self.y)]
-
-    def __cinit__(self,float x,float y,float z):
+    def __cinit__(self,float w,float x,float y,float z):
+        self.w = w
         self.x = x
         self.y = y
         self.z = z
 
     def __str__(self):
-        strr = 'vector:' + str((self.x,self.y,self.z))
+        strr = 'quat:' + str((self.w,self.x,self.y,self.z))
         return strr
-
-    def __add__(self,other):
-        new = vector(self.x+other.x,self.y+other.y,self.z+other.z)
-        return new
-
-    def __sub__(self,other):
-        new = vector(self.x-other.x,self.y-other.y,self.z-other.z)
-        return new
-
-    def __mul__(self,other):
-        new = vector(self.x*other.x,self.y*other.y,self.z*other.z)
-        return new
 
     def __richcmp__(self, other, comparator):
         if self.x == other.x:
             if self.y == other.y:
-                if self.z == other.z: return True
+                if self.z == other.z:
+                    if self.w == other.w:
+                        return True
         return False
 
-    cpdef vector2d xy2d(self):
-        cdef vector2d new = vector2d(self.x,self.y)
-        return new
-
-    cpdef vector2d xz2d(self):
-        cdef vector2d new = vector2d(self.x,self.z)
-        return new
-
-    cpdef vector2d yz2d(self):
-        cdef vector2d new = vector2d(self.y,self.z)
-        return new
-
-    cpdef vector xy(self):
-        cdef vector new = vector(self.x,self.y,0.0)
-        return new
-
-    cpdef vector xz(self):
-        cdef vector new = vector(self.x,0.0,self.z)
-        return new
-
-    cpdef vector yz(self):
-        cdef vector new = vector(0.0,self.y,self.z)
-        return new
-
-    cpdef vector copy(self):
-        cdef vector new = vector(self.x,self.y,self.z)
-        return new
+    #cpdef vector vector(self):
+    #    cdef vector new = vector(x,y,z)
+    #    return new
 
     def __iter__(self):
+        yield self.w
         yield self.x
         yield self.y
         yield self.z
 
+    cpdef quaternion copy(self):
+        cdef quaternion new = quaternion(self.w,self.x,self.y,self.z)
+        return new
+
     cpdef list to_list(self):
-        cdef list new = [self.x,self.y,self.z]
+        cdef list new = [self.w,self.x,self.y,self.z]
         return new
 
     cpdef tuple to_tuple(self):
-        cdef tuple new = (self.x,self.y,self.z)
+        cdef tuple new = (self.w,self.x,self.y,self.z)
         return new
 
     cpdef float magnitude(self):
+        cdef float ww = self.w**2
         cdef float xx = self.x**2
         cdef float yy = self.y**2
         cdef float zz = self.z**2
-        cdef float ss = sqrt(xx + yy + zz)
+        cdef float ss = sqrt(ww + xx + yy + zz)
         return ss
 
-    cpdef vector normalize(self):
+    cpdef quaternion normalize(self):
         cdef float mag = self.magnitude()
         if not mag == 0.0:
+            self.w /= mag
             self.x /= mag
             self.y /= mag
             self.z /= mag
         return self
 
-    cpdef vector flip(self):
+    cpdef quaternion conjugate(self):
         self.x *= -1.0
         self.y *= -1.0
         self.z *= -1.0
         return self
 
-    cpdef vector reciprocate(self):
-        self.x = 1.0/self.x
-        self.y = 1.0/self.y
-        self.z = 1.0/self.z
+    cpdef quaternion flip(self):
+        self.w *= -1.0
         return self
 
-    cpdef vector rotate_x(self, float zang):
-        cdef float cosz = cos(zang)
-        cdef float sinz = sin(zang)
-        cdef float newy = cosz*self.y - sinz*self.z
-        cdef float newz = sinz*self.y + cosz*self.z
-        self.y = newy
-        self.z = newz
+    cpdef quaternion translate(self, quaternion q):
+        self.w += q.w
+        self.x += q.x
+        self.y += q.y
+        self.z += q.z
         return self
 
-    cpdef vector rotate_y(self, float zang):
+    cpdef quaternion translate_w(self, float tw):
+        self.w += tw
+        return self
+
+    cpdef quaternion translate_x(self, float tx):
+        self.x += tx
+        return self
+
+    cpdef quaternion translate_y(self, float ty):
+        self.y += ty
+        return self
+
+    cpdef quaternion translate_z(self, float tz):
+        self.z += tz
+        return self
+
+    cpdef quaternion scale(self, quaternion q):
+        self.w *= q.w
+        self.x *= q.x
+        self.y *= q.y
+        self.z *= q.z
+        return self
+
+    cpdef quaternion scale_w(self, float sw):
+        self.w *= sw
+        return self
+
+    cpdef quaternion scale_x(self, float sx):
+        self.x *= sx
+        return self
+
+    cpdef quaternion scale_y(self, float sy):
+        self.y *= sy
+        return self
+
+    cpdef quaternion scale_z(self, float sz):
+        self.z *= sz
+        return self
+
+    cpdef quaternion scale_u(self, float s):
+        self.w *= s
+        self.x *= s
+        self.y *= s
+        self.z *= s
+        return self
+
+    # rotate vector v by rotation represented by self
+    cpdef dpv.vector rotate_vector(self, dpv.vector v):
+        print('MUST IMPLEMENT QUAT ROT')
+        cdef quaternion qstar = self.normalize().copy().conjugate()
+        cdef quaternion pure = quaternion(0,v.x,v.y,v.z)
+        cdef dpv.vector rotated = dpv.zero()
+        purerotated = multiply(multiply(qstar,pure),self)
+        rotated.x = purerotated.x
+        rotated.y = purerotated.y
+        rotated.z = purerotated.z
+        return rotated
+
+    cpdef quaternion rotate(self, quaternion q):
+        print('MUST IMPLEMENT QUAT ROT')
+        
+        return self
+
+    cpdef quaternion rotate_x(self, float zang):
+        
+        return self
+
+    cpdef quaternion rotate_y(self, float zang):
+        '''#
         cdef float cosz = cos(zang)
         cdef float sinz = sin(zang)
         cdef float newx = cosz*self.x - sinz*self.z
         cdef float newz = sinz*self.x + cosz*self.z
         self.x = newx
         self.z = newz
+        '''#
         return self
 
-    cpdef vector rotate_z(self, float zang):
+    cpdef quaternion rotate_z(self, float zang):
+        '''#
         cdef float cosz = cos(zang)
         cdef float sinz = sin(zang)
         cdef float newx = cosz*self.x - sinz*self.y
         cdef float newy = sinz*self.x + cosz*self.y
         self.x = newx
         self.y = newy
+        '''#
         return self
 
-    cpdef vector translate_x(self, float tx):
-        self.x += tx
+    cpdef quaternion multiply(self, quaternion q):
+        self.w = self.w*q.w - (self.x*q.x + self.y*q.y + self.z*q.z)
+        self.x = self.w*q.x + q.w*self.x + (self.y*q.z - self.z*q.y)
+        self.y = self.w*q.y + q.w*self.y + (self.z*q.x - self.x*q.z)
+        self.z = self.w*q.z + q.w*self.z + (self.x*q.y - self.y*q.x)
         return self
 
-    cpdef vector translate_y(self, float ty):
-        self.y += ty
+
+
+
+    '''#
+    cpdef vector reciprocate(self):
+        self.x = 1.0/self.x
+        self.y = 1.0/self.y
+        self.z = 1.0/self.z
         return self
+    '''#
 
-    cpdef vector translate_z(self, float tz):
-        self.z += tz
-        return self
 
-    cpdef vector translate(self, vector tv):
-        self.x += tv.x
-        self.y += tv.y
-        self.z += tv.z
-        return self
+    #cpdef vector cross(self, vector v):
+    #    selfv = self.vector()
+    #    return cross_c(selfv,v)
 
-    cpdef vector scale(self, vector sv):
-        self.x *= sv.x
-        self.y *= sv.y
-        self.z *= sv.z
-        return self
+    #cpdef float dot(self, vector v):
+    #    selfv = self.vector()
+    #    return dot_c(selfv,v)
 
-    cpdef vector scale_u(self, float s):
-        self.x *= s
-        self.y *= s
-        self.z *= s
-        return self
-
-    cpdef vector cross(self, vector v):
-        return cross_c(self,v)
-
-    cpdef float dot(self, vector v):
-        return dot_c(self,v)
-
-cdef vector zero_c():
-    cdef vector new = vector(0,0,0)
-    return new
-
-cpdef vector zero():
-    return zero_c()
-
-cdef vector2d zero2d_c():
-    cdef vector2d new = vector2d(0,0)
-    return new
-
-cpdef vector2d zero2d():
-    return zero2d_c()
+'''#
 
 cdef vector one_c():
     cdef vector new = vector(1,1,1)
@@ -288,13 +216,6 @@ cdef vector one_c():
 cpdef vector one():
     return one_c()
 
-cdef vector2d one2d_c():
-    cdef vector2d new = vector2d(1,1)
-    return new
-
-cpdef vector2d one2d():
-    return one2d_c()
-
 cdef vector flip_c(vector f):
     cdef vector new = vector(-1.0*f.x,-1.0*f.y,-1.0*f.z)
     return new
@@ -302,27 +223,42 @@ cdef vector flip_c(vector f):
 cpdef vector flip(vector f):
     return flip_c(f)
 
-cdef vector2d flip2d_c(vector2d f):
-    cdef vector2d new = vector2d(-1.0*f.x,-1.0*f.y)
-    return new
-
-cpdef vector2d flip2d(vector2d f):
-    return flip2d_c(f)
-
 cdef vector normalize_c(vector v):
     cdef vector new = v.copy().normalize()
     return new
 
 cpdef vector normalize(vector v):
     return normalize_c(v)
+'''#
 
-cpdef float magnitude(vector v):
-    cdef float xx = v.x**2
-    cdef float yy = v.y**2
-    cdef float zz = v.z**2
-    cdef float ss = sqrt(xx + yy + zz)
+cpdef float magnitude(quaternion q):
+    cdef float ss = q.magnitude()
     return ss
 
+cdef quaternion zero_c():
+    cdef quaternion new = quaternion(1,0,0,0)
+    return new
+
+cpdef quaternion zero():
+    return zero_c()
+
+cpdef quaternion q_from_av(float a, dpv.vector v):
+    cdef float w = cos(a/2.0)
+    cdef float sa = sin(a/2.0)
+    cdef float x = v.x*sa
+    cdef float y = v.y*sa
+    cdef float z = v.z*sa
+    return quaternion(w,x,y,z)
+
+cpdef quaternion multiply(quaternion q1, quaternion q2):
+    cdef float w = q1.w*q2.w - (q1.x*q2.x + q1.y*q2.y + q1.z*q2.z)
+    cdef float x = q1.w*q2.x + q2.w*q1.x + (q1.y*q2.z - q1.z*q2.y)
+    cdef float y = q1.w*q2.y + q2.w*q1.y + (q1.z*q2.x - q1.x*q2.z)
+    cdef float z = q1.w*q2.z + q2.w*q1.z + (q1.x*q2.y - q1.y*q2.x)
+    cdef quaternion new = quaternion(w,x,y,z)
+    return new
+
+'''#
 cdef float dot_c(vector v1, vector v2):
     return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
 
@@ -533,57 +469,6 @@ cpdef bint near(vector v1, vector v2):
     cdef bint isnear = distance_c(v1,v2) < 0.01
     return isnear
 
-cpdef bint near_xy(vector v1, vector v2):
-    cdef bint isnear = distance_xy_c(v1,v2) < 0.01
-    return isnear
-
-cdef int find_closest_c(vector one,list bunch,int bcnt,float close_enough):
-    cdef float nearest = 100000000.0
-    cdef float ds = nearest
-    cdef int bdx
-    cdef int ndx = 0
-    cdef vector which
-    for bdx in range(bcnt):
-        which = <vector>bunch[bdx]
-        ds = distance_c(one,which)
-        if ds < nearest:
-            nearest = ds
-            ndx = bdx
-            if ds <= close_enough:
-                return ndx
-    return ndx
-
-cpdef int find_closest(vector one,list bunch,int bcnt,float close_enough):
-    return find_closest_c(one,bunch,bcnt,close_enough)
-
-cdef int find_closest_xy_c(vector one,list bunch,int bcnt,float close_enough):
-    cdef float nearest = 100000000.0
-    cdef float ds = nearest
-    cdef int bdx
-    cdef int ndx = 0
-    cdef vector which
-    for bdx in range(bcnt):
-        which = <vector>bunch[bdx]
-        ds = distance_xy_c(one,which)
-        if ds < nearest:
-            nearest = ds
-            ndx = bdx
-            if ds <= close_enough:
-                return ndx
-    return ndx
-
-cpdef int find_closest_xy(vector one,list bunch,int bcnt,float close_enough):
-    return find_closest_xy_c(one,bunch,bcnt,close_enough)
-
-cdef float angle_from_xaxis_xy_c(vector v):
-    cdef float oldz = v.z
-    cdef float angle = angle_from_xaxis_c(v)
-    v.z = oldz
-    return angle
-
-cpdef float angle_from_xaxis_xy(vector v):
-    return angle_from_xaxis_xy_c(v)
-
 #cdef xhat = vector(1,0,0)
 #cdef yhat = vector(0,1,0)
 #cdef zhat = vector(0,0,1)
@@ -633,74 +518,6 @@ cdef float angle_from_xaxis_c(vector v):
 
 cpdef float angle_from_xaxis(vector v):
     return angle_from_xaxis_c(v)
-
-cpdef bint test_afxa():
-    cdef vector v1 = vector(10,0,0)
-    cdef vector v2 = vector(10,10,0)
-    cdef vector v3 = vector(10,10,10)
-    cdef vector v4 = vector(-10,10,0)
-    cdef vector v5 = vector(-10,0,0)
-    cdef vector v6 = vector(-10,-10,0)
-    cdef vector v7 = vector(0,-10,0)
-    cdef vector v8 = vector(10,-10,0)
-    t1 = str(angle_from_xaxis_c(v1))
-    t2 = str(angle_from_xaxis_c(v2))
-    t3 = str(angle_from_xaxis_c(v3))
-    t4 = str(angle_from_xaxis_c(v4))
-    t5 = str(angle_from_xaxis_c(v5))
-    t6 = str(angle_from_xaxis_c(v6))
-    t7 = str(angle_from_xaxis_c(v7))
-    t8 = str(angle_from_xaxis_c(v8))
-    print 'ANGLETEST'
-    print '\t'.join([t1,t2,t3,t4,t5,t6,t7,t8])
-
-cpdef bint inside(vector pt, list corners):
-    poly = [(c.x,c.y) for c in corners]
-    x,y = pt.x,pt.y
-    n = len(poly)
-    ins = False
-
-    p1x,p1y = poly[0]
-    for i in range(n+1):
-        p2x,p2y = poly[i % n]
-        if y > min(p1y,p2y):
-            if y <= max(p1y,p2y):
-                if x <= max(p1x,p2x):
-                    if p1y != p2y:
-                        xints = (y-p1y)*(p2x-p1x)/(p2y-p1y)+p1x
-                    if p1x == p2x or x <= xints:
-                        ins = not ins
-        p1x,p1y = p2x,p2y
-    return ins
-
-cdef list line_normals_c(list verts):
-    cdef list norms = []
-    cdef int vcnt = len(verts)
-    cdef int vdx
-    cdef vector v1
-    cdef vector v2
-    cdef float dx
-    cdef float dy
-    cdef float dv
-    cdef vector norm
-    for vdx in range(vcnt):
-        v1,v2 = verts[vdx-1],verts[vdx]
-        dx = v2.x - v1.x
-        dy = v2.y - v1.y
-        dv = sqrt(dx**2 + dy**2)
-        norm = vector(dy/dv,-dx/dv,0)
-        norms.append(norm)
-    norms.append(norms.pop(0))
-    return norms
-
-cpdef list line_normals(list verts):
-    return line_normals_c(verts)
-
-
-
-
-
-
-
+'''#
 
 

@@ -10,10 +10,8 @@ from Cython.Distutils import build_ext
 
 core_modules = []
 ext_modules = [
-    #Extension('dp_utils', ['support/mp_utils.c']), 
     Extension('dp_vector',['cython/dp_vector.c']), 
-    #Extension('dp_bboxes', ['support/mp_bboxes.c']), 
-    #Extension('dp_terrain', ['support/mp_terrain.c']), 
+    Extension('dp_quaternion',['cython/dp_quaternion.c']), 
             ]
 
 resourcesdir = os.path.join(appdirs.user_data_dir(),'dilap_resources')
@@ -32,6 +30,7 @@ pkgs = [
     'dilap.core',
     'dilap.primitive',
     'dilap.generate',
+    'dilap.degenerate',
 ]
 
 setup(

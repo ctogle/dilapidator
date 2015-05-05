@@ -3,6 +3,7 @@ import dilap.core.tform as dtf
 import dilap.core.tools as dpr
 
 import dp_vector as dpv
+import dp_quaternion as dpq
 
 import pdb
 
@@ -26,9 +27,25 @@ class sgraph(db.base):
     def __init__(self,*args,**kwargs):
         self._def('nodes',[],**kwargs)
 
+    def to_world(self):
+        for nd in self.nodes:
+            for ch in nd.tform.children:
+                ch.owner._models_to_world()
+            nd._models_to_world()
+
+    def to_local(self):
+        for nd in self.nodes:
+            for ch in nd.tform.children:
+                ch.owner._models_to_local()
+            nd._models_to_local()
+
     def graph(self,iotype):
         iotype.write_materials()
         for nd in self.nodes:
+            if nd.consumption:nd._consume()
+            else:
+                for ch in nd.tform.children:
+                    ch.owner._realize(iotype)
             nd._realize(iotype)
 
 ###############################################################################
@@ -56,7 +73,8 @@ class node(db.base):
         if hasattr(self,'tform'):return
         kweys = kwargs.keys()
         pos = kwargs['pos'] if 'pos' in kweys else dpv.zero()
-        rot = kwargs['rot'] if 'rot' in kweys else dpv.zero()
+        #rot = kwargs['rot'] if 'rot' in kweys else dpv.zero()
+        rot = kwargs['rot'] if 'rot' in kweys else dpq.zero()
         scl = kwargs['scl'] if 'scl' in kweys else dpv.one()
         tpar = kwargs['parent'] if 'parent' in kweys else None
         tchi = kwargs['children'] if 'children' in kweys else []
@@ -117,6 +135,29 @@ class node(db.base):
 
     def translate_z(self,dz):
         self.tform.pos.translate_z(dz)
+        return self
+
+    def scale(self,s):
+        self.tform.scl.scale(s)
+        return self
+
+    def scale_x(self,sx):
+        self.tform.scl.x *= sx
+        return self
+
+    def scale_y(self,sy):
+        self.tform.scl.y *= sy
+        return self
+
+    def scale_z(self,sz):
+        self.tform.scl.z *= sz
+        return self
+
+    def rotate(self,q):
+        print('its time to try the quaternion')
+        pdb.set_trace()
+
+        self.tform.pos.translate(v)
         return self
 
     def _add_child(self,*chil):
@@ -214,6 +255,39 @@ class node(db.base):
         else:apcnt = pcnt
         return ms,ls,apcnt
 
+    # more this nodes models to world space
+    def _models_to_world(self):
+        ttf = self.tform.true()
+        uv_ttf = self.uv_tform.true()
+        models,lods,mcnt = self._model_listing()
+        for pmdx in range(mcnt):
+            pm = models[pmdx]
+            lpm = lods[pmdx]
+            if not pm is None:self._transform_to_world(pm,ttf,uv_ttf)
+            if not lpm is None:self._transform_to_world(lpm,ttf,uv_ttf)
+
+    # more this nodes models to local space
+    def _models_to_local(self):
+        ttf = self.tform.true()
+        uv_ttf = self.uv_tform.true()
+        models,lods,mcnt = self._model_listing()
+        for pmdx in range(mcnt):
+            pm = models[pmdx]
+            lpm = lods[pmdx]
+            if not pm is None:self._transform_to_local(pm,ttf,uv_ttf)
+            if not lpm is None:self._transform_to_local(lpm,ttf,uv_ttf)
+    
+    # transform models/lods to world space
+    # use iotype to build the models
+    # transform models/lods back to local spaces
+    def _build_models(self,iotype,**kwargs):
+        models,lods,mcnt = self._model_listing()
+        for pmdx in range(mcnt):
+            pm = models[pmdx]
+            lpm = lods[pmdx]
+            if not pm is None:iotype.build_model(pm,**kwargs)
+            if not lpm is None:iotype.build_model(lpm,**kwargs)
+
     # transform models/lods to world space
     # use iotype to build the models
     # transform models/lods back to local spaces
@@ -237,10 +311,10 @@ class node(db.base):
     # given an io module, produce model outputs 
     # for this node and its children
     def _realize(self,iotype):
-        if self.consumption:self._consume()
-        else:
-            for ch in self.tform.children:
-                ch.owner._realize(iotype)
+        #if self.consumption:self._consume()
+        #else:
+        #    for ch in self.tform.children:
+        #        ch.owner._realize(iotype)
         self._modelize(iotype)
 
 

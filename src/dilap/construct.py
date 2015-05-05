@@ -8,9 +8,16 @@ import dilap.primitive.cylinder as dcyl
 import dilap.primitive.wall as dw
 import dilap.primitive.floor as df
 import dilap.generate.context as dgc
+import dilap.generate.landscape as dls
 import dilap.generate.lot as dlot
 
+import pdb
+
 iotypes = dio.iotypes
+
+###############################################################################
+### functions to realize models,nodes,contexts
+###############################################################################
 
 # given either one or many models or nodes
 # build all models in world space using iotype io
@@ -26,6 +33,17 @@ def build(mods,consume = False,io = None):
         mods = [consumenode]
     sgr = dsg.sgraph(nodes = mods)
     sgr.graph(iotypes[io])
+
+def realize(context,years = 0):
+    context.generate(worn = years)
+    context.passtime(years)
+    context.graph()
+
+###############################################################################
+
+###############################################################################
+### simple functions which return simple models
+###############################################################################
 
 # return a cube model with sidelength l
 def cube(l = 1.0):
@@ -62,12 +80,45 @@ def floor(l = 10.0,w = 10.0,h = 0.5,gap = None,m = 'generic'):
     fl = df.floor(l,w,h = h,gap = gap,m = m)
     return fl
 
-def context(io = 'obj'):
-    cx = dgc.context(iotype = io)
+###############################################################################
+
+def context(io = 'obj',dilaps = []):
+    cx = dgc.context(iotype = io,dilapidors = dilaps)
     return cx
 
-def lot(io = 'obj'):
-    cx = dlot.lot(iotype = io)
+def landscape(io = 'obj',dilaps = []):
+    cx = dls.landscape(iotype = io,dilapidors = dilaps)
     return cx
+
+def lot(io = 'obj',dilaps = []):
+    cx = dlot.lot(iotype = io,dilapidors = dilaps)
+    return cx
+
+###############################################################################
+
+###############################################################################
+### convenient collections of functions
+###############################################################################
+
+# generator is a dict of funcs which return model objects
+generator = {
+    'cube':cube,
+    'cylinder':cylinder,
+    'cone':cone,
+    'wall':wall,
+    'perimeter':perimeter,
+    'floor':floor,
+    'context':context,
+    'lot':lot,
+}
+
+# contextualizer is a dict of funcs which return context objects
+contextualizer = {
+    'context':context,
+    'landscape':landscape,
+    'lot':lot,
+}
+
+###############################################################################
 
                                                                                   

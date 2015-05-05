@@ -56,7 +56,7 @@ def unique_objfile(ofile):
 def obj_from_model(mod):
     ofile = unique_objfile(mod.filename)
     faces = mod._face_dict()
-    mats = faces.keys()
+    mats = [m for m in faces.keys()]
     mcnt = len(mats)
 
     sioio = sio()

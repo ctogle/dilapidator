@@ -1,6 +1,7 @@
 import dilap.core.base as db
 import dilap.core.tools as dpr
 import dilap.construct as dlc
+import dilap.destruct as dld
 
 import bpy,sys
 from bpy_extras.io_utils import unpack_list
@@ -29,46 +30,9 @@ class dilap_panel(bpy.types.Panel):
     bl_label = "dilap Generator Settings"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    #bl_context = "scene"
+    bl_context = "scene"
 
     def draw(self,context):
-        #box = self.layout
-        #col = box.column(align=True)
-
-        '''#
-        row = col.row(align=True)
-        row.alignment = "EXPAND"
-        row.label("Game root")
-        row.prop(context.scene, "grit_root_dir", text="", expand=True)
-
-        row = col.row(align=True)
-        row.alignment = "EXPAND"
-        row.prop(context.scene, "grit_map_export", text="Export?")
-        row.prop(context.scene, "grit_map_file", text="", expand=True)
-
-        row = col.row(align=True)
-        row.alignment = "EXPAND"
-        row.label("Obj prefix")
-        row.prop(context.scene, "grit_map_prefix", text="", expand=True)
-
-        row = col.row(align=True)
-        row.alignment = "EXPAND"
-        row.prop(context.scene, "grit_classes_export", text="Export?")
-        row.prop(context.scene, "grit_classes_file", text="", expand=True)
-
-        row = col.row(align=True)
-        row.alignment = "EXPAND"
-        row.prop(context.scene, "grit_meshes_export")
-        row.prop(context.scene, "grit_meshes_convert", text="Convert", expand=True)
-
-        row = col.row(align=True)
-        row.alignment = "EXPAND"
-        row.prop(context.scene, "grit_gcols_export")
-        row = row.row()
-        row.prop(context.scene, "grit_gcols_convert", text="Convert", expand=True)
-        row.enabled = False
-        '''#
-
         box = self.layout
         col = box.column(align=True)
         col.operator('object.dilaprun',icon="SCRIPT")
@@ -92,15 +56,14 @@ class dilap_run(bpy.types.Operator):
     bl_options = {'REGISTER','UNDO'} # enable undo for the operator.
     
     # moved assignment from execute() to the body of the class...
-    years = bpy.props.IntProperty(
-        name = 'years',default = 10,min = 1,max = 100)
+    years = bpy.props.IntProperty(name = 'years',default = 10,min = 1,max = 100)
+    dcontext = bpy.props.StringProperty(name = 'context',default = 'lot')
 
     # execute() is called by blender when running the operator.
     def execute(self,context):
-        #dcx = dlc.context(sys.modules[__name__])
-        dcx = dlc.lot(sys.modules[__name__])
-        dcx.generate(worn = self.years)
-        dcx.graph()
+        dilaps = [dld.dilapidors['ivy']()]
+        dcx = dlc.contextualizer[self.dcontext](sys.modules[__name__],dilaps)
+        dlc.realize(dcx,self.years)
         return {'FINISHED'}
 
 class dilap_purge(bpy.types.Operator):

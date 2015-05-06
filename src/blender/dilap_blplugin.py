@@ -108,7 +108,7 @@ def material_image(name,texture):
     tex = bpy.data.textures.new(name,type = 'IMAGE')
     tex.image = bpy.data.images.load(imgpath)
     tex.use_alpha = True
-    mat.use_shadeless = True
+    #mat.use_shadeless = True
     mtex = mat.texture_slots.add()
     mtex.texture = tex
     mtex.texture_coords = 'UV'

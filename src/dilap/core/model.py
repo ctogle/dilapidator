@@ -2,6 +2,7 @@ import dilap.core.base as db
 import dilap.core.tools as dpr
 
 import dp_vector as dpv
+import dp_bbox as dbb
 
 ###############################################################################
 ### model is the basic unit of geometry for dilap
@@ -24,14 +25,24 @@ class model(db.base):
 
     def __init__(self,*args,**kwargs):
         self._dpid()
+        # geometric data
         self._def('pcoords',[],**kwargs)
         self._def('ncoords',[],**kwargs)
         self._def('ucoords',[],**kwargs)
         self._def('faces',[],**kwargs)
         self._def('face_mats',[],**kwargs)
         self._def('mats',['generic'],**kwargs)
+        # non geometric data
         self._def('reps',{},**kwargs)
         self._def('filename','modelfile.mesh',**kwargs)
+
+    # return 3d bounding box for this model
+    def _aaabbb(self):
+        xproj = dpv.project_coords(self.pcoords,dpv.xhat)
+        yproj = dpv.project_coords(self.pcoords,dpv.yhat)
+        zproj = dpv.project_coords(self.pcoords,dpv.zhat)
+        bb = dbb.bbox(xproj,yproj,zproj)
+        return bb
 
     # consume another model in place, adding all its data
     # but leaving others data unmodified as opposed to _consume

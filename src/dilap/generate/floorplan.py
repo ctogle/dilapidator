@@ -72,6 +72,7 @@ class floorplan(dgc.context):
         ewargs = [[cp,{'h':4.0,'w':0.5,'switchable':True}] for cp in cpairs]
         # 0 may not be the front wall, i did not check
         ewargs[0][1]['switchable'] = False
+        ewargs[0][1]['doorgaps'] = [(0.5,0.25)]
 
         rmplans = [margs]
         ewplans = ewargs[:]
@@ -165,6 +166,9 @@ class floorplan(dgc.context):
     #####
 
 
+    def plan_specific(self,specific):
+        if specific > 0:
+            self.allplans[1][0][1]['doorgaps'] = []
 
     def plan(self):
         plans = self.entry()

@@ -12,6 +12,8 @@ core_modules = []
 ext_modules = [
     Extension('dp_vector',['cython/dp_vector.c']), 
     Extension('dp_quaternion',['cython/dp_quaternion.c']), 
+    Extension('dp_ray',['cython/dp_ray.c']), 
+    Extension('dp_bbox',['cython/dp_bbox.c']), 
             ]
 
 resourcesdir = os.path.join(appdirs.user_data_dir(),'dilap_resources')

@@ -50,6 +50,7 @@ class house(dgc.context):
     def generate(self,worn = 0):
         self.fplan.plan()
         for x in range(self.stories):
+            self.fplan.plan_specific(x)
             self.fplan.sgraph.nodes = []
             self.fplan.generate(self.wheights[x],worn)
             if x == 0:self.generate_stoop(worn)

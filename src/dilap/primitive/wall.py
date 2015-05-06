@@ -13,6 +13,8 @@ class wall(dmo.model):
         self._endpoints(v1,v2)
         self._def('h',5.0,**kwargs)
         self._def('w',0.5,**kwargs)
+        self._def('doorgaps',[],**kwargs)
+        self._def('windowgaps',[],**kwargs)
         self._def('gaps',[],**kwargs)
         self._geo()
 
@@ -79,7 +81,8 @@ class wall(dmo.model):
 
     # build segments of wall skipping regions from self.gaps
     def _geo(self):
-        #self._door_gap(0.5,0.25)
+        for d in self.doorgaps:self._door_gap(*d)
+        for w in self.windowgaps:self._window_gap(*w)
         spts = []
         spts.append(self.v1)
         for g in self.gaps:spts.extend(g)

@@ -79,4 +79,23 @@ cdef list intersect_hits_c(ray r,list triangles):
 cpdef list intersect_hits(ray r,list triangles):
     return intersect_hits_c(r,triangles)
 
+# return tuple of index,cast vector for the closest triangle to r.origin
+cdef tuple intersect_hits_closest_c(ray r,list triangles):
+    cdef int tcnt = len(triangles)
+    cdef float closest = 100000000000.0
+    cdef int hitdex = -1
+    cdef dpv.vector hitcast = dpv.nxhat.copy()
+    for tdx in range(tcnt):
+        tri = triangles[tdx]
+        hit = r.intersect_tri(*tri)
+        if hit:
+            if r.cast.x < closest:
+                closest = r.cast.x
+                hitdex = tdx
+                hitcast = r.cast.copy()
+    return (hitdex,hitcast)
+
+cpdef tuple intersect_hits_closest(ray r,list triangles):
+    return intersect_hits_closest_c(r,triangles)
+
 

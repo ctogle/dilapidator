@@ -113,7 +113,7 @@ class landscape(dgc.context):
     def __init__(self,*args,**kwargs):
         dgc.context.__init__(self,*args,**kwargs)
         self._def('controls',dpr.point_ring(10,6),**kwargs)
-        self._def('sealevel',-5,**kwargs)
+        self._def('sealevel',0,**kwargs)
 
     # should port algorithms from make_places for this...
     # 

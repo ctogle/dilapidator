@@ -32,7 +32,8 @@ class room(dgc.context):
         fl.translate_x(self.x).translate_y(self.y).translate_z(self.fh)
         cl = df.floor(self.l,self.w,h = self.ch,gap = cgap)
         cl.translate_x(self.x).translate_y(self.y).translate_z(wallheight)
-        rnode = self._node_consume(self._node_wrap(fl,cl))
+        #rnode = self._node_consume(self._node_wrap(fl,cl))
+        rnode = self._node_wrap(fl,cl)
         self._nodes_to_graph(rnode)
 
 

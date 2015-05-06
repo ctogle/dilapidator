@@ -9,6 +9,7 @@ from Cython.Distutils import build_ext
 vectorext = ('dp_vector',[Extension('dp_vector',['dp_vector.pyx','dp_vector.pxd'])])
 quatrnext = ('dp_quaternion',[Extension('dp_quaternion',['dp_quaternion.pyx'])])
 raycsnext = ('dp_ray',[Extension('dp_ray',['dp_ray.pyx'])])
+bboxesext = ('dp_bbox',[Extension('dp_bbox',['dp_bbox.pyx'])])
 
 def ext_setup(ext_name, ext_modules):
     setup(name = ext_name, 
@@ -19,6 +20,7 @@ def ext_setup(ext_name, ext_modules):
 ext_setup(*vectorext)
 ext_setup(*quatrnext)
 ext_setup(*raycsnext)
+ext_setup(*bboxesext)
 
 #python setup.py build_ext --inplace
 

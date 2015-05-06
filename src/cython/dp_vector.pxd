@@ -42,9 +42,12 @@ cdef class vector:
     cpdef vector flip(self)
     cpdef vector reciprocate(self)
     cpdef vector normalize(self)
+    cpdef float magnitude2(self)
     cpdef float magnitude(self)
     cpdef list to_list(self)
     cpdef tuple to_tuple(self)
+    cpdef vector linterpolate(self,vector other,float delta)
+    cpdef vector in_basis(self,vector b1,vector b2,vector b3)
 
 cdef int find_closest_xy_c(vector one, list bunch, int bcnt, float close_enough)
 cdef float distance_xy_c(vector v1, vector v2)
@@ -74,6 +77,7 @@ cdef vector v1_v2_c(vector v1, vector v2)
 cdef vector vzip_c(vector v1, vector v2)
 cdef vector midpoint_c(vector v1, vector v2)
 cdef vector com(list coords)
+cdef vector2d project_coords_c(list coords, vector axis)
 
 cdef list line_normals_c(list verts)
 

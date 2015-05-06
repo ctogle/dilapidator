@@ -177,6 +177,14 @@ cdef class vector:
         cdef tuple new = (self.x,self.y,self.z)
         return new
 
+    # return the magintude of self squared
+    cpdef float magnitude2(self):
+        cdef float xx = self.x**2
+        cdef float yy = self.y**2
+        cdef float zz = self.z**2
+        cdef float ss = xx + yy + zz
+        return ss
+
     cpdef float magnitude(self):
         cdef float xx = self.x**2
         cdef float yy = self.y**2
@@ -203,6 +211,22 @@ cdef class vector:
         self.y = 1.0/self.y
         self.z = 1.0/self.z
         return self
+
+    # linearly interpolate between self and other proportionally to delta
+    cpdef vector linterpolate(self,vector other,float delta):
+        cdef float dx = self.x + (other.x - self.x)*delta
+        cdef float dy = self.y + (other.y - self.y)*delta
+        cdef float dz = self.z + (other.z - self.z)*delta
+        cdef vector new = vector(dx,dy,dz)
+        return new
+
+    # return a copy of self in basis of [b1,b2,b3]
+    cpdef vector in_basis(self,vector b1,vector b2,vector b3):
+        cdef float bx = self.dot(b1)/b1.magnitude2()
+        cdef float by = self.dot(b2)/b2.magnitude2()
+        cdef float bz = self.dot(b3)/b3.magnitude2()
+        cdef vector new = vector(bx,by,bz)
+        return new 
 
     cpdef vector rotate_x(self, float zang):
         cdef float cosz = cos(zang)
@@ -370,6 +394,20 @@ cdef vector midpoint_c(vector v1, vector v2):
 cpdef vector midpoint(vector v1, vector v2):
     cdef vector pt = midpoint_c(v1, v2)
     return pt
+
+cdef vector2d project_coords_c(list coords, vector axis):
+    cdef ccnt = len(coords)
+    cdef int cdx
+    cdef float proj = coords[0].dot(axis)
+    cdef vector2d projv = vector2d(proj,proj)
+    for cdx in range(1,ccnt):
+        proj = coords[cdx].dot(axis)
+        if proj < projv.x:projv.x = proj
+        if proj > projv.y:projv.y = proj
+    return projv
+
+cpdef vector2d project_coords(list coords, vector axis):
+    return project_coords_c(coords,axis)
 
 cdef void rotate_x_coords_c(list coords, float ang):
     cdef int ccnt = len(coords)

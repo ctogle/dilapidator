@@ -30,6 +30,6 @@ class vine(dmo.model):
         bottom.append(bottom[0])
         top.append(top[0])
         self._bridge(bottom,top)
-        self.scale_z(years)
+        #self.scale_z(years)
 
 

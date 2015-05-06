@@ -28,12 +28,14 @@ class sgraph(db.base):
         self._def('nodes',[],**kwargs)
 
     def to_world(self):
+        print('untested to_world function...')
         for nd in self.nodes:
             for ch in nd.tform.children:
                 ch.owner._models_to_world()
             nd._models_to_world()
 
     def to_local(self):
+        print('untested to_local function...')
         for nd in self.nodes:
             for ch in nd.tform.children:
                 ch.owner._models_to_local()
@@ -120,6 +122,7 @@ class node(db.base):
         self._def_uv_tform(*args,**kwargs)
 
         self._def('consumption',False,**kwargs)
+        self._def('space','local',**kwargs)
 
     def translate(self,v):
         self.tform.pos.translate(v)
@@ -199,7 +202,8 @@ class node(db.base):
         if lod:which = self.lod_models
         else:which = self.models
         for pm in which:
-            self._transform_to_world(pm,ttf,uv_ttf)
+            if self.space == 'local':
+                self._transform_to_world(pm,ttf,uv_ttf)
             newpms.append(pm)
         for ch in self.tform.children:
             chpms = ch.owner._transform_to_world_walk(lod)
@@ -255,7 +259,7 @@ class node(db.base):
         else:apcnt = pcnt
         return ms,ls,apcnt
 
-    # more this nodes models to world space
+    # move this nodes models to world space
     def _models_to_world(self):
         ttf = self.tform.true()
         uv_ttf = self.uv_tform.true()
@@ -265,8 +269,9 @@ class node(db.base):
             lpm = lods[pmdx]
             if not pm is None:self._transform_to_world(pm,ttf,uv_ttf)
             if not lpm is None:self._transform_to_world(lpm,ttf,uv_ttf)
+        self.space = 'world'
 
-    # more this nodes models to local space
+    # move this nodes models to local space
     def _models_to_local(self):
         ttf = self.tform.true()
         uv_ttf = self.uv_tform.true()
@@ -276,6 +281,7 @@ class node(db.base):
             lpm = lods[pmdx]
             if not pm is None:self._transform_to_local(pm,ttf,uv_ttf)
             if not lpm is None:self._transform_to_local(lpm,ttf,uv_ttf)
+        self.space = 'local'
     
     # transform models/lods to world space
     # use iotype to build the models
@@ -299,22 +305,27 @@ class node(db.base):
             pm = models[pmdx]
             lpm = lods[pmdx]
             if not pm is None:
-                self._transform_to_world(pm,ttf,uv_ttf)
+                #self._transform_to_world(pm,ttf,uv_ttf)
                 iotype.build_model(pm,**kwargs)
-                self._transform_to_local(pm,ttf,uv_ttf)
+                #self._transform_to_local(pm,ttf,uv_ttf)
             if not lpm is None:
-                self._transform_to_world(lpm,ttf,uv_ttf)
+                #self._transform_to_world(lpm,ttf,uv_ttf)
                 #lpm.is_lod = True
                 iotype.build_model(lpm,**kwargs)
-                self._transform_to_local(lpm,ttf,uv_ttf)
+                #self._transform_to_local(lpm,ttf,uv_ttf)
+
+    # move models to world or local space as specified
+    def _to_space(self,space):
+        if space == 'world' and self.space == 'local':self._models_to_world()
+        else:print('node',self.name,'already in world space')
+        if space == 'local' and self.space == 'world':self._models_to_local()
+        else:print('node',self.name,'already in local space')
 
     # given an io module, produce model outputs 
     # for this node and its children
     def _realize(self,iotype):
-        #if self.consumption:self._consume()
-        #else:
-        #    for ch in self.tform.children:
-        #        ch.owner._realize(iotype)
+        self._to_space('world')
         self._modelize(iotype)
+        self._to_space('local')
 
 

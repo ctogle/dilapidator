@@ -34,6 +34,38 @@ class model(db.base):
         self._def('filename','modelfile.mesh',**kwargs)
 
     # consume another model in place, adding all its data
+    # but leaving others data unmodified as opposed to _consume
+    # IT DOES NOT PREVENT SHARING OF DATA WITH OTHER!!
+    def _consume_preserving(self,other):
+        ofmats = other.face_mats[:]
+        ofacnt = len(ofmats)
+        for dx in range(len(other.mats)):
+            omat = other.mats[dx]
+            if not omat in self.mats:
+                self.mats.append(omat)
+                mdx = len(self.mats) - 1
+                for fdx in range(ofacnt):
+                    if ofmats[fdx] == dx:
+                        ofmats[fdx] = mdx
+            else:
+                mdx = self.mats.index(omat)
+                if not mdx == dx:
+                    for fdx in range(ofacnt):
+                        if ofmats[fdx] == dx:
+                            ofmats[fdx] = mdx
+
+        other_offset = len(self.pcoords)
+        otherfaces = [f[:] for f in other.faces]
+        dpr.offset_faces(otherfaces,other_offset)
+        self.pcoords.extend(other.pcoords)
+        self.ncoords.extend(other.ncoords)
+        self.ucoords.extend(other.ucoords)
+        self.faces.extend(otherfaces)
+        self.face_mats.extend(ofmats)
+        self.reps = {}
+        return self
+
+    # consume another model in place, adding all its data
     def _consume(self,other):
         ofmats = other.face_mats
         ofacnt = len(ofmats)
@@ -61,6 +93,14 @@ class model(db.base):
         self.face_mats.extend(other.face_mats)
         self.reps = {}
         return self
+
+    # return faces looked up in pcoords space
+    def _face_positions(self,faces = None):
+        if faces is None:faces = self.faces
+        fa = []
+        for f in faces:
+            fa.append([self.pcoords[x] for x in f])
+        return fa
 
     # return geometry data organized as dict of materials
     def _face_dict(self):

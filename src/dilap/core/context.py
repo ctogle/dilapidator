@@ -1,5 +1,6 @@
 import dilap.core.base as db
 import dilap.core.sgraph as dsg
+import dilap.core.model as dmo
 import dilap.io.io as dio
 import dilap.primitive.cube as dcu
 import dilap.primitive.cone as dco
@@ -45,20 +46,42 @@ class context(db.base):
     def _nodes_to_graph(self,*nodes,**kwargs):
         for n in nodes:self.sgraph.nodes.append(n)
 
+    # move all nodes to world space
+    def _nodes_to_world(self):
+        for n in self.sgraph.nodes:n._to_space('world')
+
+    # move all nodes to local space
+    def _nodes_to_local(self):
+        for n in self.sgraph.nodes:n._to_space('local')
+
     # combine this context with another in place
     def _consume(self,other):
         self._nodes_to_graph(*other.sgraph.nodes)
 
+    def _nodal_proxy_single(self,proxy,node):
+        for c in node.tform.children:
+            self._nodal_proxy_single(proxy,c.owner)
+        for m in node.models:proxy._consume_preserving(m)
+
+    def _nodal_proxy(self):
+        proxy = dmo.model()
+        for n in self.sgraph.nodes:
+            self._nodal_proxy_single(proxy,n)
+        return proxy
+
     # do something which fills the scenegraph
     def generate(self,worn = 0):
         print('generate with worn',worn)
-        
         dcone = dco.cone()
         self._models_to_graph(dcone)
         return self
 
     def passtime(self,years):
-        for d in self.dilapidors:d.wither(self,years)
+        self._nodes_to_world()
+        proxy = self._nodal_proxy()
+        for d in self.dilapidors:
+            d.wither(self,years,proxy)
+        self._nodes_to_local()
 
     def graph(self):
         iotype = self.iotype

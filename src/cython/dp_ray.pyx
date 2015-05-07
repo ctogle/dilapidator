@@ -3,12 +3,15 @@
 #cimport cython
 cimport dp_vector as dpv
 import dp_vector as dpv
+cimport dp_bbox as dbb
+import dp_bbox as dbb
 
 from libc.math cimport sqrt
 from libc.math cimport cos
 from libc.math cimport sin
 from libc.math cimport tan
 from libc.math cimport hypot
+cimport numpy as np
 import numpy as np
 
 stuff = 'hi'
@@ -97,5 +100,29 @@ cdef tuple intersect_hits_closest_c(ray r,list triangles):
 
 cpdef tuple intersect_hits_closest(ray r,list triangles):
     return intersect_hits_closest_c(r,triangles)
+
+# currently hard coded to assume direction == dpv.nzhat...
+cdef tuple ray_grid_c(dpv.vector direction,dbb.bbox bb,list faces,float dx):
+    cdef double [:] xax = np.arange(bb.x.x,bb.x.y,dx)
+    cdef double [:] yax = np.arange(bb.y.x,bb.y.y,dx)
+    cdef float z = bb.z.y + 1
+    cdef list pts = [(x,y) for x in xax for y in yax]
+    cdef list raygrid = [ray(dpv.vector(x,y,z),dpv.nzhat) for x,y in pts]
+    cdef list hitfaces = []
+    cdef list hitcasts = []
+    for zray in raygrid:
+        hf,hc = intersect_hits_closest(zray,faces)
+        if not hf == -1:
+            hitfaces.append(hf)
+            hitcasts.append(hc)
+    return hitfaces,hitcasts
+
+cpdef tuple ray_grid(dpv.vector direction,dbb.bbox bb,list faces,float dx):
+    return ray_grid_c(direction,bb,faces,dx)
+
+
+
+
+
 
 

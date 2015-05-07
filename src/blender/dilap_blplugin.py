@@ -134,6 +134,30 @@ def default_materials():
     global materials
     if not materials.keys():
         materials['generic'] = material_image('generic','orangeboxtex.png')
+        materials['grass1'] = material_image('grass1','grass1.dds')
+        materials['grass2'] = material_image('grass2','grass2.jpg')
+        materials['grass3'] = material_image('grass3','grass3.jpg')
+        materials['grass4'] = material_image('grass4','grass4.png')
+        materials['brick1'] = material_image('brick1','brick1.jpg')
+        materials['brick2'] = material_image('brick2','brick2.jpg')
+        materials['concrete1'] = material_image('concrete1','concrete1.png')
+        materials['concrete2'] = material_image('concrete2','concrete2.png')
+        materials['concrete3'] = material_image('concrete3','concrete3.jpg')
+        
+    for ke in materials.keys():
+        if ke.startswith('brick'):
+            m = materials[ke]
+            t = m.texture_slots[0]
+            #m.use_transparency = True
+            #t.use_map_alpha = True
+            t.scale = (0.5,0.5,1.0)
+        if ke.startswith('grass'):
+            m = materials[ke]
+            t = m.texture_slots[0]
+            m.use_transparency = True
+            t.use_map_alpha = True
+            #t.scale = (0.5,0.5,1.0)
+        print('matdir',dir(materials['generic']))
     return materials
 
 # must exist for dilap context usage

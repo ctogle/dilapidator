@@ -22,7 +22,8 @@ class dilapidor(db.base):
     def wither_model(self,model,years):
         change = dmo.model()
         for w in self.withers:
-            change._consume(self.__getattribute__(w)(model,years))
+            wmo = self.__getattribute__(w)(model,years)
+            if not wmo is None:change._consume(wmo)
         return change
 
     # recursively wither nodes and their children instead of using the proxy

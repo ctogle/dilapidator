@@ -24,7 +24,7 @@ class terrain(dmo.model):
             if not fdat:continue
             fposs = [f.position.copy() for f in fdat]
             #ns = [f.calculate_smooth_normal() for f in fdat]
-            m = 'generic'
+            m = 'grass1'
             #nfs = self._triangle(*fposs,ns = ns,m = m)
             nfs = self._triangle(*fposs,m = m)
             self._project_uv_xy(nfs)

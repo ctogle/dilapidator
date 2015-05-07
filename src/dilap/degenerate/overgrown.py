@@ -1,6 +1,9 @@
 import dilap.core.dilapidor as dd
 import dilap.core.model as dmo
+import dilap.primitive.cylinder as dcyl
+import dilap.primitive.cone as dco
 import dilap.primitive.vine as dv
+import dilap.primitive.grass as dg
 
 import dp_vector as dpv
 import dp_ray as dr
@@ -12,45 +15,89 @@ class ivy(dd.dilapidor):
     def __init__(self,*args,**kwargs):
         dd.dilapidor.__init__(self,*args,**kwargs)
         self._def('z_max',10,**kwargs)
+        self.withers.append('init')
+        self.withers.append('trees')
         self.withers.append('ivy')
+        self.withers.append('grass')
+
+    # perform some calcs that are useful to more than one wither
+    def init(self,model,years):
+        pfaces = model._face_positions(model.faces)
+        nfaces = model._face_normals(model.faces)
+        mbb = model._aaabbb()
+        # pfaces must not be empty...
+        hitfaces,hitcasts = dr.ray_grid(dpv.nzhat,mbb,pfaces,1.0)
+        for hdx in range(len(hitfaces)):
+            hf = hitfaces[hdx]
+            hc = hitcasts[hdx]
+            v0,v1,v2 = pfaces[hf]
+            u,v = hc.y,hc.z
+            bcc = dpv.barymetric_to_world(u,v,v0,v1,v2)
+            hitcasts[hdx] = bcc
+        self.hitdata = {
+            'hitfaces':hitfaces,
+            'hitcasts':hitcasts,
+            'pfaces':pfaces,
+            'nfaces':nfaces,
+                }
+
+    # desire a model in world space of ALL nodes/children of the context
+    def trees(self,model,years):
+        growth = dmo.model()
+        hitfaces = self.hitdata['hitfaces']
+        hitcasts = self.hitdata['hitcasts']
+        pfaces = self.hitdata['pfaces']
+        #nfaces = self.hitdata['nfaces']
+        for hdx in range(len(hitfaces)):
+            if random.random() < 0.99:continue
+            hf = hitfaces[hdx]
+            hc = hitcasts[hdx]
+            dtb = dpv.distance_to_border_xy(hc,pfaces[hf])
+            rad = dtb
+            if rad < 1:continue
+            tree = dcyl.cylinder().translate_z(0.5).scale_z(10)
+            growth._consume(tree.translate(hc))
+        return growth
 
     # desire a model in world space of ALL nodes/children of the context
     def ivy(self,model,years):
         growth = dmo.model()
-
-        mfaces = model._face_positions(model.faces)
-        mbb = model._aaabbb()
-
-        dx = 1
-        xax = numpy.arange(mbb.x.x,mbb.x.y,dx)
-        yax = numpy.arange(mbb.y.x,mbb.y.y,dx)
-        z = mbb.z.y + 1
-        pts = [(x,y) for x in xax for y in yax]
-        raygrid = [dr.ray(dpv.vector(x,y,z),dpv.nzhat) for x,y in pts]
-
-        hitfaces = []
-        hitcasts = []
-        if mfaces:
-            for zray in raygrid:
-                if random.random() < 0.9:continue
-                hf,hc = dr.intersect_hits_closest(zray,mfaces)
-                #if not hf == -1 and not hf in hitfaces:
-                if not hf == -1:
-                    hitfaces.append(hf)
-                    hitcasts.append(hc)
-        
+        hitfaces = self.hitdata['hitfaces']
+        hitcasts = self.hitdata['hitcasts']
+        pfaces = self.hitdata['pfaces']
+        #nfaces = self.hitdata['nfaces']
+        seeds = []
         for hdx in range(len(hitfaces)):
+            if random.random() < 0.999:continue
             hf = hitfaces[hdx]
             hc = hitcasts[hdx]
+            seeds.append(hc)
 
-            v0,v1,v2 = mfaces[hf]
-            v0,v1,v2 = v0.copy(),v1.copy(),v2.copy()
-            u,v = hc.y,hc.z
-            bcc = v0.scale_u(1-u-v)+v1.scale_u(u)+v2.scale_u(v)
-            ivy = dv.vine().grow(years).translate(bcc)
+        for sd in seeds:
+            vine = dv.vine()
+            vine.grow(sd,model,years)
+            #fake = dco.cone().translate_z(0.5).scale_z(2)
+            #growth._consume(fake.translate(sd))
+            growth._consume(vine)
 
-            growth._consume(ivy)
+        return growth
 
+    # desire a model in world space of ALL nodes/children of the context
+    def grass(self,model,years):
+        growth = dmo.model()
+        hitfaces = self.hitdata['hitfaces']
+        hitcasts = self.hitdata['hitcasts']
+        pfaces = self.hitdata['pfaces']
+        #nfaces = self.hitdata['nfaces']
+        for hdx in range(len(hitfaces)):
+            if random.random() < 0.9:continue
+            hf = hitfaces[hdx]
+            hc = hitcasts[hdx]
+            dtb = dpv.distance_to_border_xy(hc,pfaces[hf])
+            rad = dtb
+            if rad < 0.4:continue
+            clump = dg.grass_clump(width = 0.75,radius = rad)
+            growth._consume(clump.translate(hc))
         return growth
 
 

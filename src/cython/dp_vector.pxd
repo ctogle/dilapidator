@@ -10,10 +10,12 @@ cdef class vector2d:
     cpdef tuple to_tuple(self)
     cpdef vector2d flip(self)
     cpdef vector2d reciprocate(self)
+    cpdef vector2d translate(self, vector2d tv)
+    cpdef vector2d translate_x(self, float tx)
+    cpdef vector2d translate_y(self, float ty)
     cpdef vector2d scale(self, vector2d sv)
     cpdef vector2d scale_x(self, float sx)
     cpdef vector2d scale_y(self, float sy)
-    cpdef vector2d translate(self, vector2d sv)
 
 cdef vector2d midpoint2d_c(vector2d v1, vector2d v2)
 
@@ -77,6 +79,7 @@ cdef vector v1_v2_c(vector v1, vector v2)
 cdef vector vzip_c(vector v1, vector v2)
 cdef vector midpoint_c(vector v1, vector v2)
 cdef vector com(list coords)
+cdef vector barymetric_to_world_c(float u,float v,vector v0,vector v1,vector v2)
 cdef vector2d project_coords_c(list coords, vector axis)
 
 cdef list line_normals_c(list verts)

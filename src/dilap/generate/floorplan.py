@@ -204,7 +204,10 @@ class floorplan(dgc.context):
         for ip in ips:iwalls.append(dw.wall(*ip[0],**ip[1]))
         for r in rooms:
             r.generate(wallheight,worn)
+            for n in r.sgraph.nodes:n._assign_material('concrete2')
             self._consume(r)
+        for ew in ewalls:ew._assign_material('brick2')
+        for iw in iwalls:iw._assign_material('concrete2')
         self._nodes_to_graph(
             self._node_wrap(*ewalls),
             self._node_wrap(*iwalls))

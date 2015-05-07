@@ -57,6 +57,14 @@ cdef class vector2d:
         self.y += tv.y
         return self
 
+    cpdef vector2d translate_x(self, float tx):
+        self.x += tx
+        return self
+
+    cpdef vector2d translate_y(self, float ty):
+        self.y += ty
+        return self
+
     cpdef vector2d scale(self, vector2d sv):
         self.x *= sv.x
         self.y *= sv.y
@@ -395,6 +403,16 @@ cpdef vector midpoint(vector v1, vector v2):
     cdef vector pt = midpoint_c(v1, v2)
     return pt
 
+cdef vector barymetric_to_world_c(float u,float v,vector v0,vector v1,vector v2):
+    cdef vector b0 = v0.copy().scale_u(1-u-v)
+    cdef vector b1 = v1.copy().scale_u(u)
+    cdef vector b2 = v2.copy().scale_u(v)
+    cdef vector iw = b0.translate(b1).translate(b2)
+    return iw
+
+cpdef vector barymetric_to_world(float u,float v,vector v0,vector v1,vector v2):
+    return barymetric_to_world_c(u,v,v0,v1,v2)
+
 cdef vector2d project_coords_c(list coords, vector axis):
     cdef ccnt = len(coords)
     cdef int cdx
@@ -408,6 +426,53 @@ cdef vector2d project_coords_c(list coords, vector axis):
 
 cpdef vector2d project_coords(list coords, vector axis):
     return project_coords_c(coords,axis)
+
+cdef float distance_to_edge_c(vector pt,vector e1,vector e2,vector nm):
+    print('not implemented?')
+    eproj = project_coords_c([e1,e2],nm)
+    pproj = project_coords_c([pt],nm)
+    return abs(eproj.x - pproj.x)
+
+cpdef float distance_to_edge(vector pt,vector e1,vector e2,vector nm):
+    return distance_to_edge_c(pt,e1,e2,nm)
+
+cdef list edge_norms_xy_c(list verts):
+    cdef list norms = []
+    cdef int vcnt = len(verts)
+    cdef int vdx
+    cdef vector v1
+    cdef vector v2
+    cdef float dx
+    cdef float dy
+    cdef float dv
+    cdef vector norm
+    for vdx in range(vcnt):
+        v1,v2 = verts[vdx-1],verts[vdx]
+        dx = v2.x - v1.x
+        dy = v2.y - v1.y
+        dv = sqrt(dx**2 + dy**2)
+        norm = vector(dy/dv,-dx/dv,0)
+        norms.append(norm)
+    norms.append(norms.pop(0))
+    return norms
+
+cpdef list edge_norms_xy(list verts):
+    return edge_norms_xy_c(verts)
+
+cdef float distance_to_border_xy_c(vector pt,list border):
+    edgenorms = edge_norms_xy_c(border)
+    dists = []
+    for edx in range(len(border)):
+        e1 = border[edx-1]
+        e2 = border[edx]
+        norm = edgenorms[edx-1]
+        dists.append(distance_to_edge(pt,e1,e2,norm))
+    dists.append(dists.pop(0))
+    distance = min(dists)
+    return distance
+
+cpdef float distance_to_border_xy(vector pt,list border):
+    return distance_to_border_xy_c(pt,border)
 
 cdef void rotate_x_coords_c(list coords, float ang):
     cdef int ccnt = len(coords)
@@ -441,6 +506,17 @@ cdef void rotate_z_coords_c(list coords, float ang):
 
 cpdef rotate_z_coords(list coords, float ang):
     rotate_z_coords_c(coords,ang)
+
+cdef void rotate_z_coords_about_c(list coords, vector about, float ang):
+    cdef int ccnt = len(coords)
+    cdef int cdx
+    cdef vector coo
+    for cdx in range(ccnt):
+        coo = <vector>coords[cdx]
+        coo.translate(about.flip()).rotate_z(ang).translate(about.flip())
+
+cpdef rotate_z_coords_about(list coords, vector about, float ang):
+    rotate_z_coords_about_c(coords,about,ang)
 
 cdef void translate_coords_x_c(list coords, float tv):
     cdef int ccnt = len(coords)

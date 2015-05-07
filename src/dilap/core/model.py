@@ -106,11 +106,23 @@ class model(db.base):
         return self
 
     # return faces looked up in pcoords space
+    # faces is either None or faces indices
     def _face_positions(self,faces = None):
         if faces is None:faces = self.faces
+        else:faces = [self.faces[fdx] for fdx in range(len(faces))]
         fa = []
         for f in faces:
             fa.append([self.pcoords[x] for x in f])
+        return fa
+
+    # return faces looked up in ncoords space
+    # faces is either None or faces indices
+    def _face_normals(self,faces = None):
+        if faces is None:faces = self.faces
+        else:faces = [self.faces[fdx] for fdx in range(len(faces))]
+        fa = []
+        for f in faces:
+            fa.append([self.ncoords[x] for x in f])
         return fa
 
     # return geometry data organized as dict of materials
@@ -145,8 +157,7 @@ class model(db.base):
     def _assign_material(self,m,rng = None):
         m = self._lookup_mat(m)
         if rng is None:rng = range(len(self.faces))
-        for dx in rng:
-            self.face_mats[dx] = m
+        for dx in rng:self.face_mats[dx] = m
 
     #######################################################
 
@@ -196,6 +207,24 @@ class model(db.base):
                     nu = p.copy().xy2d()
                 else:continue
                 self.ucoords[fdx] = nu
+
+    # for range of faces rng, 
+    # translate uvs along u coordinate by dx
+    def _translate_uv_u(self,rng,dx):
+        for nf in rng:
+            face = self.faces[nf]
+            for fdx in face:
+                u = self.ucoords[fdx]
+                u.translate_x(dx)
+
+    # for range of faces rng, 
+    # translate uvs along v coordinate by dy
+    def _translate_uv_v(self,rng,dy):
+        for nf in rng:
+            face = self.faces[nf]
+            for fdx in face:
+                u = self.ucoords[fdx]
+                u.translate_y(dy)
 
     # for range of faces rng, 
     # scale uvs along u coordinate by du

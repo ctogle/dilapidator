@@ -78,6 +78,9 @@ class context(db.base):
 
     def passtime(self,years):
         self._nodes_to_world()
+
+        # must acquire structural data about the sgraph!!
+
         proxy = self._nodal_proxy()
         for d in self.dilapidors:
             d.wither(self,years,proxy)

@@ -4,6 +4,7 @@ import dilap.core.tools as dpr
 
 import dp_vector as dpv
 import dp_quaternion as dpq
+import dp_bbox as dbb
 
 import pdb
 
@@ -179,6 +180,27 @@ class node(db.base):
         self.tform.parent = parent.tform
         if not self.tform in parent.tform.children:
             parent.tform.children.append(self.tform)
+
+    # return 3d bounding box for this nodes models
+    def _aaabbb_models(self):
+        bb = dbb.zero()
+        for m in self.models:bb._consume(m._aaabbb())
+        return bb
+
+    # return 3d bounding box for this nodes childrens' models
+    def _aaabbb_nodal(self,bb):
+        for ch in self.tform.children:
+            bb = ch.owner._aaabbb_nodal(bb)
+        selfbb = self._aaabbb_models()
+        bb._consume(selfbb)
+        return bb
+
+    # return 3d bounding box for this node/its children
+    # put self in world space, create bbox, and move back to local space
+    def _aaabbb(self):
+        bb = dbb.zero()
+        self._aaabbb_nodal(bb)
+        return bb
 
     # this changes the model to local space given a world space tform
     def _transform_to_local(self,mod,ttf,uv_ttf):

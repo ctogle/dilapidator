@@ -10,7 +10,7 @@ class grass_clump(dmo.model):
 
     def __init__(self,*args,**kwargs):
         dmo.model.__init__(self,*args,**kwargs)
-        self._def('pieces',50,**kwargs)
+        self._def('pieces',20,**kwargs)
         self._def('radius',1,**kwargs)
         self._def('width',0.75,**kwargs)
         self._def('height',0.5,**kwargs)

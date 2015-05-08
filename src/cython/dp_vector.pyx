@@ -1,6 +1,7 @@
 #imports
 # cython: profile=True
 #cimport cython
+cimport dp_quaternion as dpq
 
 import matplotlib.pyplot as plt
 
@@ -11,7 +12,6 @@ from libc.math cimport tan
 from libc.math cimport hypot
 import numpy as np
  
-#cimport mp_utils as mpu
 #import make_places.core.support.mp_utils as mpu
 
 
@@ -236,6 +236,28 @@ cdef class vector:
         cdef vector new = vector(bx,by,bz)
         return new 
 
+    # rotate self in place by q, without modifying q
+    cpdef vector rotate(self, dpq.quaternion q):
+        cdef float row1x = q.w**2 + q.x**2 - q.y**2 - q.z**2
+        cdef float row1y = 2*(q.x*q.y - q.w*q.z)
+        cdef float row1z = 2*(q.x*q.z + q.w*q.y)
+        cdef vector row1 = vector(row1x,row1y,row1z)
+        cdef float row2x = 2*(q.x*q.y + q.w*q.z)
+        cdef float row2y = q.w**2 - q.x**2 + q.y**2 - q.z**2
+        cdef float row2z = 2*(q.y*q.z - q.w*q.x)
+        cdef vector row2 = vector(row2x,row2y,row2z)
+        cdef float row3x = 2*(q.x*q.z - q.w*q.y)
+        cdef float row3y = 2*(q.y*q.z + q.w*q.x)
+        cdef float row3z = q.w**2 - q.x**2 - q.y**2 + q.z**2
+        cdef vector row3 = vector(row3x,row3y,row3z)
+        cdef float rotx = row1.dot(self)
+        cdef float roty = row2.dot(self)
+        cdef float rotz = row3.dot(self)
+        self.x = rotx
+        self.y = roty
+        self.z = rotz
+        return self
+
     cpdef vector rotate_x(self, float zang):
         cdef float cosz = cos(zang)
         cdef float sinz = sin(zang)
@@ -436,7 +458,26 @@ cdef float distance_to_edge_c(vector pt,vector e1,vector e2,vector nm):
 cpdef float distance_to_edge(vector pt,vector e1,vector e2,vector nm):
     return distance_to_edge_c(pt,e1,e2,nm)
 
-cdef list edge_norms_xy_c(list verts):
+cdef list edge_tangents_c(list verts):
+    cdef list tangs = []
+    cdef int vcnt = len(verts)
+    cdef int vdx
+    cdef vector v1
+    cdef vector v2
+    cdef float dx
+    cdef float dy
+    cdef float dv
+    cdef vector tang
+    for vdx in range(1,vcnt):
+        v1,v2 = verts[vdx-1],verts[vdx]
+        tang = v1_v2(v1,v2).normalize()
+        tangs.append(tang)
+    return tangs
+
+cpdef list edge_tangents(list verts):
+    return edge_tangents_c(verts)
+
+cdef list edge_normals_xy_c(list verts):
     cdef list norms = []
     cdef int vcnt = len(verts)
     cdef int vdx
@@ -456,11 +497,11 @@ cdef list edge_norms_xy_c(list verts):
     norms.append(norms.pop(0))
     return norms
 
-cpdef list edge_norms_xy(list verts):
-    return edge_norms_xy_c(verts)
+cpdef list edge_normals_xy(list verts):
+    return edge_normals_xy_c(verts)
 
 cdef float distance_to_border_xy_c(vector pt,list border):
-    edgenorms = edge_norms_xy_c(border)
+    edgenorms = edge_normals_xy_c(border)
     dists = []
     for edx in range(len(border)):
         e1 = border[edx-1]
@@ -473,6 +514,58 @@ cdef float distance_to_border_xy_c(vector pt,list border):
 
 cpdef float distance_to_border_xy(vector pt,list border):
     return distance_to_border_xy_c(pt,border)
+
+#########################################################################
+### spline interpolation business
+#########################################################################
+
+cpdef list parameterize_time(list points,list time,float alpha):
+    cdef float total = 0.0
+    cdef int idx
+    cdef list v1v2
+    for idx in range(1,4):
+        total += v1_v2_c(points[idx-1],points[idx]).magnitude()**(2.0*alpha)
+        time[idx] = total
+
+cpdef list catmull_rom(list P,list T,int tcnt):
+    cdef int j
+    cdef int t
+    cdef float tt
+    cdef float p
+    cdef list spl = P[:1]
+    for j in range(1, len(P)-2):  # skip the ends
+        for t in range(tcnt):  # t: 0 .1 .2 .. .9
+            tt = float(t)/tcnt
+            tt = T[1] + tt*(T[2]-T[1])
+            p = spline([P[j-1], P[j], P[j+1], P[j+2]],
+                    [T[j-1], T[j], T[j+1], T[j+2]],tt)
+            spl.append(p)
+    spl.extend(P[-2:])
+    return spl
+
+cpdef float spline(list p,list time,float t):
+    L01 = p[0] * (time[1] - t) / (time[1] - time[0]) + p[1] * (t - time[0]) / (time[1] - time[0])
+    L12 = p[1] * (time[2] - t) / (time[2] - time[1]) + p[2] * (t - time[1]) / (time[2] - time[1])
+    L23 = p[2] * (time[3] - t) / (time[3] - time[2]) + p[3] * (t - time[2]) / (time[3] - time[2])
+    L012 = L01 * (time[2] - t) / (time[2] - time[0]) + L12 * (t - time[0]) / (time[2] - time[0])
+    L123 = L12 * (time[3] - t) / (time[3] - time[1]) + L23 * (t - time[1]) / (time[3] - time[1])
+    C12 = L012 * (time[2] - t) / (time[2] - time[1]) + L123 * (t - time[1]) / (time[2] - time[1])
+    return C12
+
+cpdef list vector_spline(vector c1,vector c2,vector c3,vector c4,int scnt):
+    cox = [c1.x,c2.x,c3.x,c4.x]
+    coy = [c1.y,c2.y,c3.y,c4.y]
+    coz = [c1.z,c2.z,c3.z,c4.z]
+    tim = [0.0,1.0,2.0,3.0]
+    alpha = 1.0/2.0
+    parameterize_time([c1,c2,c3,c4],tim,alpha)
+    cox = catmull_rom(cox,tim,scnt)[1:-1]
+    coy = catmull_rom(coy,tim,scnt)[1:-1] 
+    coz = catmull_rom(coz,tim,scnt)[1:-1] 
+    filled = [vector(*i) for i in zip(cox,coy,coz)]
+    return filled
+
+###########################################################################
 
 cdef void rotate_x_coords_c(list coords, float ang):
     cdef int ccnt = len(coords)

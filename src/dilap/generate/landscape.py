@@ -112,14 +112,15 @@ class landscape(dgc.context):
 
     def __init__(self,*args,**kwargs):
         dgc.context.__init__(self,*args,**kwargs)
-        self._def('controls',dpr.point_ring(50,6),**kwargs)
+        self._def('boundary',dpr.point_ring(50,6),**kwargs)
+        self._def('controls',[],**kwargs)
         self._def('sealevel',-0.5,**kwargs)
 
     # should port algorithms from make_places for this...
     # 
-    # self.controls represents fixed, in-mesh verts, forming a convex loop
+    # self.boundary represents fixed, in-mesh verts, forming a convex loop
     # landscape will generate a set of models with terrain that spans
-    # the xy-projection of the polygon defined by self.controls
+    # the xy-projection of the polygon defined by self.boundary
     #
     # first dice the loop so that the average distance between points
     # is at some threshold
@@ -131,7 +132,7 @@ class landscape(dgc.context):
     def generate_terrain_points(self,other = None,worn = 0):
         tptstack = []
 
-        tpts = self.controls[:]
+        tpts = self.boundary[:]
         tcom = dpv.center_of_mass(tpts)
         for x in range(len(tpts)):
             c1 = terrain_point(tcom.copy())
@@ -164,12 +165,14 @@ class landscape(dgc.context):
         terrain_data = self.generate_data_from_points(tpts)
         tmds = self.generate_terrain_models(terrain_data)
 
-        dcube = dcu.cube().scale_x(100).scale_y(100)
-        dcube.translate_z(-0.5).scale_z(20)
-        dcube.translate_z(self.sealevel)
-        dnode = self._node_wrap(dcube)
+        # add terrain models to scenegraph
         tmods = self._node_wrap(*tmds)
-        self._nodes_to_graph(dnode)
         self._nodes_to_graph(tmods)
+
+        # add water models to scenegraph
+        water = dcu.cube().scale_x(100).scale_y(100).scale_z(20)
+        water.translate_z(-19.5).translate_z(self.sealevel)
+        wnode = self._node_wrap(water)
+        self._nodes_to_graph(wnode)
 
 

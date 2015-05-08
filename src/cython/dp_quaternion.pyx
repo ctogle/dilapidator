@@ -187,50 +187,6 @@ cdef class quaternion:
         self.z = self.w*q.z + q.w*self.z + (self.x*q.y - self.y*q.x)
         return self
 
-
-
-
-    '''#
-    cpdef vector reciprocate(self):
-        self.x = 1.0/self.x
-        self.y = 1.0/self.y
-        self.z = 1.0/self.z
-        return self
-    '''#
-
-
-    #cpdef vector cross(self, vector v):
-    #    selfv = self.vector()
-    #    return cross_c(selfv,v)
-
-    #cpdef float dot(self, vector v):
-    #    selfv = self.vector()
-    #    return dot_c(selfv,v)
-
-'''#
-
-cdef vector one_c():
-    cdef vector new = vector(1,1,1)
-    return new
-
-cpdef vector one():
-    return one_c()
-
-cdef vector flip_c(vector f):
-    cdef vector new = vector(-1.0*f.x,-1.0*f.y,-1.0*f.z)
-    return new
-
-cpdef vector flip(vector f):
-    return flip_c(f)
-
-cdef vector normalize_c(vector v):
-    cdef vector new = v.copy().normalize()
-    return new
-
-cpdef vector normalize(vector v):
-    return normalize_c(v)
-'''#
-
 cpdef float magnitude(quaternion q):
     cdef float ss = q.magnitude()
     return ss
@@ -245,9 +201,10 @@ cpdef quaternion zero():
 cpdef quaternion q_from_av(float a, dpv.vector v):
     cdef float w = cos(a/2.0)
     cdef float sa = sin(a/2.0)
-    cdef float x = v.x*sa
-    cdef float y = v.y*sa
-    cdef float z = v.z*sa
+    cdef dpv.vector d = v.copy().normalize()
+    cdef float x = d.x*sa
+    cdef float y = d.y*sa
+    cdef float z = d.z*sa
     return quaternion(w,x,y,z)
 
 cpdef quaternion multiply(quaternion q1, quaternion q2):
@@ -258,266 +215,23 @@ cpdef quaternion multiply(quaternion q1, quaternion q2):
     cdef quaternion new = quaternion(w,x,y,z)
     return new
 
-'''#
-cdef float dot_c(vector v1, vector v2):
-    return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
+# this needs more work
+def quat_test():
 
-cpdef float dot(vector v1, vector v2):
-    return dot_c(v1,v2)
+    i = quaternion(0,1,0,0)
+    j = quaternion(0,0,1,0)
+    k = quaternion(0,0,0,1)
+    print('qtest ij = :',i.copy().multiply(j).__str__())
 
-cdef vector cross_c(vector v1, vector v2):
-    cdef float cx = v1.y*v2.z-v1.z*v2.y
-    cdef float cy = v1.z*v2.x-v1.x*v2.z
-    cdef float cz = v1.x*v2.y-v1.y*v2.x
-    cdef vector res = vector(cx,cy,cz)
-    return res
+    x = dpv.xhat.copy()
+    a = np.pi/2
+    v = dpv.yhat.copy()
+    q = q_from_av(a,v)
 
-cpdef vector cross(vector v1, vector v2):
-    return cross_c(v1,v2)
-
-cdef vector v1_v2_c(vector v1, vector v2):
-    cdef float dx = v2.x - v1.x
-    cdef float dy = v2.y - v1.y
-    cdef float dz = v2.z - v1.z
-    cdef vector new = vector(dx,dy,dz)
-    return new
-
-cpdef vector v1_v2(vector v1, vector v2):
-    cdef vector pt = v1_v2_c(v1, v2)
-    return pt
-
-cdef vector vzip_c(vector v1, vector v2):
-    cdef float x = v1.x*v2.x
-    cdef float y = v1.y*v2.y
-    cdef float z = v1.z*v2.z
-    return vector(x,y,z)
-
-cpdef vector vzip(vector v1, vector v2):
-    cdef vector pt = vzip_c(v1, v2)
-    return pt
-
-cdef vector midpoint_c(vector v1, vector v2):
-    cdef float x = (v1.x + v2.x)/2.0
-    cdef float y = (v1.y + v2.y)/2.0
-    cdef float z = (v1.z + v2.z)/2.0
-    cdef vector new = vector(x,y,z)
-    return new
-
-cpdef vector midpoint(vector v1, vector v2):
-    cdef vector pt = midpoint_c(v1, v2)
-    return pt
-
-cdef void rotate_x_coords_c(list coords, float ang):
-    cdef int ccnt = len(coords)
-    cdef int cdx
-    cdef vector coo
-    for cdx in range(ccnt):
-        coo = <vector>coords[cdx]
-        coo.rotate_x(ang)
-
-cpdef rotate_x_coords(list coords, float ang):
-    rotate_x_coords_c(coords,ang)
-
-cdef void rotate_y_coords_c(list coords, float ang):
-    cdef int ccnt = len(coords)
-    cdef int cdx
-    cdef vector coo
-    for cdx in range(ccnt):
-        coo = <vector>coords[cdx]
-        coo.rotate_y(ang)
-
-cpdef rotate_y_coords(list coords, float ang):
-    rotate_y_coords_c(coords,ang)
-
-cdef void rotate_z_coords_c(list coords, float ang):
-    cdef int ccnt = len(coords)
-    cdef int cdx
-    cdef vector coo
-    for cdx in range(ccnt):
-        coo = <vector>coords[cdx]
-        coo.rotate_z(ang)
-
-cpdef rotate_z_coords(list coords, float ang):
-    rotate_z_coords_c(coords,ang)
-
-cdef void translate_coords_x_c(list coords, float tv):
-    cdef int ccnt = len(coords)
-    cdef int cdx
-    cdef vector coo
-    for cdx in range(ccnt):
-        coo = <vector>coords[cdx]
-        coo.translate_x(tv)
-
-cpdef translate_coords_x(list coords, float tv):
-    translate_coords_x_c(coords,tv)
-
-cdef void translate_coords_y_c(list coords, float tv):
-    cdef int ccnt = len(coords)
-    cdef int cdx
-    cdef vector coo
-    for cdx in range(ccnt):
-        coo = <vector>coords[cdx]
-        coo.translate_y(tv)
-
-cpdef translate_coords_y(list coords, float tv):
-    translate_coords_y_c(coords,tv)
-
-cdef void translate_coords_z_c(list coords, float tv):
-    cdef int ccnt = len(coords)
-    cdef int cdx
-    cdef vector coo
-    for cdx in range(ccnt):
-        coo = <vector>coords[cdx]
-        coo.translate_z(tv)
-
-cpdef translate_coords_z(list coords, float tv):
-    translate_coords_z_c(coords,tv)
-
-cdef void translate_coords_c(list coords, vector t):
-    cdef int ccnt = len(coords)
-    cdef int cdx
-    cdef vector coo
-    for cdx in range(ccnt):
-        coo = <vector>coords[cdx]
-        coo.translate(t)
-
-cpdef translate_coords(list coords, vector t):
-    translate_coords_c(coords,t)
-
-cdef void scale_coords_x_c(list coords, float s):
-    cdef int ccnt = len(coords)
-    cdef int cdx
-    cdef vector coo
-    for cdx in range(ccnt):
-        coo = <vector>coords[cdx]
-        coo.x *= s
-
-cpdef scale_coords_x(list coords, float s):
-    scale_coords_x_c(coords,s)
-
-cdef void scale_coords_y_c(list coords, float s):
-    cdef int ccnt = len(coords)
-    cdef int cdx
-    cdef vector coo
-    for cdx in range(ccnt):
-        coo = <vector>coords[cdx]
-        coo.y *= s
-
-cpdef scale_coords_y(list coords, float s):
-    scale_coords_y_c(coords,s)
-
-cdef void scale_coords_z_c(list coords, float s):
-    cdef int ccnt = len(coords)
-    cdef int cdx
-    cdef vector coo
-    for cdx in range(ccnt):
-        coo = <vector>coords[cdx]
-        coo.z *= s
-
-cpdef scale_coords_z(list coords, float s):
-    scale_coords_z_c(coords,s)
-    
-cdef void scale_coords_c(list coords, vector t):
-    cdef int ccnt = len(coords)
-    cdef int cdx
-    cdef vector coo
-    for cdx in range(ccnt):
-        coo = <vector>coords[cdx]
-        coo.scale(t)
-
-cpdef scale_coords(list coords, vector t):
-    scale_coords_c(coords,t)
-
-cdef vector com(list coords):
-    cdef int ccnt = len(coords)
-    cdef float ccntf = float(ccnt)
-    cdef int cdx = 0
-    cdef float x = 0.0
-    cdef float y = 0.0
-    cdef float z = 0.0
-    cdef vector coo
-    cdef vector new
-    for cdx in range(ccnt):
-        coo = <vector>coords[cdx]
-        x += coo.x
-        y += coo.y
-        z += coo.z
-    new = vector(x/ccntf,y/ccntf,z/ccntf)
-    return new
-
-cpdef vector center_of_mass(list coords):
-    return com(coords)
-
-cdef float distance_xy_c(vector v1, vector v2):
-    cdef float dx = v2.x - v1.x
-    cdef float dy = v2.y - v1.y
-    cdef float ds = sqrt(dx**2 + dy**2)
-    return ds
-
-cpdef float distance_xy(vector v1, vector v2):
-    return distance_xy_c(v1, v2)
-
-cdef float distance_c(vector v1, vector v2):
-    cdef vector v1v2 = v1_v2(v1,v2)
-    cdef float mag = v1v2.magnitude()
-    return mag
-
-cpdef float distance(vector v1, vector v2):
-    return distance_c(v1, v2)
-
-cpdef bint near(vector v1, vector v2):
-    cdef bint isnear = distance_c(v1,v2) < 0.01
-    return isnear
-
-#cdef xhat = vector(1,0,0)
-#cdef yhat = vector(0,1,0)
-#cdef zhat = vector(0,0,1)
-xhat  = vector( 1, 0, 0)
-yhat  = vector( 0, 1, 0)
-zhat  = vector( 0, 0, 1)
-nxhat = vector(-1, 0, 0)
-nyhat = vector( 0,-1, 0)
-nzhat = vector( 0, 0,-1)
-
-cdef float angle_between_xy_c(vector v1, vector v2):
-    cdef float alpha1 = angle_from_xaxis_xy_c(v1)
-    cdef float alpha2 = angle_from_xaxis_xy_c(v2)
-    #if alpha2 - alpha1 > np.pi/2.0:
-    #    print 'arpha', v1, v2, alpha1, alpha2
-    return alpha2 - alpha1
-
-cpdef float angle_between_xy(vector v1, vector v2):
-    return angle_between_xy_c(v1,v2)
-
-cdef float angle_between_c(vector v1, vector v2):
-    #cdef float alpha1 = angle_from_xaxis_c(v1)
-    #cdef float alpha2 = angle_from_xaxis_c(v2)
-    cdef vector n1 = v1.copy().normalize()
-    cdef vector n2 = v2.copy().normalize()
-    cdef float ang = np.arccos(dot_c(n1,n2))
-    #return alpha2 - alpha1
-    return ang
-
-cpdef float angle_between(vector v1, vector v2):
-    return angle_between_c(v1,v2)
-
-cdef float angle_from_xaxis_c(vector v):
-    cdef vector nv = v.copy().normalize()
-    cdef float xproj = dot_c(nv,xhat)
-    cdef float yproj = dot_c(nv,yhat)
-    cdef float ang
-    #if xproj == 2.0/np.pi or xproj == 2.0/(3.0*np.pi):
-    #    ang = np.arccos(yproj)
-    #    if xproj < 0.0: ang = 2.0*np.pi - ang
-    #else:
-    #    ang = np.arccos(xproj)
-    #    if yproj < 0.0: ang = 2.0*np.pi - ang
-    ang = np.arccos(xproj)
-    if yproj < 0.0: ang = 2.0*np.pi - ang
-    return ang
-
-cpdef float angle_from_xaxis(vector v):
-    return angle_from_xaxis_c(v)
-'''#
+    #z = q.rotate_vector(x)
+    z = x.copy().rotate(q)
+    print('quat_test:')
+    print(x.__str__(),'rotated by',a.__str__())
+    print('about axis',v.__str__(),'yields',z.__str__())
 
 

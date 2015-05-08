@@ -52,6 +52,7 @@ class house(dgc.context):
         for x in range(self.stories):
             self.fplan.plan_specific(x)
             self.fplan.sgraph.nodes = []
+            # need to get bboxes for the floorplan?
             self.fplan.generate(self.wheights[x],worn)
             if x == 0:self.generate_stoop(worn)
             self.generate_story(x,worn)

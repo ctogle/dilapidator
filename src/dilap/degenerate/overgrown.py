@@ -5,6 +5,8 @@ import dilap.primitive.cone as dco
 import dilap.primitive.vine as dv
 import dilap.primitive.grass as dg
 
+import dilap.primitive.pipe as dpi
+
 import dp_vector as dpv
 import dp_ray as dr
 
@@ -18,7 +20,7 @@ class ivy(dd.dilapidor):
         self.withers.append('init')
         self.withers.append('trees')
         self.withers.append('ivy')
-        self.withers.append('grass')
+        #self.withers.append('grass')
 
     # perform some calcs that are useful to more than one wither
     def init(self,model,years):
@@ -55,7 +57,8 @@ class ivy(dd.dilapidor):
             dtb = dpv.distance_to_border_xy(hc,pfaces[hf])
             rad = dtb
             if rad < 1:continue
-            tree = dcyl.cylinder().translate_z(0.5).scale_z(10)
+            #tree = dcyl.cylinder().translate_z(0.5).scale_z(10)
+            tree = dpi.pipe()
             growth._consume(tree.translate(hc))
         return growth
 
@@ -65,17 +68,17 @@ class ivy(dd.dilapidor):
         hitfaces = self.hitdata['hitfaces']
         hitcasts = self.hitdata['hitcasts']
         pfaces = self.hitdata['pfaces']
-        #nfaces = self.hitdata['nfaces']
+        nfaces = self.hitdata['nfaces']
         seeds = []
         for hdx in range(len(hitfaces)):
             if random.random() < 0.999:continue
             hf = hitfaces[hdx]
             hc = hitcasts[hdx]
-            seeds.append(hc)
+            seeds.append((hf,hc))
 
         for sd in seeds:
             vine = dv.vine()
-            vine.grow(sd,model,years)
+            vine.grow(sd,pfaces,nfaces,years)
             #fake = dco.cone().translate_z(0.5).scale_z(2)
             #growth._consume(fake.translate(sd))
             growth._consume(vine)

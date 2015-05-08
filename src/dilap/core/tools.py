@@ -69,6 +69,11 @@ def normal(c1,c2,c3):
     cn = c1c2.cross(c2c3).normalize()
     return cn
 
+# return a vector tanget to the plane containing c1,c2,c3
+def tangent(c1,c2,c3):
+    tn = dpv.v1_v2(c1,c2).normalize()
+    return tn
+
 # add index offset to a list of faces
 def offset_faces(faces,offset):
     for fdx in range(len(faces)):

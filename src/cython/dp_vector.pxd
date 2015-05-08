@@ -1,4 +1,4 @@
-
+cimport dp_quaternion as dpq
 
 stuff = 'hi'
 
@@ -30,6 +30,7 @@ cdef class vector:
     cpdef vector xz(self)
     cpdef vector yz(self)
     cpdef vector copy(self)
+    cpdef vector rotate(self, dpq.quaternion q)
     cpdef vector rotate_x(self, float zang)
     cpdef vector rotate_y(self, float zang)
     cpdef vector rotate_z(self, float zang)

@@ -2,7 +2,10 @@ import dilap.core.base as db
 import dilap.core.tools as dpr
 
 import dp_vector as dpv
+import dp_quaternion as dpq
 import dp_bbox as dbb
+
+import numpy 
 
 ###############################################################################
 ### model is the basic unit of geometry for dilap
@@ -12,6 +15,7 @@ import dp_bbox as dbb
 ### it can inherit transforms from a scenegraph
 ###
 ### it can write itself as a blender model
+### it can write itself as a obj model
 ### it can write itself as a fbx model
 ###############################################################################
 
@@ -34,7 +38,7 @@ class model(db.base):
         self._def('mats',['generic'],**kwargs)
         # non geometric data
         self._def('reps',{},**kwargs)
-        self._def('filename','modelfile.mesh',**kwargs)
+        self._def('filename','model.mesh',**kwargs)
 
     # return 3d bounding box for this model
     def _aaabbb(self):
@@ -452,14 +456,37 @@ class model(db.base):
     def _extrude(self,loop,curve,ns = None,us = None,m = None):
         nfstart = len(self.faces)
         tailloop = [l.copy() for l in loop]
+        tangents = dpv.edge_tangents(curve)
+        tangents.append(tangents[-1].copy())
+        tailtangent = tangents[0]
         n = len(curve)
         for step in range(1,n):
             tn = dpv.v1_v2(curve[step-1],curve[step])
             tiploop = [l.copy().translate(tn) for l in tailloop]
-            # i want to rotate tiploop according to tangents - need quat
-            # rotation...
-            self._bridge(tailloop,tiploop,ns = ns,us = us,m = m)
+            tiptangent = tangents[step]
+
+
+            # instead of rotating the tiploop, which skews the result
+            # calculate the intersection point for loops extruded along each
+            # of the two relevant tangents
+
+            tipcom = dpv.center_of_mass(tiploop)
+            qn = tailtangent.copy().cross(tiptangent)
+            tipqang = numpy.arcsin(qn.magnitude())/2.0
+            tipquat = dpq.q_from_av(tipqang,qn.normalize())
+            
+            rottiploop = []
+            for tdx in range(len(tiploop)):
+                v = tiploop[tdx].copy().translate(tipcom.flip())
+                v.rotate(tipquat)
+                v.translate(tipcom.flip())
+                rottiploop.append(v)
+                print('tquat',tipquat)
+            
+            tiploop = rottiploop
+            self._bridge(tiploop,tailloop,ns = ns,us = us,m = m)
             tailloop = [l.copy() for l in tiploop]
+            tailtangent = tiptangent.copy()
         nfend = len(self.faces)
         return range(nfstart,nfend)
 

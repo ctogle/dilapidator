@@ -644,16 +644,17 @@ cdef void translate_coords_z_c(list coords, float tv):
 cpdef translate_coords_z(list coords, float tv):
     translate_coords_z_c(coords,tv)
 
-cdef void translate_coords_c(list coords, vector t):
+cdef list translate_coords_c(list coords, vector t):
     cdef int ccnt = len(coords)
     cdef int cdx
     cdef vector coo
     for cdx in range(ccnt):
         coo = <vector>coords[cdx]
         coo.translate(t)
+    return coords
 
-cpdef translate_coords(list coords, vector t):
-    translate_coords_c(coords,t)
+cpdef list translate_coords(list coords, vector t):
+    return translate_coords_c(coords,t)
 
 cdef void scale_coords_x_c(list coords, float s):
     cdef int ccnt = len(coords)

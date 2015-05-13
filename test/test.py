@@ -36,6 +36,10 @@ def floor():
     f = dlc.floor(gap = gap)
     dlc.build(f)
 
+def pipes():
+    p1 = dlc.pipe()
+    dlc.build(p1)
+
 def houselot():
     dds = dld.dilapidors['ivy'](4)
     dlc.realize(dlc.contextualizer['lot'](dilaps = [dds]),7)
@@ -46,6 +50,7 @@ def houselot():
 #wall()
 #perim()
 #floor()
+#pipes()
 houselot()
 
 

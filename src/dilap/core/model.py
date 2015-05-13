@@ -4,8 +4,9 @@ import dilap.core.tools as dpr
 import dp_vector as dpv
 import dp_quaternion as dpq
 import dp_bbox as dbb
+import dp_ray as dr
 
-import numpy 
+import numpy,pdb
 
 ###############################################################################
 ### model is the basic unit of geometry for dilap
@@ -452,41 +453,33 @@ class model(db.base):
         nfend = len(self.faces)
         return range(nfstart,nfend)
 
+
+    # for each point in the curve, produce a plane equation and
+    # properly project loop onto that plane
+    # then iterate over loops and bridge
+    #
     # given a curve of points make faces to extrude loop along the curve
-    def _extrude(self,loop,curve,ns = None,us = None,m = None):
+    def _extrude(self,loop,curve,control,ctrl = None,ns = None,us = None,m = None):
         nfstart = len(self.faces)
-        tailloop = [l.copy() for l in loop]
         tangents = dpv.edge_tangents(curve)
         tangents.append(tangents[-1].copy())
-        tailtangent = tangents[0]
+        tangloop = [l.copy() for l in loop]
+        tangloop = dpr.orient_loop(tangloop,tangents[0],control)
+        tangloop = dpv.translate_coords(tangloop,curve[0])
+        tailloop = dpr.project_coords_plane_along(
+            tangloop,curve[0],tangents[0],tangents[0])
         n = len(curve)
         for step in range(1,n):
-            tn = dpv.v1_v2(curve[step-1],curve[step])
-            tiploop = [l.copy().translate(tn) for l in tailloop]
-            tiptangent = tangents[step]
-
-
-            # instead of rotating the tiploop, which skews the result
-            # calculate the intersection point for loops extruded along each
-            # of the two relevant tangents
-
-            tipcom = dpv.center_of_mass(tiploop)
-            qn = tailtangent.copy().cross(tiptangent)
-            tipqang = numpy.arcsin(qn.magnitude())/2.0
-            tipquat = dpq.q_from_av(tipqang,qn.normalize())
-            
-            rottiploop = []
-            for tdx in range(len(tiploop)):
-                v = tiploop[tdx].copy().translate(tipcom.flip())
-                v.rotate(tipquat)
-                v.translate(tipcom.flip())
-                rottiploop.append(v)
-                print('tquat',tipquat)
-            
-            tiploop = rottiploop
+            c0,c1 = curve[step-1],curve[step]
+            t0,t1 = tangents[step-1],tangents[step]
+            halft = dpv.midpoint(t0,t1).normalize()
+            n = halft
+            tangloop = [l.copy() for l in loop]
+            tangloop = dpr.orient_loop(tangloop,t0,control)
+            tangloop = dpv.translate_coords(tangloop,c1)
+            tiploop = dpr.project_coords_plane_along(tangloop,c1,n,t0)
             self._bridge(tiploop,tailloop,ns = ns,us = us,m = m)
-            tailloop = [l.copy() for l in tiploop]
-            tailtangent = tiptangent.copy()
+            tailloop = [p.copy() for p in tiploop]
         nfend = len(self.faces)
         return range(nfstart,nfend)
 
@@ -530,6 +523,14 @@ class model(db.base):
 
     def translate(self,v):
         dpv.translate_coords(self.pcoords,v)
+        return self
+
+    def translate_faces(self,frange,v):
+        coords = []
+        for f in frange:
+            fpoints = [self.pcoords[fx] for fx in self.faces[f]]
+            coords.extend(fpoints)
+        dpv.translate_coords(coords,v)
         return self
 
     #######################################################

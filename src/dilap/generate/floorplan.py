@@ -10,8 +10,10 @@ import dilap.primitive.wall as dw
 import dilap.primitive.floor as df
 import dilap.generate.room as dgr
 import dilap.generate.shaft as dsh
+import dilap.generate.roof as drf
 
 import dp_vector as dpv
+import dp_bbox as dbb
 
 import random as rm
 
@@ -22,7 +24,7 @@ class floorplan(dgc.context):
     def __init__(self,building,*args,**kwargs):
         dgc.context.__init__(self,*args,**kwargs)
         self.bldg = building
-        self._def('max_rooms',10,**kwargs)
+        self._def('max_rooms',2,**kwargs)
 
     def should_shaft(self,rmplan):
     #def should_shaft(self,newpos,newl,neww):
@@ -35,8 +37,8 @@ class floorplan(dgc.context):
         newl,neww = rmplan[1]['l'],rmplan[1]['w']
         if newl >= 20 and neww >= 24:
             shx,shy = rmplan[1]['x'],rmplan[1]['y']
-            shl = 10
-            shw = 16
+            shl = 8
+            shw = 10
             sps = dpv.vector(shx,shy,0)
             gap = (dpv.zero(),shl,shw)
             rmplan[1]['shafted'] = True
@@ -69,10 +71,12 @@ class floorplan(dgc.context):
         margs = ((),{'x':mx,'y':my,'l':subl,'w':subw,'shafted':False})
         splan = self.should_shaft(margs)
         cpairs = self.wall_verts(margs)
-        ewargs = [[cp,{'h':4.0,'w':0.5,'switchable':True}] for cp in cpairs]
+        ewargs = [[cp,
+            {'h':4.0,'w':0.5,'walltype':'exterior','room':margs}] 
+                for cp in cpairs]
         # 0 may not be the front wall, i did not check
-        ewargs[0][1]['switchable'] = False
-        ewargs[0][1]['doorgaps'] = [(0.5,0.25)]
+        ewargs[0][1]['walltype'] = 'entryway'
+        #ewargs[0][1]['doorgaps'] = [(0.5,0.25)]
 
         rmplans = [margs]
         ewplans = ewargs[:]
@@ -86,102 +90,110 @@ class floorplan(dgc.context):
             options = plans[1][:]
             while options:
                 which = rm.choice(options)
-                if not which[1]['switchable']:
+                if not which[1]['walltype'] == 'entryway':
                     side = which
                     break
                 options.remove(which)
         return side
 
     # choose a grow length if necessary
-    def grow_length(self,plans,length):
-        if length is None:return rm.choice([8,12,16,20,24,28,32])
-        else:return length
+    def grow_length(self,plans,length,side):
+        if length is None:
+
+            #bdist = side._distance_to_border(self.corners)
+            #if bdist < 8 and not force:
+            #    #print 'too close to a border to grow'
+            #    return False
+            #elif gleng > bdist: gleng = bdist
+
+            length = rm.choice([8,12,16,20,24,28,32])
+        return length
+
+    def face_away(self,side):
+        # THIS IS WHERE IT GOES OFF THE RAILS
+        rp = side[1]['room']
+
+        intpt = dpv.vector(rp[1]['x'],rp[1]['y'],0.0)
+        midpt = dpv.midpoint(*side[0])
+        tangt = dpv.v1_v2(*side[0]).normalize()
+        norml = tangt.copy().rotate_z(dpr.rad(90)).normalize()
+        tstpt = midpt.copy().translate(norml)
+
+        side[1]['normal'] = norml
+        if dpv.distance(intpt,midpt) > dpv.distance(intpt,tstpt):
+            side[1]['normal'].flip()
 
     # plans is a tuple of 4 lists of plans
     #def grow(self,length = None,side = None,force = False):
     def grow(self,plans,length = None,side = None,force = False):
         side = self.grow_side(plans,side)
         if side is None:return False
-        gleng = self.grow_length(plans,length)
+        gleng = self.grow_length(plans,length,side)
+        if gleng is None:return False
 
-        #bdist = side._distance_to_border(self.corners)
-        #if bdist < 8 and not force:
-        #    #print 'too close to a border to grow'
-        #    return False
-        #elif gleng > bdist: gleng = bdist
+        self.face_away(side)
+        v1,v2 = side[0]
+        c1 = v2.copy()
+        c2 = v1.copy()
+        c3,c4 = dpr.extrude_edge(c1,c2,gleng,side[1]['normal'])
 
-        pdb.set_trace()
-        # THIS IS WHERE IT GOES OFF THE RAILS
-
-
-        side._face_away()
-        c1 = side.v2.copy()
-        c2 = side.v1.copy()
-        cn = side.normal.copy()
-        c3,c4 = mbp.extrude_edge(c1,c2,gleng,cn)
         newcorners = [c1,c2,c3,c4]
-        sect = fl.floor_sector(corners = newcorners, 
-                floor_height = self.floor_height, 
-                ceiling_height = self.ceiling_height, 
-                wall_height = self.wall_height)
-        gaps = self.should_shaft(sect.position,sect.length,sect.width)
-        sect.fgaps = gaps[:]
-        sect.cgaps = gaps[:]
-        if gaps: sect.shafted = True
-        for esect in self.sectors:
-            ebb = esect.get_bboxes()
-            nbb =  sect.get_bboxes()
-            if mpbb.intersects(ebb,nbb):
-                if gaps: self.shaft_kwargs.pop(-1)
-                #print 'new sect intersected!'
-                return False
+        x,y,z = dpv.center_of_mass(newcorners)
+        #l,w = c2.x-c1.x,c4.y-c1.y
+        xpj = dpv.project_coords(newcorners,dpv.xhat)
+        ypj = dpv.project_coords(newcorners,dpv.yhat)
+        l,w = xpj.y-xpj.x,ypj.y-ypj.x
 
-        wmat = self.wall_material
+        margs = ((),{'x':x,'y':y,'l':l,'w':w,'shafted':False})
+        #gaps = self.should_shaft(sect.position,sect.length,sect.width)
+        #margs['fgaps'] = gaps[:]
+        #margs['cgaps'] = gaps[:]
+        #splan = self.should_shaft(margs)
+        #if gaps:sect.shafted = True
+
+        #for esect in self.sectors:
+        #    ebb = esect.get_bboxes()
+        #    nbb =  sect.get_bboxes()
+        #    if mpbb.intersects(ebb,nbb):
+        #        if gaps: self.shaft_kwargs.pop(-1)
+        #        #print 'new sect intersected!'
+        #        return False
+
         cpairs = [(c2,c3),(c3,c4),(c4,c1)]
-        extwalls = [wa.newwall(v1 = cp[0],v2 = cp[1],sort = 'exterior', 
-                    m = wmat,sector = sect,h = self.wall_height,
-                    fh = self.floor_height,w = self.wall_width) 
-                        for cp in cpairs]
-        intwalls = []
+        ewargs = [[cp,
+            {'h':4.0,'w':0.5,'walltype':'exterior','room':margs}] 
+                for cp in cpairs]
+        iwargs = []
 
-        #cpairs = [(c2,c3),(c3,c4),(c4,c1)]
-        #extwalls = [wa.wall_plan(*cp, 
-        #    sector = sect, 
-        #    sort = 'exterior', 
-        #    wall_height = self.wall_height) 
-        #        for cp in cpairs] 
-        #intwalls = []
         #if self.resolve_walls(extwalls,intwalls,sect):
         if True:
-            self.switch_wall_sort(side)
+            #self.switch_wall_sort(side)
 
-            self.sectors.append(sect)
-            self.exterior_walls.extend(extwalls)
-            self.interior_walls.extend(intwalls)
+            rps,eps,ips,sps = plans
+            rps.append(margs)
+            eps.extend(ewargs)
+            ips.extend(iwargs)
             return True
-
-        else: return False
-
-
-    #####
-
+        else:return False
 
     def plan_specific(self,specific):
-        if specific > 0:
-            self.allplans[1][0][1]['doorgaps'] = []
+        if specific > 0:self.allplans[1][0][1]['walltype'] = 'exterior'
+        if specific == self.bldg.stories-1:
+            for sp in self.allplans[0]:
+                sp[1]['cgap'] = None
 
     def plan(self):
         plans = self.entry()
         
-        self.allplans = plans
-        return
+        #self.allplans = plans
+        #return
 
         for sect in range(self.max_rooms):
             grew = self.grow(plans)
-            if grew is false:
+            if grew is False:
                 print('growth rejected')
                 pass
-            elif grew is none:
+            elif grew is None:
                 print('division aborted')
                 break
         self.allplans = plans
@@ -193,6 +205,12 @@ class floorplan(dgc.context):
         for sp in sps:shafts.append(dsh.shaft(self.bldg,*sp[0],**sp[1]))
         for s in shafts:s.generate(worn)
         return shafts
+
+    # generate and return roof pieces
+    def generate_roof(self,worn = 0):
+        roof = drf.roof(self)
+        roof.generate(worn)
+        return roof
 
     # generates a floor without associated shafts
     # other contexts are expected to use this contexts nodes directly

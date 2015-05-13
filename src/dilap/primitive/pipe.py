@@ -12,27 +12,33 @@ class pipe(dmo.model):
 
     def __init__(self,*args,**kwargs):
         dmo.model.__init__(self,*args,**kwargs)
+        self._def('m','generic',**kwargs)
         self._loop(**kwargs)
         self._curve(**kwargs)
         self._geo()
     
     def _loop(self,**kwargs):
-        if 'loop' in kwargs.keys():self.loop = kwargs['loop']
+        if 'loop' in kwargs.keys() and kwargs['loop']:
+            self.loop = kwargs['loop']
         else:
             self.loop = dpr.point_ring(1,16)
+            #self.loop = dpr.corners(4,4)
             self.loop.append(self.loop[0].copy())
 
     def _curve(self,**kwargs):
-        if 'curve' in kwargs.keys():self.curve = kwargs['curve']
+        if 'curve' in kwargs.keys() and kwargs['curve']:
+            self.curve = kwargs['curve']
         else:
-            b = dpv.zero()
-            bottom = [b,b.copy().translate_z(10)]
-            top = [b.copy().translate_z(11).translate_x(2) for b in bottom]
-            top.append(top[-1].copy().translate_y(10))
-            self.curve = bottom + top
+            self.curve = [dpv.zero(),
+                dpv.zero().translate_z(5),
+                dpv.zero().translate_z(5).translate_y(5),
+                dpv.zero().translate_z(5).translate_y(5).translate(dpv.vector(1,1,2)),
+                dpv.zero().translate_z(5).translate_y(5).translate(dpv.vector(1,1,2)).translate_x(4),
+                dpv.zero().translate_z(5).translate_y(5).translate(dpv.vector(1,1,2)).translate_x(4).translate_z(-2)]
 
     # extrude a loop along self.curve
     def _geo(self):
-        self._extrude(self.loop,self.curve)
+        control = dpv.zero()
+        self._extrude(self.loop,self.curve,control,m = self.m)
 
 

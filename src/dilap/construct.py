@@ -7,6 +7,7 @@ import dilap.primitive.cone as dco
 import dilap.primitive.cylinder as dcyl
 import dilap.primitive.wall as dw
 import dilap.primitive.floor as df
+import dilap.primitive.pipe as dp
 import dilap.generate.context as dgc
 import dilap.generate.landscape as dls
 import dilap.generate.lot as dlot
@@ -79,6 +80,10 @@ def perimeter(vs,h = 1.0,w = 0.5):
 def floor(l = 10.0,w = 10.0,h = 0.5,gap = None,m = 'generic'):
     fl = df.floor(l,w,h = h,gap = gap,m = m)
     return fl
+
+def pipe(curve = None,loop = None,m = 'generic'):
+    pi = dp.pipe(curve = curve,loop = loop,m = m)
+    return pi
 
 ###############################################################################
 

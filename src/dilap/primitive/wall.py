@@ -16,6 +16,7 @@ class wall(dmo.model):
         self._def('doorgaps',[],**kwargs)
         self._def('windowgaps',[],**kwargs)
         self._def('gaps',[],**kwargs)
+        self._def('walltype','solid',**kwargs)
         self._geo()
 
     # given v1,v2 set all data dep. on endpoints
@@ -79,10 +80,35 @@ class wall(dmo.model):
         #dkws = {'z':dz,'w':dw,'h':dh,'gap':dpts,'wall':self}
         #self._portals.append(po.door(**dkws))
 
+    def _geo_exterior(self):
+        if self.l < 6 or self.h < 3.0:return
+        fh = 0.25
+        wlen = float(self.l)
+        winw = 1.5
+        gcnt = int(wlen/(winw*3))
+        if gcnt % 2 != 0: gcnt -= 1
+        if gcnt > 0: gspa = wlen/gcnt
+        for gn in range(gcnt):
+            gp = gn*gspa
+            self._window_gap(gp/wlen,fh)
+
+    def _geo_interior(self):
+        if self.l < 6 or self.h < 3.0:return
+        fh = 0.25
+        self._door_gap(0.5,fh)
+
+    def _geo_entryway(self):
+        fh = 0.25
+        self._door_gap(0.5,fh)
+
     # build segments of wall skipping regions from self.gaps
     def _geo(self):
         for d in self.doorgaps:self._door_gap(*d)
         for w in self.windowgaps:self._window_gap(*w)
+        if   self.walltype == 'exterior':self._geo_exterior()
+        elif self.walltype == 'interior':self._geo_interior()
+        elif self.walltype == 'entryway':self._geo_entryway()
+        elif self.walltype == 'solid':pass
         spts = []
         spts.append(self.v1)
         for g in self.gaps:spts.extend(g)

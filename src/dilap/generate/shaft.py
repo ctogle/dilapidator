@@ -13,8 +13,8 @@ class shaft(dgc.context):
         dgc.context.__init__(self,*args,**kwargs)
         self._def('style','uturn',**kwargs)
         self._def('p',dpv.zero(),**kwargs)
-        self._def('l',12,**kwargs)
-        self._def('w',16,**kwargs)
+        self._def('l',10,**kwargs)
+        self._def('w',8,**kwargs)
         if args:
             b = args[0]
             s = b.stories
@@ -61,7 +61,8 @@ class shaft(dgc.context):
         sheight = diff/s
 
         p3h = 2.0*sheight;p3l = l;p3w = 3.0
-        p3x = 0.0;p3y = (w - p3w)/2.0;p3z = diff-sheight
+        p3x = 0.0;p3y = (w - p3w)/2.0;p3z = diff
+        #p3x = 0.0;p3y = (w - p3w)/2.0;p3z = diff-sheight
         # this next line is suspect
         pform3 = dcu.cube().translate_z(0.25)  
         pform3.scale(dpv.vector(p3l,p3w,p3h))
@@ -76,9 +77,12 @@ class shaft(dgc.context):
         lside = ds.stairs(**sopts1)
         rside = ds.stairs(**sopts2)
         lside.rotate_z(dpr.PI).translate_y(rl).translate_z(diff)
-        lside.translate_x(-rwoffx).translate_y(-rwoffy).translate_z(fh-sheight)
-        rside.translate_x( rwoffx).translate_y(-rwoffy).translate_z(fh-sheight)
-        final = dpr.combine([pform1,pform2,pform3,lside,rside,extra])
+        #lside.translate_x(-rwoffx).translate_y(-rwoffy).translate_z(fh-sheight)
+        #rside.translate_x( rwoffx).translate_y(-rwoffy).translate_z(fh-sheight)
+        lside.translate_x(-rwoffx).translate_y(-rwoffy).translate_z(fh)
+        rside.translate_x( rwoffx).translate_y(-rwoffy).translate_z(fh)
+        if level == self.stories - 1:final = dpr.combine([pform1,extra])
+        else:final = dpr.combine([pform1,pform2,pform3,lside,rside,extra])
         return self._node_wrap(final)
 
     # generate and return a node representing ramps of one story

@@ -139,7 +139,6 @@ cdef class quaternion:
 
     # rotate vector v by rotation represented by self
     cpdef dpv.vector rotate_vector(self, dpv.vector v):
-        print('MUST IMPLEMENT QUAT ROT')
         cdef quaternion qstar = self.normalize().copy().conjugate()
         cdef quaternion pure = quaternion(0,v.x,v.y,v.z)
         cdef dpv.vector rotated = dpv.zero()
@@ -187,6 +186,20 @@ cdef class quaternion:
         self.z = self.w*q.z + q.w*self.z + (self.x*q.y - self.y*q.x)
         return self
 
+cdef list rotate_coords_c(list coords, dpv.vector origin, quaternion qrot):
+    cdef int ccnt = len(coords)
+    cdef int tdx
+    cdef list rottiploop = []
+    for tdx in range(ccnt):
+        v = coords[tdx].copy().translate(origin.flip())
+        v.rotate(qrot)
+        v.translate(origin.flip())
+        rottiploop.append(v)
+    return rottiploop
+
+cpdef list rotate_coords(list coords, dpv.vector origin, quaternion qrot):
+    return rotate_coords_c(coords,origin,qrot)
+
 cpdef float magnitude(quaternion q):
     cdef float ss = q.magnitude()
     return ss
@@ -198,6 +211,8 @@ cdef quaternion zero_c():
 cpdef quaternion zero():
     return zero_c()
 
+# given an angle a and axis v, produce a unit quaternion 
+# representing a rotation by a around v
 cpdef quaternion q_from_av(float a, dpv.vector v):
     cdef float w = cos(a/2.0)
     cdef float sa = sin(a/2.0)
@@ -206,6 +221,20 @@ cpdef quaternion q_from_av(float a, dpv.vector v):
     cdef float y = d.y*sa
     cdef float z = d.z*sa
     return quaternion(w,x,y,z)
+
+# given two unit vectors u1,u2, produce a unit quaternion
+# representing a rotation from u1 to u2
+cpdef quaternion q_from_uu(dpv.vector u1, dpv.vector u2):
+    cdef dpv.vector axis = u1.cross(u2)
+    cdef float a = np.arcsin(axis.magnitude())
+    cdef quaternion q = q_from_av(a,axis.normalize())
+    return q
+
+def quu_test():
+    u1 = dpv.vector(1,1,0).normalize()
+    u2 = dpv.vector(1,-1,0).normalize()
+    q = q_from_uu(u1,u2)
+    print(q)
 
 cpdef quaternion multiply(quaternion q1, quaternion q2):
     cdef float w = q1.w*q2.w - (q1.x*q2.x + q1.y*q2.y + q1.z*q2.z)

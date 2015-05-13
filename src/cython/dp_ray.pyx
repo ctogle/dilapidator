@@ -56,6 +56,26 @@ cdef class ray:
         self.cast.z = v/denom
         return 1
 
+    # tests if this ray intersects a plane 
+    # given point in plane r0 and plane normal n
+    #
+    # currently just checks if parametric line across ray intersects...
+    cpdef bint intersect_plane(self,dpv.vector r0,dpv.vector n):
+        cdef dpv.vector p0 = self.origin.copy()
+        cdef dpv.vector p1 = self.origin.copy().translate(self.direction)
+        cdef float denom = n.dot(p1 - p0)
+        cdef float numer = n.dot(r0 - p0)
+        cdef float t
+        if denom == 0:
+            print('ray is parallel to the plane')
+            # check if p0 or p1 is in the plane
+            return 0
+        else:t = numer/denom
+        self.cast.x = self.origin.x + t*self.direction.x
+        self.cast.y = self.origin.y + t*self.direction.y
+        self.cast.z = self.origin.z + t*self.direction.z
+        return 1
+
 # return the indices of triangles in triangles which are hit by ray r
 cdef list intersect_filter_c(ray r,list triangles):
     cdef list hits = []

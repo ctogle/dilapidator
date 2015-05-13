@@ -32,6 +32,11 @@ class house(dgc.context):
             z += self.wheights[level]
         return z
 
+    def _roof_height(self):
+        z = self._story_height(self.stories-1)
+        z += self.wheights[-1]
+        return z
+
     def generate_stoop(self,worn = 0):
         s = self.stoop
         cub = dcu.cube()
@@ -57,5 +62,6 @@ class house(dgc.context):
             if x == 0:self.generate_stoop(worn)
             self.generate_story(x,worn)
         for s in self.fplan.generate_shafts(worn):self._consume(s)
+        self._consume(self.fplan.generate_roof(worn))
 
 

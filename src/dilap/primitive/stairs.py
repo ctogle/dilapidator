@@ -40,6 +40,9 @@ class stairs(dmo.model):
         nfs.extend(self._bridge(bottomleft,topleft))
         nfs.extend(self._bridge(topright,bottomright))
         nfs.extend(self._bridge(bottomright,bottomleft))
+        nfs.extend(self._quad(
+            topleft[-1],topright[-1],
+            bottomright[-1],bottomleft[-1]))
         self._project_uv_flat(nfs)
 
     def _geo(self):

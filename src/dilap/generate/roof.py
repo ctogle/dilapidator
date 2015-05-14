@@ -22,6 +22,10 @@ class roof(dgc.context):
         rps,eps,ips,sps = self.fplan.allplans
         for rp in rps:
 
+            # make a list of outter and inner points
+            # walk around the outter loop making tris or quads 
+            # to fill in the roof
+
             x,y,l,w = rp[1]['x'],rp[1]['y'],rp[1]['l'],rp[1]['w']
             z = self.fplan.bldg._roof_height()+0.5
             l += 1.0

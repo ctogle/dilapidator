@@ -19,7 +19,7 @@ class house(dgc.context):
         dgc.context.__init__(self,*args,**kwargs)
         self.l = l
         self.w = w
-        self._def('stories',2,**kwargs)
+        self._def('stories',3,**kwargs)
         self._def('fheights',[0.25 for x in range(self.stories)],**kwargs)
         self._def('cheights',[0.25 for x in range(self.stories)],**kwargs)
         self._def('wheights',[4.0 for x in range(self.stories)],**kwargs)

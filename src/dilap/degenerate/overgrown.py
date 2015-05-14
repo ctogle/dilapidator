@@ -15,7 +15,7 @@ class ivy(dd.dilapidor):
     def __init__(self,*args,**kwargs):
         dd.dilapidor.__init__(self,*args,**kwargs)
         self._def('z_max',10,**kwargs)
-        #self.withers.append('init')
+        self.withers.append('init')
         #self.withers.append('trees')
         #self.withers.append('ivy')
         #self.withers.append('grass')
@@ -26,7 +26,7 @@ class ivy(dd.dilapidor):
         nfaces = model._face_normals(model.faces)
         mbb = model._aaabbb()
         # pfaces must not be empty...
-        hitfaces,hitcasts = dr.ray_grid(dpv.nzhat,mbb,pfaces,1.0)
+        hitfaces,hitcasts = dr.ray_grid(dpv.nzhat,mbb,pfaces,4.0)
         for hdx in range(len(hitfaces)):
             hf = hitfaces[hdx]
             hc = hitcasts[hdx]

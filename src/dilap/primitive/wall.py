@@ -1,6 +1,8 @@
 import dilap.core.base as db
 import dilap.core.tools as dpr
 import dilap.core.model as dmo
+import dilap.primitive.door as pd
+import dilap.primitive.window as pw
 
 import dp_vector as dpv
 
@@ -16,6 +18,7 @@ class wall(dmo.model):
         self._def('doorgaps',[],**kwargs)
         self._def('windowgaps',[],**kwargs)
         self._def('gaps',[],**kwargs)
+        self._def('portals',[],**kwargs)
         self._def('walltype','solid',**kwargs)
         self._geo()
 
@@ -66,9 +69,11 @@ class wall(dmo.model):
         dw,dh,dz = 0.75*winh,winh,max([(wh-winh)/2.0,fh+0.5])
         wpts = self._gap(dx,dw)
         if wpts is None:return
-          
-        #wkws = {'z':dz,'w':dw,'h':dh,'gap':wpts,'wall':self}
-        #self._portals.append(po.window(**wkws))
+
+        wargs = ((),{'z':dz,'w':dw,'h':dh,'gap':wpts,'wall':self})
+        wpos = dpv.midpoint(*wpts)
+        newwindow = pw.window(*wargs[0],**wargs[1]).translate(wpos)
+        self.portals.append(newwindow)
 
     # add a wall gap characteristic of a door
     def _door_gap(self,dx,fh):
@@ -77,8 +82,10 @@ class wall(dmo.model):
         dpts = self._gap(dx,dw)
         if dpts is None:return
 
-        #dkws = {'z':dz,'w':dw,'h':dh,'gap':dpts,'wall':self}
-        #self._portals.append(po.door(**dkws))
+        dargs = ((),{'z':dz,'w':dw,'h':dh,'gap':dpts,'wall':self})
+        dpos = dpv.midpoint(*dpts)
+        newdoor = pd.door(*dargs[0],**dargs[1]).translate(dpos)
+        self.portals.append(newdoor)
 
     def _geo_exterior(self):
         if self.l < 6 or self.h < 3.0:return
@@ -114,6 +121,7 @@ class wall(dmo.model):
         for g in self.gaps:spts.extend(g)
         spts.append(self.v2)
         self._segments(spts)
+        self._portals()
 
     # given a set of points, build a segment between every other
     def _segments(self,spts):
@@ -141,5 +149,9 @@ class wall(dmo.model):
         #nfs = self._bridge(ts,bs,m = m)
         #self._flip_faces(nfs)
         self._project_uv_flat(nfs)
+
+    def _portals(self):
+        for p in self.portals:
+            self._consume(p)
 
 

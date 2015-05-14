@@ -1,6 +1,7 @@
 import dilap.construct as dlc
 import dilap.destruct as dld
 import dilap.primitive.tools as pdr
+import dilap.core.profiler as prf
 
 import dp_vector as dpv
 
@@ -44,6 +45,9 @@ def houselot():
     dds = dld.dilapidors['ivy'](4)
     dlc.realize(dlc.contextualizer['lot'](dilaps = [dds]),7)
 
+def prf_houselot():
+    prf.profile_function(houselot)
+
 #cube()
 #cone()
 #stonehenge()
@@ -51,6 +55,6 @@ def houselot():
 #perim()
 #floor()
 #pipes()
-houselot()
+prf_houselot()
 
 

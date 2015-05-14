@@ -43,7 +43,7 @@ class stairs(dmo.model):
         nfs.extend(self._quad(
             topleft[-1],topright[-1],
             bottomright[-1],bottomleft[-1]))
-        self._project_uv_flat(nfs)
+        #self._project_uv_flat(nfs)
 
     def _geo(self):
         l,w,h = float(self.l),float(self.w),float(self.h)

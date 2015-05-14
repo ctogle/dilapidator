@@ -567,6 +567,18 @@ cpdef list vector_spline(vector c1,vector c2,vector c3,vector c4,int scnt):
 
 ###########################################################################
 
+cdef list rotate_coords_c(list coords,dpq.quaternion q):
+    cdef int ccnt = len(coords)
+    cdef int cdx
+    cdef vector coo
+    for cdx in range(ccnt):
+        coo = <vector>coords[cdx]
+        coo.rotate(q)
+    return coords
+
+cpdef list rotate_coords(list coords,dpq.quaternion q):
+    return rotate_coords_c(coords,q)
+
 cdef void rotate_x_coords_c(list coords, float ang):
     cdef int ccnt = len(coords)
     cdef int cdx

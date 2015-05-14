@@ -41,6 +41,21 @@ class model(db.base):
         self._def('reps',{},**kwargs)
         self._def('filename','model.mesh',**kwargs)
 
+    # POSSIBLY CAUSES CRASHES?
+    # create an independent copy of this model
+    def copy(self):
+        cps = [p.copy for p in self.pcoords]
+        cns = [n.copy for n in self.ncoords]
+        cus = [u.copy for u in self.ucoords]
+        cfs = [f[:] for f in self.faces]
+        cfms = self.face_mats[:]
+        cms = self.mats[:]
+        cfn = self.filename.replace('.mesh','.copy.mesh')
+        cp = model(pcoords = cps,ncoordsd = cns,ucoords = cus,
+            faces = cfs,face_mats = cfms,mats = cms,filename = cfn)
+        pdb.set_trace()
+        return cp
+
     # return 3d bounding box for this model
     def _aaabbb(self):
         xproj = dpv.project_coords(self.pcoords,dpv.xhat)
@@ -171,7 +186,8 @@ class model(db.base):
     #######################################################
 
     # for range of faces rng, project uvs xy
-    def _project_uv_xy(self,rng):
+    def _project_uv_xy(self,rng = None):
+        if rng is None:rng = range(len(self.faces))
         for nf in rng:
             face = self.faces[nf]
             for fdx in face:
@@ -180,7 +196,8 @@ class model(db.base):
                 self.ucoords[fdx] = nu
 
     # for range of faces rng, project uvs yz
-    def _project_uv_yz(self,rng):
+    def _project_uv_yz(self,rng = None):
+        if rng is None:rng = range(len(self.faces))
         for nf in rng:
             face = self.faces[nf]
             for fdx in face:
@@ -189,7 +206,8 @@ class model(db.base):
                 self.ucoords[fdx] = nu
 
     # for range of faces rng, project uvs xz
-    def _project_uv_xz(self,rng):
+    def _project_uv_xz(self,rng = None):
+        if rng is None:rng = range(len(self.faces))
         for nf in rng:
             face = self.faces[nf]
             for fdx in face:
@@ -198,7 +216,8 @@ class model(db.base):
                 self.ucoords[fdx] = nu
 
     # for range of faces rng, project uvs flat
-    def _project_uv_flat(self,rng):
+    def _project_uv_flat(self,rng = None):
+        if rng is None:rng = range(len(self.faces))
         for nf in rng:
             face = self.faces[nf]
             for fdx in face:
@@ -216,6 +235,7 @@ class model(db.base):
     # for range of faces rng, 
     # translate uvs along u coordinate by dx
     def _translate_uv_u(self,rng,dx):
+        if rng is None:rng = range(len(self.faces))
         for nf in rng:
             face = self.faces[nf]
             for fdx in face:
@@ -225,6 +245,7 @@ class model(db.base):
     # for range of faces rng, 
     # translate uvs along v coordinate by dy
     def _translate_uv_v(self,rng,dy):
+        if rng is None:rng = range(len(self.faces))
         for nf in rng:
             face = self.faces[nf]
             for fdx in face:
@@ -234,6 +255,7 @@ class model(db.base):
     # for range of faces rng, 
     # scale uvs along u coordinate by du
     def _scale_uv_u(self,rng,du):
+        if rng is None:rng = range(len(self.faces))
         for nf in rng:
             face = self.faces[nf]
             for fdx in face:
@@ -243,6 +265,7 @@ class model(db.base):
     # for range of faces rng, 
     # scale uvs along v coordinate by dv
     def _scale_uv_v(self,rng,dv):
+        if rng is None:rng = range(len(self.faces))
         for nf in rng:
             face = self.faces[nf]
             for fdx in face:
@@ -537,38 +560,30 @@ class model(db.base):
 
     def scale_x(self,sx):
         dpv.scale_coords_x(self.pcoords,sx)
-        #if self._scale_uvs_: self.scale_uvs(dpv.vector(sx,0,0))
         return self
 
     def scale_y(self,sy):
         dpv.scale_coords_y(self.pcoords,sy)
-        #if self._scale_uvs_: self.scale_uvs(dpv.vector(0,sy,0))
         return self
 
     def scale_z(self,sz):
         dpv.scale_coords_z(self.pcoords,sz)
-        #if self._scale_uvs_: self.scale_uvs(dpv.vector(0,0,sz))
         return self
 
     def scale_u(self,u):
         scl = dpv.vector(u,u,u)
         dpv.scale_coords(self.pcoords,scl)
-        #if self._scale_uvs_: self.scale_uvs(vect)
         return self
 
     def scale(self,v):
         dpv.scale_coords(self.pcoords,v)
-        #if self._scale_uvs_: self.scale_uvs(vect)
         return self
 
     #######################################################
 
     def rotate(self,q):
-        print('its time to try the quaternion')
-        pdb.set_trace()
-
-        dpv.scale_coords_x(self.pcoords,sx)
-        #if self._scale_uvs_: self.scale_uvs(dpv.vector(sx,0,0))
+        dpv.rotate_coords(self.pcoords,q)
+        dpv.rotate_coords(self.ncoords,q)
         return self
 
     def rotate_x(self,rx):

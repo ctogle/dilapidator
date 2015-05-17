@@ -61,6 +61,7 @@ def prf_lstest():
 #floor()
 #pipes()
 #prf_houselot()
-prf_lstest()
+#prf_lstest()
+pls.test()
 
 

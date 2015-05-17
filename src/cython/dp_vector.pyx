@@ -30,6 +30,15 @@ cdef class vector2d:
         strr = 'vector2d:' + str((self.x,self.y))
         return strr
 
+    cpdef bint near(self,vector2d other):
+        cdef float dx = (self.x-other.x)
+        cdef float dy = (self.y-other.y)
+        cdef float dx2 = dx*dx
+        cdef float dy2 = dy*dy
+        if dx2 > 0.0001:return 0
+        if dy2 > 0.0001:return 0
+        return 1
+
     cpdef vector2d copy(self):
         cdef vector2d new = vector2d(self.x,self.y)
         return new
@@ -144,6 +153,18 @@ cdef class vector:
                 if self.z == other.z: return True
         return False
 
+    cpdef bint near(self,vector other):
+        cdef float dx = (self.x-other.x)
+        cdef float dy = (self.y-other.y)
+        cdef float dz = (self.z-other.z)
+        cdef float dx2 = dx*dx
+        cdef float dy2 = dy*dy
+        cdef float dz2 = dz*dz
+        if dx2 > 0.0001:return 0
+        if dy2 > 0.0001:return 0
+        if dz2 > 0.0001:return 0
+        return 1
+
     cpdef vector2d xy2d(self):
         cdef vector2d new = vector2d(self.x,self.y)
         return new
@@ -215,9 +236,9 @@ cdef class vector:
         return self
 
     cpdef vector reciprocate(self):
-        self.x = 1.0/self.x
-        self.y = 1.0/self.y
-        self.z = 1.0/self.z
+        if not self.x == 0.0:self.x = 1.0/self.x
+        if not self.y == 0.0:self.y = 1.0/self.y
+        if not self.z == 0.0:self.z = 1.0/self.z
         return self
 
     # linearly interpolate between self and other proportionally to delta
@@ -741,6 +762,13 @@ cdef float distance_xy_c(vector v1, vector v2):
 cpdef float distance_xy(vector v1, vector v2):
     return distance_xy_c(v1, v2)
 
+cdef float distance2d_c(vector2d v1, vector2d v2):
+    cdef float d2 = (v1.x-v2.x)**2 + (v1.y-v2.y)**2
+    return sqrt(d2)
+
+cpdef float distance2d(vector2d v1, vector2d v2):
+    return distance2d_c(v1, v2)
+
 cdef float distance_c(vector v1, vector v2):
     cdef vector v1v2 = v1_v2(v1,v2)
     cdef float mag = v1v2.magnitude()
@@ -748,6 +776,10 @@ cdef float distance_c(vector v1, vector v2):
 
 cpdef float distance(vector v1, vector v2):
     return distance_c(v1, v2)
+
+cpdef bint near2d(vector2d v1, vector2d v2):
+    cdef bint isnear = distance2d_c(v1,v2) < 0.01
+    return isnear
 
 cpdef bint near(vector v1, vector v2):
     cdef bint isnear = distance_c(v1,v2) < 0.01

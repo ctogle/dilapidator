@@ -5,6 +5,7 @@ stuff = 'hi'
 cdef class vector2d:
     cdef public float x    
     cdef public float y
+    cpdef bint near(self,vector2d other)
     cpdef vector2d copy(self)
     cpdef list to_list(self)
     cpdef tuple to_tuple(self)
@@ -23,6 +24,7 @@ cdef class vector:
     cdef public float x    
     cdef public float y
     cdef public float z
+    cpdef bint near(self,vector other)
     cpdef vector2d xy2d(self)
     cpdef vector2d xz2d(self)
     cpdef vector2d yz2d(self)

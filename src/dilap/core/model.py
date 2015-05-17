@@ -294,6 +294,14 @@ class model(db.base):
     #methods for modifying the models geometry data
     #######################################################
 
+    # what if this respected existing points, 
+    # instead of allowing duplicates, what if it maintained topological data
+    # 
+    # should generate topo info as data comes in, because its easiest there...
+    #
+    # could allow data addition which does or does not default to duplicates
+    # duplicates are necessary for sharp edges via normals...
+    #
     # add vertex data given coords,normals,uvs
     def _add_vdata(self,ps,ns,us):
         self.pcoords.extend(ps)

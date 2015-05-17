@@ -3,6 +3,8 @@ import dilap.destruct as dld
 import dilap.primitive.tools as pdr
 import dilap.core.profiler as prf
 
+import dilap.core.lsystem as pls
+
 import dp_vector as dpv
 
 def cube():
@@ -48,6 +50,9 @@ def houselot():
 def prf_houselot():
     prf.profile_function(houselot)
 
+def prf_lstest():
+    prf.profile_function(pls.test)
+
 #cube()
 #cone()
 #stonehenge()
@@ -55,6 +60,7 @@ def prf_houselot():
 #perim()
 #floor()
 #pipes()
-prf_houselot()
+#prf_houselot()
+prf_lstest()
 
 

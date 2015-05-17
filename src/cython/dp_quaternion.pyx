@@ -214,8 +214,9 @@ cpdef quaternion zero():
 # given an angle a and axis v, produce a unit quaternion 
 # representing a rotation by a around v
 cpdef quaternion q_from_av(float a, dpv.vector v):
-    cdef float w = cos(a/2.0)
-    cdef float sa = sin(a/2.0)
+    cdef float a2 = a/2.0
+    cdef float w = cos(a2)
+    cdef float sa = sin(a2)
     cdef dpv.vector d = v.copy().normalize()
     cdef float x = d.x*sa
     cdef float y = d.y*sa

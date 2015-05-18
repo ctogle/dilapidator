@@ -1,7 +1,6 @@
 import dilap.core.base as db
 import dilap.core.tools as dpr
 
-import dilap.construct as dlc
 import dilap.core.model as dmo
 #import dilap.primitive.terrain as dt
 
@@ -10,7 +9,7 @@ import dp_quaternion as dpq
 import dp_bbox as dbb
 import dp_ray as dr
 
-import numpy,pdb
+import numpy,random,pdb
 
 # meshdata is a collection of vectors
 # one meshdata object is consumed by meshes
@@ -200,6 +199,7 @@ class mesh(db.base):
 
         # topological data
         self._def('tverts',[],**kwargs)
+        self._def('twghts',[],**kwargs)
         self._def('tfaces',[],**kwargs)
         self._def('vrings',[],**kwargs)
         self._def('frings',[],**kwargs)
@@ -218,6 +218,7 @@ class mesh(db.base):
                 self.tverts[tdx].append(v)
                 return tdx
         self.tverts.append([v])
+        self.twghts.append(dpv.one().scale_u(0.1))
         self.vrings.append([])
         self.frings.append([])
         newtv = self.tvcnt
@@ -272,12 +273,24 @@ class mesh(db.base):
         mdps = self.meshdata.pcoords
         vcs = self.vertices
         vts = self.tverts
-        p1 = mdps[mdvs[vcs[vts[v1][0]]][0]]
-        p2 = mdps[mdvs[vcs[vts[v2][0]]][0]]
-        m = dpv.midpoint(p1,p2)
         if v2 in self.vrings[v1]:
+            print('bisection in ring')
             self.vrings[v1].remove(v2)
             self.vrings[v2].remove(v1)
+        if True:#THIS LINE IS TO BE REMOVE....
+            p1 = mdps[mdvs[vcs[vts[v1][0]]][0]]
+            p2 = mdps[mdvs[vcs[vts[v2][0]]][0]]
+            #deltam = dpv.vector(0,0,random.random()*10)
+            deltam = dpv.zero()
+            m = dpv.midpoint(p1,p2).translate(deltam)
+        else:
+            sharedv = None
+            for vr1 in self.vrings[v1]:
+                if vr1 in self.vrings[v2]:
+                    sharedv = vr1
+                    break
+            if not sharedv:pdb.set_trace()
+            m = mdps[mdvs[vcs[vts[sharedv][0]]][0]]
         return m
 
     # swap all quads for pairs of triangles
@@ -311,7 +324,6 @@ class mesh(db.base):
         for tfx in range(self.tfcnt):
             tf = self.tfaces[tfx]
             toremove.append(tfx)
-            #ps = [mdps[mdvs[vcs[vts[tv][0]]][0]] for tv in tf]
             vs = [vts[tv][0] for tv in tf]
             ps = [mdps[mdvs[vcs[vt]][0]] for vt in vs]
             if len(ps) == 3:
@@ -320,9 +332,6 @@ class mesh(db.base):
                 m1 = self._topoedge_bisect(v1,v2)
                 m2 = self._topoedge_bisect(v2,v3)
                 m3 = self._topoedge_bisect(v3,v1)
-                #m1 = dpv.midpoint(p1,p2)
-                #m2 = dpv.midpoint(p2,p3)
-                #m3 = dpv.midpoint(p3,p1)
                 self._triangle(p1,m1,m3)
                 self._triangle(p2,m2,m1)
                 self._triangle(p3,m3,m2)
@@ -330,13 +339,9 @@ class mesh(db.base):
             elif len(ps) == 4:
                 v1,v2,v3,v4 = tf
                 p1,p2,p3,p4 = ps
-                #m1 = dpv.midpoint(p1,p2)
                 m1 = self._topoedge_bisect(v1,v2)
-                #m2 = dpv.midpoint(p2,p3)
                 m2 = self._topoedge_bisect(v2,v3)
-                #m3 = dpv.midpoint(p3,p4)
                 m3 = self._topoedge_bisect(v3,v4)
-                #m4 = dpv.midpoint(p4,p1)
                 m4 = self._topoedge_bisect(v4,v1)
                 cp = dpv.center_of_mass(ps)
                 self._quad(p1,m1,cp,m4)
@@ -344,6 +349,10 @@ class mesh(db.base):
                 self._quad(cp,m2,p3,m3)
                 self._quad(m4,cp,m3,p4)
         self._rem_faces(toremove)
+        return self
+
+    def _decimated(self,dcnt = 2):
+        for x in range(dcnt):self._decimate()
         return self
 
     # use topolgy to incrementally smooth the mesh
@@ -357,9 +366,11 @@ class mesh(db.base):
         for tv in range(self.tvcnt):
             v = mdvs[vs[ts[tv][0]]]
             vring = self.vrings[tv]
+            twght = self.twghts[tv]
             neighbors = [mdvs[vs[ts[vr][0]]] for vr in vring]
             ncom = dpv.center_of_mass([pcs[n[0]] for n in neighbors])
-            delta = dpv.v1_v2(pcs[v[0]],ncom).scale_u(0.02)
+            #delta = dpv.v1_v2(pcs[v[0]],ncom).scale_u(0.02)
+            delta = dpv.v1_v2(pcs[v[0]],ncom).scale(twght)
             deltas.append(delta)
             tomove.append(pcs[v[0]])
         for tdx in range(self.tvcnt):
@@ -442,7 +453,8 @@ class mesh(db.base):
     def _topology(self,vs,fs):
         vs = [self._topovertex(v) for v in vs]
         for f in fs:tface = self._topoface(vs,f)
-        return self
+        #return self
+        return vs
 
     # given vs, a list of indices of vertices in meshdata.vertices
     # given fs, a list of tuples of indices to elements of self.vertices
@@ -454,11 +466,12 @@ class mesh(db.base):
         for fdx in range(len(fis)):
             f,fm = fis[fdx],fms[fdx]
             self._add_face(f,fm)
-        self._topology(vs,fs)
-        return self
+        tvs = self._topology(vs,fs)
+        return tvs
+        #return self
 
     # given three points, add new triangle face
-    def _add_triangle(self,p1,p2,p3,n1,n2,n3,u1,u2,u3,m):
+    def _add_triangle(self,p1,p2,p3,n1,n2,n3,u1,u2,u3,w1,w2,w3,m):
         v1 = self.meshdata._vertex(self.groups[self.group],p1,n1,u1)
         v2 = self.meshdata._vertex(self.groups[self.group],p2,n2,u2)
         v3 = self.meshdata._vertex(self.groups[self.group],p3,n3,u3)
@@ -466,37 +479,45 @@ class mesh(db.base):
         fs = [(0,1,2)]
         fm = self.meshdata._lookup_mat(m)
         fms = [fm]
-        self._add_data(vs,fs,fms)
+        tvs = self._add_data(vs,fs,fms)
+        self.twghts[tvs[0]] = w1
+        self.twghts[tvs[1]] = w2
+        self.twghts[tvs[2]] = w3
 
     # given three points, add new triangle face
-    def _add_quad(self,p1,p2,p3,p4,n1,n2,n3,n4,u1,u2,u3,u4,m):
+    def _add_quad(self,p1,p2,p3,p4,n1,n2,n3,n4,u1,u2,u3,u4,w1,w2,w3,w4,m):
         v1 = self.meshdata._vertex(self.groups[self.group],p1,n1,u1)
         v2 = self.meshdata._vertex(self.groups[self.group],p2,n2,u2)
         v3 = self.meshdata._vertex(self.groups[self.group],p3,n3,u3)
         v4 = self.meshdata._vertex(self.groups[self.group],p4,n4,u4)
         vs = [v1,v2,v3,v4]
-        #fs = [(0,1,2),(0,2,3)]
         fs = [(0,1,2,3)]
         fm = self.meshdata._lookup_mat(m)
-        #fms = [fm,fm]
         fms = [fm]
-        self._add_data(vs,fs,fms)
+        tvs = self._add_data(vs,fs,fms)
+        self.twghts[tvs[0]] = w1
+        self.twghts[tvs[1]] = w2
+        self.twghts[tvs[2]] = w3
+        self.twghts[tvs[3]] = w4
 
     # given three points, add new triangle face
-    def _triangle(self,p1,p2,p3,ns = None,us = None,m = None):
+    def _triangle(self,p1,p2,p3,ns = None,us = None,ws = None,m = None):
         if ns is None:
             n = dpr.normal(p1,p2,p3)
             ns = (n.copy(),n.copy(),n)
         if us is None:
             us = (dpv.vector2d(0,1),dpv.vector2d(0,0),dpv.vector2d(1,0))
+        if ws is None:
+            ws = (dpv.one(),dpv.one(),dpv.one())
         n1,n2,n3 = ns
         u1,u2,u3 = us
+        w1,w2,w3 = ws
         if m is None:m = 'generic'
-        self._add_triangle(p1,p2,p3,n1,n2,n3,u1,u2,u3,m)
+        self._add_triangle(p1,p2,p3,n1,n2,n3,u1,u2,u3,w1,w2,w3,m)
         return self
 
     # given four points, add two new triangle faces
-    def _quad(self,p1,p2,p3,p4,ns = None,us = None,m = None):
+    def _quad(self,p1,p2,p3,p4,ns = None,us = None,ws = None,m = None):
         if ns is None:
             #n = dpr.normal(p1,p2,p3)
             n = dpv.zhat.copy()
@@ -506,10 +527,14 @@ class mesh(db.base):
             #      dpv.vector2d(1,0),dpv.vector2d(1,1))
             us = (dpv.vector2d(0,0),dpv.vector2d(0,0),
                   dpv.vector2d(0,0),dpv.vector2d(0,0))
+        if ws is None:
+            n = dpv.one()
+            ns = (n.copy(),n.copy(),n.copy(),n)
         n1,n2,n3,n4 = ns
         u1,u2,u3,u4 = us
+        w1,w2,w3,w4 = ws
         if m is None:m = 'generic'
-        self._add_quad(p1,p2,p3,p4,n1,n2,n3,n4,u1,u2,u3,u4,m)
+        self._add_quad(p1,p2,p3,p4,n1,n2,n3,n4,u1,u2,u3,u4,w1,w2,w3,w4,m)
         return self
 
     # return geometry data organized as dict of materials
@@ -548,24 +573,6 @@ class mesh(db.base):
             fs.append([fnum+x for x in range(fvn)])
             fms.append(self.face_mats[fdx])
             fnum += fvn
-
-        '''#
-        for f in self.faces:
-            if len(f) == 4:pdb.set_trace()
-            v1,v2,v3 = f
-            fs.append([fcnt,fcnt+1,fcnt+2])
-            ps.append(self.meshdata.pcoords[vcs[self.vertices[v1]][0]])
-            ps.append(self.meshdata.pcoords[vcs[self.vertices[v2]][0]])
-            ps.append(self.meshdata.pcoords[vcs[self.vertices[v3]][0]])
-            ns.append(self.meshdata.ncoords[vcs[self.vertices[v1]][1]])
-            ns.append(self.meshdata.ncoords[vcs[self.vertices[v2]][1]])
-            ns.append(self.meshdata.ncoords[vcs[self.vertices[v3]][1]])
-            us.append(self.meshdata.ucoords[vcs[self.vertices[v1]][2]])
-            us.append(self.meshdata.ucoords[vcs[self.vertices[v2]][2]])
-            us.append(self.meshdata.ucoords[vcs[self.vertices[v3]][2]])
-            fms.append(0)
-            fcnt += 3
-        '''#
         margs = {
             'pcoords':ps,
             'ncoords':ns,
@@ -613,6 +620,8 @@ class terrain(dmo.model):
 # two vertices which share a face form an edge
 
 def test():
+    import dilap.construct as dlc
+
     mdata = meshdata()
     p = [dpv.vector(0,0,0),dpv.vector(1,0,0),dpv.vector(1,1,0),dpv.vector(0,1,0),
          dpv.vector(0,0,1),dpv.vector(1,0,1),dpv.vector(1,1,1),dpv.vector(0,1,1)]

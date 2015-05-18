@@ -48,7 +48,7 @@ class lsystem(db.base):
             elif ls == ']':p,d = stack.pop(-1)
             elif ls in self.grammers:self.grammer[ls](p,d)
             else:pass
-        draw()
+        self.finaldraw()
 
     def __init__(self,*args,**kwargs):
         # general parameters
@@ -83,7 +83,7 @@ class lsystem(db.base):
             '/':self.yaw_up,'\\':self.yaw_down,
             '<':self.roll_up,'>':self.roll_down,
 
-            '[':None,']':None,'&':self.randrot,
+            '[':None,']':None,'&':self.randrot,'~':self.randdirrot,
             '^':self.wobblerot,'$':self.azimuthal_flip,
 
             '!':self.rho_up,'@':self.rho_down,
@@ -92,6 +92,10 @@ class lsystem(db.base):
             'F':self.edge,'Q':self.term,'O':self.orient,
                 }
         self.grammers = list(self.grammer.keys())
+
+        self._def('branchdraw',draw_branch,**kwargs)
+        self._def('leafdraw',draw_leaf,**kwargs)
+        self._def('finaldraw',draw,**kwargs)
                                                                     
     def rho_up(self,p,d):self.rho = dpr.clamp(2.0*self.rho,self.minrho,self.maxrho)
     def rho_down(self,p,d):self.rho = dpr.clamp(0.5*self.rho,self.minrho,self.maxrho) 
@@ -115,6 +119,9 @@ class lsystem(db.base):
     def roll_up(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.yhat))
     def roll_down(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.nyhat))
 
+    def randdirrot(self,p,d):
+        which = random.choice(['-','<','/','+','>','\\'])
+        self.grammer[which](p,d)
     def randrot(self,p,d):
         if random.random() < 0.5:newangle = 0.5*self.angle
         else:newangle = 2.0*self.angle
@@ -132,8 +139,8 @@ class lsystem(db.base):
 
     def fatter(self,p,d):self.width *= 2.0
     def thinner(self,p,d):self.width *= 0.5
-    def edge(self,p,d):draw_branch(p.copy(),p.translate(d.copy().scale_u(self.rho)))
-    def term(self,p,d):draw_leaf(p)
+    def edge(self,p,d):self.branchdraw(p.copy(),p.translate(d.copy().scale_u(self.rho)))
+    def term(self,p,d):self.leafdraw(p)
     def orient(self,p,d):
         # oient direction so that it points cylindrically away from p
         d.rotate(dpq.q_from_uu(d,p)).normalize()
@@ -156,32 +163,47 @@ class dragon_curve(lsystem):
         self._def('seed',4,**kwargs) # seed used for random numbers
         lsystem.__init__(self,*args,**kwargs)
 
-class tree(lsystem):
+# an ltree is an lsystem that produces structured information about a tree
+# such that it can produce a mesh from that information representing the tree
+class ltree(lsystem):
+
+    loadouts = []
+    loadouts.append(('+++A',[('A','F[<+A][<-A]')]))
+    loadouts.append(('F',[('F','FF-[-F+F+F]+[+F-F-F]')]))
+    loadouts.append(('VZFFF',[
+        ('I','VZFFF'),('V','[+++W][---W]YV'),('W','+X[-W]Z'),
+        ('X','-W[+X]Z'),('Y','YZ'),('Z','[-FFF][+FFF]F'),('F','FF')]))
+    loadouts.append(('F[+Q]',[
+        ('F','F[//&//@F!+<//@F!&+//+Q][-->\\@F!\\&\\@F!]'),
+        ('Q','F[@F!<//&//Q][\\&\\@F!&->Q][&\\&+\\&\\&++&<@F!Q]')]))
+    loadouts.append(('Q',[
+        ('F','F<[++/F]+[-\\F]->'),('Q','F[X][Y]'),
+        ('X','+>\\@F!Q'),('Y','<-@F!Q//@F!')]))
+    loadouts.append(('A',[
+        ('F','FF'),
+        ('A','[--////FA]-<F[>>\\\\FA]>+F[-\>>QA\[X]][</++QA/[Y]]Q'),
+        ('X','F+Q'),('Y','F-Q')]))
+    loadouts.append(('A',[
+        ('F','F~[~FA]F'),
+        ('A','[--////FQA]-<F[>>\\\\FQA]>+F[-\>>QA\[X]][</++QA/[Y]]Q'),
+        ('X','F+Q'),('Y','F-Q')]))
 
     def __init__(self,ldx,*args,**kwargs):
-        loadouts = []
-        loadouts.append(('+++A',[('A','F[<+A][<-A]')]))
-        loadouts.append(('F',[('F','FF-[-F+F+F]+[+F-F-F]')]))
-        loadouts.append(('VZFFF',[
-            ('I','VZFFF'),('V','[+++W][---W]YV'),('W','+X[-W]Z'),
-            ('X','-W[+X]Z'),('Y','YZ'),('Z','[-FFF][+FFF]F'),('F','FF')]))
-        loadouts.append(('F[+Q]',[
-            ('F','F[//&//@F!+<//@F!&+//+Q][-->\\@F!\\&\\@F!]'),
-            ('Q','F[@F!<//&//Q][\\&\\@F!&->Q][&\\&+\\&\\&++&<@F!Q]')]))
-        loadouts.append(('Q',[
-            ('F','F<[++/F]+[-\\F]->'),('Q','F[X][Y]'),
-            ('X','+>\\@F!Q'),('Y','<-@F!Q//@F!')]))
-        axiom,rules = loadouts[ldx]
+        axiom,rules = self.loadouts[ldx]
 
         self._def('axiom',axiom,**kwargs)
         self._def('rules',rules,**kwargs)
 
-        self._def('iterations',4,**kwargs) # number of iterations
+        self._def('iterations',3,**kwargs) # number of iterations
         self._def('angle',numpy.pi/12.0,**kwargs) # angle used for rotations
         self._def('minangle',numpy.pi/12.0,**kwargs) # angle used for rotations
         self._def('maxangle',numpy.pi/6,**kwargs) # angle used for rotations
 
         self._def('seed',0,**kwargs) # seed used for random numbers
+
+        self._def('branchdraw',draw_branch,**kwargs)
+        self._def('leafdraw',draw_leaf,**kwargs)
+        self._def('finaldraw',draw,**kwargs)
         lsystem.__init__(self,*args,**kwargs)
                                                     
 class axial_tree(lsystem):
@@ -190,7 +212,6 @@ class axial_tree(lsystem):
         #self._def('axiom','F',**kwargs)
         #self._def('rules',[('F','F[+F]F[-F]F')],**kwargs)
         self._def('axiom','X',**kwargs)
-        #self._def('rules',[('X','F[+X][-X]FX'),('F','FF')],**kwargs)
         self._def('rules',[('X','F[+X][-X]FX'),('F','FF')],**kwargs)
         self._def('iterations',5,**kwargs) # number of iterations
         self._def('angle',dpr.rad(25.7),**kwargs) # angle used for rotations
@@ -325,17 +346,14 @@ def test():
     p = dpv.zero()
     d = dpv.zhat.copy()
 
-    #ls = pythagoras_tree()
-    #ls._realize(p,d)
+    #pythagoras_tree()._realize(p,d)
+    #dragon_curve()._realize(p,d)
 
-    #ls = dragon_curve()
+    #for l in range(5):tree(l)._realize(p,d)
+    ltree(-1)._realize(p,d)
 
-    ls = tree(3)
-    ls._realize(p,d)
-
-    #ls = plant()
-    ls = axial_tree()
-    ls._realize(p,d)
+    #plant()._realize(p,d)
+    #axial_tree()._realize(p,d)
 
     #ls = rtree()
     #for x in range(5):

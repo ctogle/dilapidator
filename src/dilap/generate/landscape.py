@@ -2,6 +2,7 @@ import dilap.core.base as db
 import dilap.core.tools as dpr
 import dilap.core.sgraph as dsg
 import dilap.core.context as dgc
+import dilap.core.mesh as dms
 import dilap.io.io as dio
 import dilap.primitive.cube as dcu
 import dilap.primitive.terrain as dt
@@ -159,20 +160,44 @@ class landscape(dgc.context):
             tmodels.append(dt.terrain(tp))
         return tmodels
 
+    def generate_meshes(self):
+        def ttri(c1,c2,c3):
+            ws = (dpv.one().scale_u(0.1),dpv.one().scale_u(0.1),dpv.one().scale_u(0.1))
+            m._triangle(c1,c2,c3,ws = ws)
+        mdata = dms.meshdata()
+
+        m = mdata._mesh()
+        tpts = self.boundary[:]
+        tcom = dpv.center_of_mass(tpts)
+        for x in range(len(tpts)):
+            c1 = tcom.copy()
+            c2 = tpts[x-1].copy()
+            c3 = tpts[x].copy()        
+            ttri(c1,c2,c3)
+
+        m._decimated(3)
+        m._triangulate()._calculate_normals()._project_uv_flat()
+
+        return mdata
+
     # ITS TIME TO ADD SOME SIMPLE TERRAIN, SO THAT IVY CAN BE ADDED
     def generate(self,other = None,worn = 0):
-        tpts = self.generate_terrain_points(other,worn)
-        terrain_data = self.generate_data_from_points(tpts)
-        tmds = self.generate_terrain_models(terrain_data)
+        mdata = self.generate_meshes()
+        tmds = [dt.terrain(mesh = msh) for msh in mdata.meshes]
+
+        #tpts = self.generate_terrain_points(other,worn)
+        #terrain_data = self.generate_data_from_points(tpts)
+        #tmds = self.generate_terrain_models(terrain_data)
 
         # add terrain models to scenegraph
-        tmods = self._node_wrap(*tmds)
-        self._nodes_to_graph(tmods)
+        #tmods = self._node_wrap(*tmds)
+        #self._nodes_to_graph(tmods)
+        self._models_to_graph(*tmds)
 
         # add water models to scenegraph
         water = dcu.cube().scale_x(100).scale_y(100).scale_z(20)
         water.translate_z(-19.5).translate_z(self.sealevel)
-        wnode = self._node_wrap(water)
-        self._nodes_to_graph(wnode)
+        #wnode = self._node_wrap(water)
+        #self._nodes_to_graph(wnode)
 
 

@@ -15,5 +15,7 @@ cdef class bbox:
     cpdef bbox _consume_y(self,dpv.vector2d proj)
     cpdef bbox _consume_z(self,dpv.vector2d proj)
     cpdef bbox _consume(self,bbox other)
+    cpdef bint point_inside(self,dpv.vector point)
+    cpdef bint intersect_tri(self,list tri)
 
 

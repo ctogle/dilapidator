@@ -227,7 +227,7 @@ cpdef quaternion q_from_av(float a, dpv.vector v):
 # representing a rotation from u1 to u2
 cpdef quaternion q_from_uu(dpv.vector u1, dpv.vector u2):
     cdef dpv.vector axis = u1.cross(u2)
-    cdef float a = np.arcsin(axis.magnitude())
+    cdef float a = np.arccos(u1.dot(u2))
     cdef quaternion q = q_from_av(a,axis.normalize())
     return q
 

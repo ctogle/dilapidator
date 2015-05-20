@@ -7,193 +7,91 @@ import dilap.io.io as dio
 import dilap.primitive.cube as dcu
 import dilap.primitive.terrain as dt
 
+import dilap.core.tmesh as dtm
+
 import dp_vector as dpv
+import dp_ray as dr
+import dp_bbox as dbb
 
 import random,pdb
-
-class terrain_point:
-
-    def __init__(self,position):
-        self.position = position
-        self.weights = dpv.one().scale_u(0.05)
-        self.neighbors = []
-        self.owners = []
-        self.owner_count = 0
-        self.boundary = False
-        self.hole_boundary = False
-        self.is_corner = False
-    
-    def set_neighbor_count(self):
-        if self.boundary:
-            if self.owner_count == 1:
-                self.neighbor_count = 4
-            elif self.is_corner == True:
-                self.neighbor_count = 6
-            else: self.neighbor_count = 6
-        else: self.neighbor_count = 6
-
-    def calculate_smooth_normal(self):
-        spos = self.position
-        nposs = self.neighbor_positions()
-        nnorms = []
-        #for ndx in range(self.neighbor_count):
-        for ndx in range(len(self.neighbors)):
-            n1 = self.neighbors[ndx-1].position
-            n2 = self.neighbors[ndx].position
-
-            #if near_xy(n1,n2):pdb.set_trace()
-
-            vn1 = dpv.v1_v2(spos,n1)
-            vn2 = dpv.v1_v2(spos,n2)
-            nnorm = vn1.cross(vn2)
-            if nnorm.z < 0.0: nnorm.flip().normalize()
-            nnorms.append(nnorm)
-
-        ncom = dpv.center_of_mass(nnorms)
-        ncom.normalize()
-        return ncom
-
-    def neighbor_positions(self):
-        return [n.position for n in self.neighbors]
-
-    def reneighbors(self,pts,dthresh = 50):
-        renew = []
-        dt2 = dthresh**2
-        spos = self.position
-
-        target_ncnt = self.neighbor_count
-        for npt in self.neighbors:
-            tpos = npt.position
-            ndist = dpv.distance_xy(tpos,spos)
-            if ndist < dthresh:
-                renew.append(npt)
-
-        rdx = len(renew)
-        if rdx < target_ncnt:
-            for tp in pts:
-                tpos = tp.position
-                dx2 = (tpos.x - spos.x)**2
-                if dx2 > dt2: continue
-                dy2 = (tpos.y - spos.y)**2
-                if dy2 > dt2: continue
-                if tp in renew: continue
-                if tp is self: continue
-                if dx2 + dy2 < dt2:
-                    renew.append(tp)
-                    rdx += 1
-                    if rdx == target_ncnt: break
-        #else: print 'already reneighbored'
-        self.neighbors = renew
-
-class ttri(object):
-
-    def _face_data(self,depth = None,max_depth = None):
-        data = []
-        if not depth is None:
-            if depth == max_depth:
-                data.append(self.local_points)
-                return data
-            else:depth += 1
-        if self.children:
-            [data.extend(ch._face_data(depth,max_depth)) 
-                for ch in self.children]
-        else:data.append(self.local_points)
-        return data
-
-    def _geo_data(self,lod = False):
-        depth = None
-        max_depth = None
-        if lod:
-            depth = 0
-            max_depth = self.splits - 1
-        data = self._face_data(depth,max_depth)
-        return data
 
 class landscape(dgc.context):
 
     def __init__(self,*args,**kwargs):
         dgc.context.__init__(self,*args,**kwargs)
-        self._def('boundary',dpr.point_ring(50,6),**kwargs)
+        self._def('boundary',dpr.point_ring(250,6),**kwargs)
         self._def('controls',[],**kwargs)
         self._def('sealevel',-0.5,**kwargs)
 
-    # should port algorithms from make_places for this...
-    # 
-    # self.boundary represents fixed, in-mesh verts, forming a convex loop
-    # landscape will generate a set of models with terrain that spans
-    # the xy-projection of the polygon defined by self.boundary
-    #
-    # first dice the loop so that the average distance between points
-    # is at some threshold
-    #
-    # use the advancing front method to fill the diced loop with triangles
-    # 
-    # create a collection terrain_points from this process, 
-    # ideally preserving the groups of 3...
-    def generate_terrain_points(self,other = None,worn = 0):
-        tptstack = []
+    # if theres a coord near p in ps, return its index
+    # else append and return the new index
+    def search(self,ps,p1,p2):
+        p = dpv.midpoint(p1,p2)
+        pcnt = len(ps)
+        for pdx in range(pcnt):
+            if ps[pdx][0].near(p):
+                return pdx
+        z = (2.0*random.random()-1.0)*dpv.distance(p1,p2)/8.0
+        ps.append((p,z))
+        return pcnt
 
-        tpts = self.boundary[:]
-        tcom = dpv.center_of_mass(tpts)
-        for x in range(len(tpts)):
-            c1 = terrain_point(tcom.copy())
-            c2 = terrain_point(tpts[x-1].copy())
-            c3 = terrain_point(tpts[x].copy())
-            tptstack.extend([c1,c2,c3])
+    def split(self,ps,ts):
+        level = []
+        after = []
+        mpt = dpv.midpoint
+        pcnt = len(ps)
+        for t in ts:
+            m1 = self.search(level,ps[t[0]],ps[t[1]])+pcnt
+            m2 = self.search(level,ps[t[1]],ps[t[2]])+pcnt
+            m3 = self.search(level,ps[t[2]],ps[t[0]])+pcnt
+            after.append((t[0],m1,m3))
+            after.append((m1,t[1],m2))
+            after.append((m3,m2,t[2]))
+            after.append((m1,m2,m3))
+        for l in level:
+            l[0].z += l[1]
+            ps.append(l[0])
+        return after
 
-        return tptstack
+    def tmodels(self):
+        tris = []
+        for x in range(6):
+            c1 = 6
+            c2 = x
+            c3 = x+1
+            if c3 == 6:c3 = 0
+            tris.append((c1,c2,c3))
 
-    # from a set of points that should appear in the mesh
-    # create a list of lists of points corresponding to faces
-    # for now assuming simplest stack of points organization
-    def generate_data_from_points(self,tpts):
-        tdata = [[]]
-        for x in range(len(tpts))[::3]:
-            face = [tpts[x],tpts[x+1],tpts[x+2]]
-            tdata[-1].append(face)
-        return tdata
+        pts = [b.copy() for b in self.boundary]
+        pts.append(dpv.center_of_mass(pts))
+        bnd = dpr.inflate([b.copy() for b in pts],-10.0)
+        for p in pts:p.translate_z((2.0*random.random()-1.0)*100)
+        for x in range(5):tris = self.split(pts,tris)
 
-    # from a list of terrain data lists, generate terrain models
-    def generate_terrain_models(self,tdata):
-        tmodels = []
-        for tp in tdata:
-            tmodels.append(dt.terrain(tp))
-        return tmodels
+        m = dtm.meshme(pts,None,None,None,[],tris)
 
-    def generate_meshes(self):
-        def ttri(c1,c2,c3):
-            ws = (dpv.one().scale_u(0.1),dpv.one().scale_u(0.1),dpv.one().scale_u(0.1))
-            m._triangle(c1,c2,c3,ws = ws)
-        mdata = dms.meshdata()
+        pfaces = [(m.vs[x].p,m.vs[y].p,m.vs[z].p) for x,y,z in m.fs]
+        mbb = dcu.cube().scale_u(100).scale_z(10)._aaabbb()
+        #hitfaces,hitcasts = dr.ray_grid(dpv.nzhat,mbb,pfaces,1.0)
 
-        m = mdata._mesh()
-        tpts = self.boundary[:]
-        tcom = dpv.center_of_mass(tpts)
-        for x in range(len(tpts)):
-            c1 = tcom.copy()
-            c2 = tpts[x-1].copy()
-            c3 = tpts[x].copy()        
-            ttri(c1,c2,c3)
+        mps = m.gpdata()
+        hitfaces = dbb.intersect_tri_filter(mbb,m.fs,mps)
 
-        m._decimated(3)
-        m._triangulate()._calculate_normals()._project_uv_flat()
+        hbnd = m.cut_hole(hitfaces)
+        for hb in hbnd:m.vs[hb].w.scale_u(0.0)
+        m.advfrontmethod(hbnd)
+        vbnd = [v for v in m.vs if not dpv.inside(v.p,bnd)]
+        for vb in vbnd:
+            vb.w.x = 0.0
+            vb.w.y = 0.0
+        m.smooths(10,0.1)
+        return [m.pelt()]
 
-        return mdata
-
-    # ITS TIME TO ADD SOME SIMPLE TERRAIN, SO THAT IVY CAN BE ADDED
     def generate(self,other = None,worn = 0):
-        mdata = self.generate_meshes()
-        tmds = [dt.terrain(mesh = msh) for msh in mdata.meshes]
-
-        #tpts = self.generate_terrain_points(other,worn)
-        #terrain_data = self.generate_data_from_points(tpts)
-        #tmds = self.generate_terrain_models(terrain_data)
-
+        random.seed(0)
+        tmds = self.tmodels()
         # add terrain models to scenegraph
-        #tmods = self._node_wrap(*tmds)
-        #self._nodes_to_graph(tmods)
         self._models_to_graph(*tmds)
-
         # add water models to scenegraph
         water = dcu.cube().scale_x(100).scale_y(100).scale_z(20)
         water.translate_z(-19.5).translate_z(self.sealevel)

@@ -75,6 +75,33 @@ cdef class bbox:
         self._consume_z(other.z)
         return self
 
+    cpdef bint point_inside(self,dpv.vector point):
+        if not p_in_rng(point.x,self.x.x,self.x.y):return 0
+        if not p_in_rng(point.y,self.y.x,self.y.y):return 0
+        if not p_in_rng(point.z,self.z.x,self.z.y):return 0
+        return 1
+
+    cpdef bint intersect_tri(self,list tri):
+        for p in tri:
+            if self.point_inside(p):
+                return 1
+        return 0
+
+cpdef list intersect_tri_filter(bbox bb,list tris,list tpts):
+    cdef list isected = []
+    cdef int tcnt = len(tris)
+    cdef int tdx
+    for tdx in range(tcnt):
+        tri = [tpts[tris[tdx][x]] for x in range(3)]
+        if bb.intersect_tri(tri):
+            isected.append(tdx)
+    return isected
+
+cdef bint p_in_rng(float p,float x,float y):
+    if p < x:return 0
+    if p > y:return 0
+    return 1
+
 cdef bbox zero_c():
     cdef dpv.vector2d z = dpv.zero2d()
     cdef bbox new = bbox(z.copy(),z.copy(),z.copy())

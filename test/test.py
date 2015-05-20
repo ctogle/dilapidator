@@ -60,8 +60,8 @@ def prf_lstest():
 #perim()
 #floor()
 #pipes()
-#prf_houselot()
+prf_houselot()
 #prf_lstest()
-pls.test()
+#pls.test()
 
 

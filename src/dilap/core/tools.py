@@ -55,6 +55,15 @@ def point_ring(r,n):
         points.append(st.copy().rotate_z(x*alpha))
     return points
 
+def inflate(convex,radius):
+    enorms = dpv.edge_normals_xy(convex)
+    for cdx in range(len(convex)):
+        lead = enorms[cdx]
+        rear = enorms[cdx-1]
+        norm = dpv.midpoint(lead,rear).normalize()
+        convex[cdx].translate(norm.scale_u(radius))
+    return convex
+
 def extrude_edge(c1,c2,length,direction):
     c1c2n = direction.copy().normalize().scale_u(length)
     c3 = c2.copy().translate(c1c2n)

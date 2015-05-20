@@ -1,5 +1,8 @@
 import dilap.core.base as db
 import dilap.core.tools as dpr
+import dilap.core.model as dmo
+
+import dilap.core.tmesh as dtm
 
 import dp_vector as dpv
 import dp_quaternion as dpq
@@ -49,17 +52,25 @@ class lsystem(db.base):
             elif ls in self.grammers:self.grammer[ls](p,d)
             else:pass
         self.finaldraw()
+        return self
 
     def __init__(self,*args,**kwargs):
         # general parameters
         self._def('iterations',5,**kwargs) # number of iterations
+        self._def('seed',0,**kwargs) # seed used for random numbers
+
+        # grammer interpretation parameters
         self._def('angle',numpy.pi/4.0,**kwargs) # angle used for rotations
         self._def('minangle',numpy.pi/32.0,**kwargs) # angle used for rotations
         self._def('maxangle',numpy.pi,**kwargs) # angle used for rotations
+        self._def('xangle',numpy.pi/4.0,**kwargs) # angle used for rotations
+        self._def('minxangle',numpy.pi/32.0,**kwargs) # angle used for rotations
+        self._def('maxxangle',2.0*numpy.pi,**kwargs) # angle used for rotations
+        self._def('yangle',numpy.pi/4.0,**kwargs) # angle used for rotations
+        self._def('minyangle',numpy.pi/32.0,**kwargs) # angle used for rotations
+        self._def('maxyangle',2.0*numpy.pi,**kwargs) # angle used for rotations
 
-        self._def('seed',0,**kwargs) # seed used for random numbers
         self._def('width',1.0,**kwargs) # width of new edges
-
         self._def('rho',1.0,**kwargs) # the length of a new edge
         self._def('minrho',0.1,**kwargs)
         self._def('maxrho',10.0,**kwargs)
@@ -70,11 +81,14 @@ class lsystem(db.base):
         self._def('minazimuthal',0.0,**kwargs)
         self._def('maxazimuthal',2.0*numpy.pi,**kwargs)
 
+        # grammer dependent rules/axiom
         self._def('axiom','',**kwargs)
         self._def('rules',[],**kwargs)
 
+        # hard limit on total number of final steps
         self._def('truncate',5000,**kwargs)
 
+        # grammer for the lsystem
         self.grammer = {
             '(':self.polar_up,')':self.polar_down,
             '{':self.azimuthal_up,'}':self.azimuthal_down,
@@ -93,6 +107,7 @@ class lsystem(db.base):
                 }
         self.grammers = list(self.grammer.keys())
 
+        # functions to call for F,Q, and at the end
         self._def('branchdraw',draw_branch,**kwargs)
         self._def('leafdraw',draw_leaf,**kwargs)
         self._def('finaldraw',draw,**kwargs)
@@ -163,49 +178,6 @@ class dragon_curve(lsystem):
         self._def('seed',4,**kwargs) # seed used for random numbers
         lsystem.__init__(self,*args,**kwargs)
 
-# an ltree is an lsystem that produces structured information about a tree
-# such that it can produce a mesh from that information representing the tree
-class ltree(lsystem):
-
-    loadouts = []
-    loadouts.append(('+++A',[('A','F[<+A][<-A]')]))
-    loadouts.append(('F',[('F','FF-[-F+F+F]+[+F-F-F]')]))
-    loadouts.append(('VZFFF',[
-        ('I','VZFFF'),('V','[+++W][---W]YV'),('W','+X[-W]Z'),
-        ('X','-W[+X]Z'),('Y','YZ'),('Z','[-FFF][+FFF]F'),('F','FF')]))
-    loadouts.append(('F[+Q]',[
-        ('F','F[//&//@F!+<//@F!&+//+Q][-->\\@F!\\&\\@F!]'),
-        ('Q','F[@F!<//&//Q][\\&\\@F!&->Q][&\\&+\\&\\&++&<@F!Q]')]))
-    loadouts.append(('Q',[
-        ('F','F<[++/F]+[-\\F]->'),('Q','F[X][Y]'),
-        ('X','+>\\@F!Q'),('Y','<-@F!Q//@F!')]))
-    loadouts.append(('A',[
-        ('F','FF'),
-        ('A','[--////FA]-<F[>>\\\\FA]>+F[-\>>QA\[X]][</++QA/[Y]]Q'),
-        ('X','F+Q'),('Y','F-Q')]))
-    loadouts.append(('A',[
-        ('F','F~[~FA]F'),
-        ('A','[--////FQA]-<F[>>\\\\FQA]>+F[-\>>QA\[X]][</++QA/[Y]]Q'),
-        ('X','F+Q'),('Y','F-Q')]))
-
-    def __init__(self,ldx,*args,**kwargs):
-        axiom,rules = self.loadouts[ldx]
-
-        self._def('axiom',axiom,**kwargs)
-        self._def('rules',rules,**kwargs)
-
-        self._def('iterations',3,**kwargs) # number of iterations
-        self._def('angle',numpy.pi/12.0,**kwargs) # angle used for rotations
-        self._def('minangle',numpy.pi/12.0,**kwargs) # angle used for rotations
-        self._def('maxangle',numpy.pi/6,**kwargs) # angle used for rotations
-
-        self._def('seed',0,**kwargs) # seed used for random numbers
-
-        self._def('branchdraw',draw_branch,**kwargs)
-        self._def('leafdraw',draw_leaf,**kwargs)
-        self._def('finaldraw',draw,**kwargs)
-        lsystem.__init__(self,*args,**kwargs)
-                                                    
 class axial_tree(lsystem):
 
     def __init__(self,*args,**kwargs):
@@ -228,108 +200,69 @@ class plant(lsystem):
         self._def('seed',0,**kwargs) # seed used for random numbers
         lsystem.__init__(self,*args,**kwargs)
 
-class rtree(lsystem):
+# an ltree is an lsystem that produces structured information about a tree
+# such that it can produce a mesh from that information representing the tree
+class ltree(lsystem):
+                                                    
+    def _realize(self,p,d):
+        self.branches = []
+        self.leaves = []
+        return lsystem._realize(self,p,d)
 
-    def __init__(self,*args,**kwargs):
+    loadouts = []
+    loadouts.append(('A',[
+        ('F','F~[~FA]F'),
+        ('A','[--////FQA]-<F[>>\\\\FQA]>+F[-\>>QA\[X]][</++QA/[Y]]Q'),
+        ('X','F+Q'),('Y','F-Q')]))
+
+    def __init__(self,ldx,*args,**kwargs):
+        axiom,rules = self.loadouts[ldx]
+        self._def('axiom',axiom,**kwargs)
+        self._def('rules',rules,**kwargs)
+
+        self._def('seed',1,**kwargs) # seed used for random numbers
+        self._def('iterations',5,**kwargs) # number of iterations
+        self._def('angle',numpy.pi/12.0,**kwargs) # angle used for rotations
+        self._def('minangle',numpy.pi/12.0,**kwargs) # angle used for rotations
+        self._def('maxangle',numpy.pi/6,**kwargs) # angle used for rotations
+
+        self._def('branchdraw',self.draw_branch,**kwargs)
+        self._def('leafdraw',self.draw_leaf,**kwargs)
+        self._def('finaldraw',self.draw,**kwargs)
         lsystem.__init__(self,*args,**kwargs)
-        self._randomize()
 
+    def draw_branch(self,p,n):
+        self.branches.append((p.copy(),n.copy()))
+        draw_branch(p,n)
 
+    def draw_leaf(self,p):
+        self.leaves.append((p.copy()))
+        draw_leaf(p)
 
-        self.grammer_variety = {
-            'rotations':['+','-','/','\\','<','>'],
-            'edgehow':['!','@','#','%'],
-            'grow':['F','Q'],
-                }
-        self.grammer_varieties = list(self.grammer_variety.keys())
+    def draw(self):
+        es,ls = self.branches,self.leaves
 
-    def _random_grammer(self):
-        #variety = random.choice(['rotations','edgehow','grow'])
-        #variety = random.choice(['rotations','grow'])
-        variety = random.choice(['grow'])
-        rg = random.choice(self.grammer_variety[variety])
-        return rg
+        nps = []
+        nes = []
+        for ex in range(len(es)):
+            e1,e2 = es[ex]
+            e1x,e2x = None,None
+            for pdx in range(len(nps)):
+                if e1.near(nps[pdx]):e1x = pdx
+                if e2.near(nps[pdx]):e2x = pdx
+                if not e1x is None and not e2x is None:break
+            if e1x is None:
+                e1x = len(nps)
+                nps.append(e1)
+            if e2x is None:
+                e2x = len(nps)
+                nps.append(e2)
+            nes.append((e1x,e2x))
 
-    def _random_sequence(self,start = 1,stop = 5):
-        slen = random.randint(start,stop)
-        seqs = []
-        for x in range(slen):
-            rg = self._random_grammer()
-            #rg = random.choice(self.grammers)
-            seqs.append(rg)
-        return seqs
-
-    def _pairop(self,seqs,op = ('[',']')):
-        x = random.randint(0,len(seqs)-2)
-        y = random.randint(x+2,len(seqs))
-        seqs.insert(x,op[0])
-        seqs.insert(y,op[1])
-
-    def _random_rule(self):
-        rin  = self._random_sequence(1,1)
-        rout = self._random_sequence(2,10)
-        for pdx in range(3):
-            if random.random() < 0.25:continue
-            op = random.choice([('[',']'),('<','>'),('+','-'),('/','\\')])
-            self._pairop(rout,op)
-        return (''.join(rin),''.join(rout))
-
-    def _random_rules(self,rulemin = 1,rulemax = 5):
-        rcnt = random.randint(rulemin,rulemax)
-        rules = [self._random_rule() for x in range(rcnt)]
-        for r in rules:print('random rule:',r)  
-        return rules
-
-
-    # a stemrule replaces a segment of stem with more stem
-    def _stemrule(self):
-        return ('F','FF')
-
-    # a branchrule replaces a segment of stem with more stems
-    # and uses push/pop to make branches
-    def _branchrule(self):
-        return ('Q','F[+[<FQ]>FQ]-')
-
-
-
-
-        branch = ['F']
-
-        openers = ['[','<','+','/']
-        closers = {'[':']','<':'>','+':'-','/':'\\'}
-        later = []
-        for i in range(5):
-            if branch[-1] == 'F':
-                branch.append('[')
-                later.append(']')
-                b = random.choice(openers)
-                later.append(closers[b])
-            elif branch[-1] in openers:
-                b = 'F'*random.randint(0,2)+'Q'
-            branch.append(b)
-            if later and random.random() < 0.5:
-                branch.append(later.pop(0))
-            if branch[-1] == ']':
-                branch.extend(later)
-                later = []
-        for l in later:branch.append(l)
-        branch = ''.join(branch)
-
-        print('branchrule',branch)
-
-        return ('Q',branch)
-        #return ('Q','F[<Q]>Q')
-
-    def _axiom(self):
-        return 'Q'
-
-    def _randomize(self):
-        self.rules = []
-        self.rules.append(self._stemrule())
-        self.rules.append(self._branchrule())
-        self.axiom = self._axiom()
-        self.iterations = 5
-        self.angle = dpr.rad(25)
+        m = dtm.meshme(nps,None,None,None,nes,[])
+        smod = m.skeleton()
+        self.model = smod
+        draw()
 
 draws = []
 def draw_branch(p,n):draws.append((([p.x,n.x],[p.y,n.y]),{'zs':[p.z,n.z]}))
@@ -343,14 +276,26 @@ def draw():
     draws = []
 
 def test():
+    import dilap.construct as dlc
     p = dpv.zero()
     d = dpv.zhat.copy()
 
     #pythagoras_tree()._realize(p,d)
     #dragon_curve()._realize(p,d)
 
+    total = dmo.model()
+
     #for l in range(5):tree(l)._realize(p,d)
     ltree(-1)._realize(p,d)
+    tps = [(x,y) for x in range(3) for y in range(3)]
+    for i,xy in enumerate(tps):
+        x,y = xy
+        kws = {'seed':i}
+        lmod = ltree(-1,**kws)._realize(p,d).model
+        lmod.translate(dpv.vector(10*x,10*y,0))
+        total._consume(lmod)
+    
+    dlc.build(total)
 
     #plant()._realize(p,d)
     #axial_tree()._realize(p,d)

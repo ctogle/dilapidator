@@ -15,7 +15,7 @@ class ivy(dd.dilapidor):
     def __init__(self,*args,**kwargs):
         dd.dilapidor.__init__(self,*args,**kwargs)
         self._def('z_max',10,**kwargs)
-        self.withers.append('init')
+        #self.withers.append('init')
         #self.withers.append('trees')
         #self.withers.append('ivy')
         #self.withers.append('grass')

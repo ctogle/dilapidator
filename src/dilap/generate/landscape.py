@@ -72,19 +72,18 @@ class landscape(dgc.context):
 
         pfaces = [(m.vs[x].p,m.vs[y].p,m.vs[z].p) for x,y,z in m.fs]
         mbb = dcu.cube().scale_u(100).scale_z(10)._aaabbb()
-        #hitfaces,hitcasts = dr.ray_grid(dpv.nzhat,mbb,pfaces,1.0)
-
         mps = m.gpdata()
         hitfaces = dbb.intersect_tri_filter(mbb,m.fs,mps)
+        hbnd = m.order_loop(m.cut_hole(hitfaces))
+        #for hb in hbnd:m.vs[hb].w.scale_u(1.0)
+        #m.smooths(100,1.0,hbnd)
 
-        hbnd = m.cut_hole(hitfaces)
-        for hb in hbnd:m.vs[hb].w.scale_u(0.0)
-        m.advfrontmethod(hbnd)
+        patch = m.advfrontmethod(hbnd)
         vbnd = [v for v in m.vs if not dpv.inside(v.p,bnd)]
         for vb in vbnd:
             vb.w.x = 0.0
             vb.w.y = 0.0
-        m.smooths(10,0.1)
+        m.smooths(10,0.1,method = 'radial')
         return [m.pelt()]
 
     def generate(self,other = None,worn = 0):

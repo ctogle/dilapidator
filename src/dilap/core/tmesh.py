@@ -33,6 +33,7 @@ class vertex:
                 self.edge(fs[e1dx])
                 self.edge(fs[e2dx])
                 return
+
     def __init__(self,p,n,u,w,m = None):
         self.p = p # position vector
         self.n = n # normal vector
@@ -43,12 +44,20 @@ class vertex:
         self.mesh = m
         if not m is None:m.vdat(self)
 
-    def smooth(self,selfdex):
+    def smooth_uniform(self,selfdex):
         ns = [self.mesh.vs[x].p for x in self.vring]
         ns.append(self.mesh.vs[selfdex].p)
         ncom = dpv.center_of_mass(ns)
         return dpv.v1_v2(self.p,ncom).scale(self.w)
 
+    def smooth_radial(self,selfdex):
+        ns = [self.mesh.vs[x].p for x in self.vring]
+        ns.append(self.mesh.vs[selfdex].p)
+        ncom = dpv.center_of_mass(ns)
+        # weight the location of ncom by the distance of
+        # each 1-ring vertex to the self.p
+        # 
+        return dpv.v1_v2(self.p,ncom).scale(self.w)
 
 class mesh:
     
@@ -95,88 +104,118 @@ class mesh:
         return bound
 
     # eloop is a list of topologically connected (edges) points
-    def advfrontmethod(self,eloop):
-        #self.advfront(eloop)
-        #while len(eloop) > 2:self.advfront(eloop)
-        center = dpv.center_of_mass([self.vs[x] for x in eloop])
-        for x in range(200):self.advfront(eloop,center)
+    # but the points are not in a coherent order
+    # return a new list with the same contents ordered as they
+    # are topologically ordered
+    # sdx will be the starting vertex of the new loop
+    def order_loop(self,eloop,sdx = 0):
+        vs = self.vs
+        ellen = len(eloop)
+        nllen = 1
+        nloop = [eloop[sdx]]
+        while nllen < ellen:
+            last = nloop[-1]
+            ns = [vr for vr in vs[last].vring 
+                if vr in eloop and not vr in nloop]
+            nxt = ns[0]
+            nloop.append(nxt)
+            nllen += 1
+        return nloop
 
-    def advfront(self,eloop,attract):
+    def checkfront(self,eloop):
+        for x in range(len(eloop)):
+            el = x-1
+            en = x+1 if x < len(eloop)-1 else 0
+            if not eloop[el][1] == eloop[x][0]:
+                return x
+            if not eloop[en][0] == eloop[x][1]:
+                return x
+
+    # eloop is a list of topologically connected (edges) points
+    def advfrontmethod(self,eloop):
+        fcnt = len(self.fs)
+        eloop = [(eloop[x-1],eloop[x]) for x in range(len(eloop))]
+        #for x in range(500):
+        #    if len(eloop) < 3:break
+        #    self.advfront(eloop)
+        while len(eloop) > 2:self.advfront(eloop)
+        frng = range(fcnt,len(self.fs))
+        return frng
+
+    def advfront(self,eloop):
         vs = self.vs
         eacnt = 0
-        whiche = (0,0,0,10.0)
-        for el in eloop:
-            ev = vs[el]
-            ns = [vx for vx in ev.vring if vx in eloop]
-            if len(ns) != 2:
-                eloop.pop(eacnt)
-                return
-            e1 = dpv.v1_v2(ev.p,vs[ns[0]].p).normalize()
-            e2 = dpv.v1_v2(ev.p,vs[ns[1]].p).normalize()
-            ea = numpy.arccos(e1.dot(e2))
-            if ea < whiche[3]:
-                whiche = (eacnt,ns[0],ns[1],ea)
+        whch = (0,10.0)
+        for ex in range(len(eloop)):
+            el1,el2,el3 = eloop[ex-1][0],eloop[ex][0],eloop[ex][1]
+            v1,v2,v3 = vs[el1],vs[el2],vs[el3]
+            e1 = dpv.v1_v2(v2.p,v1.p).normalize()
+            e2 = dpv.v1_v2(v2.p,v3.p).normalize()
+            ea = dpv.signed_angle_between(e2,e1,v2.n)
+            if ea < 0.01:ea = numpy.pi
+            if ea <= whch[1]:whch = (eacnt,ea)
             eacnt += 1
-        self.advfrontpoint(eloop,whiche,attract)
+        self.advfrontpoint(eloop,whch)
 
-    def advfrontpoint(self,eloop,which,attract):
-        dpvd = dpv.distance
-
-        vs = self.vs
-        we = eloop[which[0]]
-        w1 = which[1]
-        w2 = which[2]
-        e1d = dpvd(vs[we].p,vs[w1].p)
-        e2d = dpvd(vs[we].p,vs[w2].p)
-        e3d = dpvd(vs[w1].p,vs[w2].p)
-        avd = (e1d+e2d)/2.0
-
-        #if e3d > avd:
-        if False:
-
-            #mpt = dpv.midpoint(vs[w1].p,vs[w2].p)
-            #mdist = avd - dpv.distance(vs[we].p,mpt)
-            #mdelt = dpv.v1_v2(vs[we].p,mpt).normalize().scale_u(mdist)
-            #mpt.translate(mdelt)
-
-            eg1 = dpv.v1_v2(vs[we].p,vs[w1].p).normalize()
-            eg2 = dpv.v1_v2(vs[we].p,vs[w2].p).normalize()
-            wwc = dpv.cross(eg2,eg1)
-            qa = numpy.arcsin(wwc.magnitude())/2.0
-            qv = wwc.normalize()
-            if dpvd(qv,vs[we].n) > dpvd(qv.copy().flip(),vs[we].n):
-                qv.flip()
-            q = dpq.q_from_av(qa,qv)
-            mpt = dpv.v1_v2(vs[we].p,vs[w2].p).rotate(q).translate(vs[we].p)
-
-            #if dpv.distance(mpt,attract) > dpv.distance(vs[we].p,attract):
-            #    mpt.translate(dpv.v1_v2(vs[we].p,mpt).flip().scale_u(2.0))
-
-            newv = vertex(mpt,dpv.zhat.copy(),dpv.zero2d(),dpv.zero(),self)
-
-            w3 = len(self.vs)-1
-            fs = [(w1,we,w3),(we,w2,w3)]
-            eloop.append(w3)
+    def advfrontpoint(self,eloop,point):
+        ex,ea = point
+        el1,el2,el3 = eloop[ex-1][0],eloop[ex][0],eloop[ex][1]
+        v1,v2,v3 = self.vs[el1],self.vs[el2],self.vs[el3]
+        e1 = dpv.v1_v2(v2.p,v1.p)
+        e2 = dpv.v1_v2(v2.p,v3.p)
+        e1len,e2len = e1.magnitude(),e2.magnitude()
+        avd = (e1len+e2len)/2.0
+        e1.normalize()
+        e2.normalize()
+        if ea < numpy.pi/2.0:
+            fs = [(el1,el2,el3)]
+            eloop.pop(ex)
+            eloop.pop(ex-1)
+            eloop.insert((0 if ex == 0 else ex-1),(el1,el3))
+        elif ea < 2.0*numpy.pi/3.0:
+            mpt = dpv.midpoint(v1.p,v3.p)
+            mdist = avd - dpv.distance(v2.p,mpt)
+            mdelt = dpv.v1_v2(v2.p,mpt).normalize().scale_u(mdist)
+            mpt.translate(mdelt)
+            newv = vertex(mpt,dpv.zhat.copy(),dpv.zero2d(),dpv.one(),self)
+            el4 = len(self.vs)-1
+            fs = [(el1,el2,el4),(el2,el3,el4)]
+            eloop.pop(ex)
+            eloop.pop(ex-1)
+            eloop.insert((0 if ex == 0 else ex-1),(el4,el3))
+            eloop.insert((0 if ex == 0 else ex-1),(el1,el4))
         else:
-            fs = [(w1,we,w2)]
+            mdist = min((e1len,e2len))
+            mdelt = dpv.v1_v2(v2.p,v1.p).cross(v2.n)
+            mdelt.normalize().scale_u(mdist)
+            mpt = dpv.midpoint(v2.p,v1.p).translate(mdelt)
+            newv = vertex(mpt,dpv.zhat.copy(),dpv.zero2d(),dpv.one(),self)
+            el4 = len(self.vs)-1
+            fs = [(el1,el2,el4)]
+            eloop.pop(ex-1)
+            eloop.insert((0 if ex == 0 else ex-1),(el4,el2))
+            eloop.insert((0 if ex == 0 else ex-1),(el1,el4))
+        
+        check = self.checkfront(eloop)
+        if not check is None:pdb.set_trace()
 
         self.fdata(fs)
         for fx in range(len(fs)):
             f = fs[fx]
             [self.vs[f[x]].face(f,x,fx) for x in range(len(f))]
-        eloop.pop(which[0])
 
-    def smooths(self,scnt,sscl):
-        for s in range(scnt):
-            self.smooth(sscl)
+    def smooths(self,scnt,sscl,rng = None,method = 'uniform'):
+        for s in range(scnt):self.smooth(sscl,rng,method)
         return self
-    def smooth(self,sscl):
-        deltas = []
+    def smooth(self,sscl,rng = None,method = 'uniform'):
         vs = self.vs
-        for vdx in range(len(vs)):
-            deltas.append(vs[vdx].smooth(vdx))
-        for vdx in range(len(vs)):
-            vs[vdx].p.translate(deltas[vdx].scale_u(sscl))
+        if rng is None:rng = range(len(vs))
+        deltas = []
+        for vdx in rng:
+            deltas.append(vs[vdx].__getattribute__('smooth_'+method)(vdx))
+            #deltas.append(vs[vdx].smooth(vdx))
+        for vdx in range(len(rng)):
+            vs[rng[vdx]].p.translate(deltas[vdx].scale_u(sscl))
         return self
 
     def pelt(self):

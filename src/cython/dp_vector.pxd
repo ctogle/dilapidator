@@ -70,6 +70,7 @@ cdef float angle_from_xaxis_xy_c(vector v)
 cdef float angle_from_xaxis_c(vector v)
 cdef float angle_between_xy_c(vector v1, vector v2)
 cdef float angle_between_c(vector v1, vector v2)
+cdef float signed_angle_between_c(vector v1, vector v2, vector n)
 
 cdef vector2d flip2d_c(vector2d f)
 

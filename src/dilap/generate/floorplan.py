@@ -21,6 +21,19 @@ import pdb
 
 class floorplan(dgc.context):
 
+    def _terrain_points(self):
+        def addtpt(tp):
+            for etp in tpts:
+                if etp.near(tp):
+                    return
+            tpts.append(tp)
+        ewplans = self.allplans[1]
+        tpts = []
+        for ew in ewplans:
+            addtpt(ew[0][0])
+            addtpt(ew[0][1])
+        return tpts
+
     def __init__(self,building,*args,**kwargs):
         dgc.context.__init__(self,*args,**kwargs)
         self.bldg = building
@@ -113,13 +126,14 @@ class floorplan(dgc.context):
     def grow_length(self,plans,length,side):
         if length is None:
 
-            #bdist = side._distance_to_border(self.corners)
-            #if bdist < 8 and not force:
-            #    #print 'too close to a border to grow'
-            #    return False
-            #elif gleng > bdist: gleng = bdist
+            l,w = self.bldg.l,self.bldg.w
+            corners = dpr.corners(l,w)
 
+            sidept = dpv.midpoint(*side[0])
+            bdist = dpv.distance_to_border_xy(sidept,corners)
             length = rm.choice([8,12,16,20,24,28,32])
+            if bdist < 8:return
+            elif length > bdist:length = bdist
         return length
 
     def verify_growth(self,plans,margs):

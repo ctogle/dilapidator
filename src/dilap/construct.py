@@ -8,9 +8,13 @@ import dilap.primitive.cylinder as dcyl
 import dilap.primitive.wall as dw
 import dilap.primitive.floor as df
 import dilap.primitive.pipe as dp
+import dilap.primitive.road as dr
 import dilap.generate.context as dgc
 import dilap.generate.landscape as dls
 import dilap.generate.lot as dlot
+import dilap.generate.street as dstr
+
+import dp_vector as dpv
 
 import pdb
 
@@ -85,6 +89,14 @@ def pipe(curve = None,loop = None,m = 'generic'):
     pi = dp.pipe(curve = curve,loop = loop,m = m)
     return pi
 
+def road(start = None,end = None,tip = None,tail = None):
+    if start is None:start = dpv.zero()
+    if end is None:end = dpv.vector(100,100,-10)
+    if tip is None:tip = dpv.vector(0,1,0)
+    if tail is None:tail = dpv.vector(0,1,0)
+    rd = dr.road(start,end,tip,tail)
+    return rd
+
 ###############################################################################
 
 def context(io = 'obj',dilaps = []):
@@ -97,6 +109,10 @@ def landscape(io = 'obj',dilaps = []):
 
 def lot(io = 'obj',dilaps = []):
     cx = dlot.lot(iotype = io,dilapidors = dilaps)
+    return cx
+
+def street(io = 'obj',dilaps = []):
+    cx = dstr.street(iotype = io,dilapidors = dilaps)
     return cx
 
 ###############################################################################
@@ -113,8 +129,10 @@ generator = {
     'wall':wall,
     'perimeter':perimeter,
     'floor':floor,
-    'context':context,
-    'lot':lot,
+    'pipe':pipe,
+    'road':road,
+    #'context':context,
+    #'lot':lot,
 }
 
 # contextualizer is a dict of funcs which return context objects
@@ -122,6 +140,7 @@ contextualizer = {
     'context':context,
     'landscape':landscape,
     'lot':lot,
+    'street':street,
 }
 
 ###############################################################################

@@ -1,6 +1,7 @@
 import dilap.core.base as db
 
 import dp_vector as dpv
+import dp_quaternion as dpq
 
 class tform(db.base):
 
@@ -16,7 +17,8 @@ class tform(db.base):
         self._def('parent',None,**kwargs)
         self._def('children',[],**kwargs)
         self._def('pos',dpv.zero(),**kwargs)
-        self._def('rot',dpv.zero(),**kwargs)
+        #self._def('rot',dpv.zero(),**kwargs)
+        self._def('rot',dpq.zero(),**kwargs)
         self._def('scl',dpv.one(),**kwargs)
 
     # should return a tform to world space
@@ -26,9 +28,11 @@ class tform(db.base):
         ns = self.scl.copy()
         if self.parent:
             tpar = self.parent.true()
-            np.rotate_z(tpar.rot.z)
+            #np.rotate_z(tpar.rot.z)
+            np.rotate(tpar.rot)
             np.translate(tpar.pos)
-            nr.translate(tpar.rot)
+            #nr.translate(tpar.rot)
+            nr.rotate(tpar.rot)
             ns.scale(tpar.scl)
         new = tform(self.owner,pos = np,rot = nr,scl = ns)
         return new

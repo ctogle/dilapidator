@@ -158,10 +158,7 @@ class node(db.base):
         return self
 
     def rotate(self,q):
-        print('its time to try the quaternion')
-        pdb.set_trace()
-
-        self.tform.pos.translate(v)
+        self.tform.rot.rotate(q)
         return self
 
     def _add_child(self,*chil):
@@ -206,6 +203,7 @@ class node(db.base):
     def _transform_to_local(self,mod,ttf,uv_ttf):
         mod.translate(ttf.pos.copy().flip())
         #tpm.rotate_z(ttf.rot.copy().flip().z)
+        mod.rotate(ttf.rot.copy().flip())
         mod.scale(ttf.scl.copy().reciprocate())
         mod._uvs_to_local(uv_ttf)
 
@@ -214,6 +212,7 @@ class node(db.base):
         mod.scale(ttf.scl)
         mod._uvs_to_world(uv_ttf)
         #mod.rotate_z(ttf.rot.z)
+        mod.rotate(ttf.rot)
         mod.translate(ttf.pos)
 
     # transform models and childrens models to world space

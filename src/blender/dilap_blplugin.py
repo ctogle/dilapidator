@@ -57,7 +57,8 @@ class dilap_run(bpy.types.Operator):
     
     # moved assignment from execute() to the body of the class...
     years = bpy.props.IntProperty(name = 'years',default = 10,min = 1,max = 100)
-    dcontext = bpy.props.StringProperty(name = 'context',default = 'lot')
+    #dcontext = bpy.props.StringProperty(name = 'context',default = 'lot')
+    dcontext = bpy.props.StringProperty(name = 'context',default = 'street')
 
     # execute() is called by blender when running the operator.
     def execute(self,context):

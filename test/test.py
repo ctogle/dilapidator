@@ -4,6 +4,7 @@ import dilap.primitive.tools as pdr
 import dilap.core.profiler as prf
 
 import dilap.core.lsystem as pls
+import dilap.core.tmesh as tms
 
 import dp_vector as dpv
 
@@ -43,15 +44,29 @@ def pipes():
     p1 = dlc.pipe()
     dlc.build(p1)
 
+def roads():
+    r1 = dlc.road()
+    dlc.build(r1)
+
 def houselot():
     dds = dld.dilapidors['ivy'](4)
     dlc.realize(dlc.contextualizer['lot'](dilaps = [dds]),7)
 
+def street():
+    dds = dld.dilapidors['ivy'](4)
+    dlc.realize(dlc.contextualizer['street'](dilaps = [dds]),7)
+
 def prf_houselot():
     prf.profile_function(houselot)
 
+def prf_street():
+    prf.profile_function(street)
+
 def prf_lstest():
     prf.profile_function(pls.test)
+
+def afmtest():
+    dlc.build(tms.afmtest())
 
 #cube()
 #cone()
@@ -60,8 +75,11 @@ def prf_lstest():
 #perim()
 #floor()
 #pipes()
-prf_houselot()
+#roads()
+#prf_houselot()
+prf_street()
 #prf_lstest()
 #pls.test()
+#afmtest()
 
 

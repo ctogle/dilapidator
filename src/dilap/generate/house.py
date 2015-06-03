@@ -1,4 +1,5 @@
 import dilap.core.base as db
+import dilap.core.tools as dpr
 import dilap.core.sgraph as dsg
 import dilap.core.context as dgc
 import dilap.io.io as dio
@@ -7,6 +8,7 @@ import dilap.primitive.cone as dco
 import dilap.primitive.cylinder as dcyl
 import dilap.primitive.wall as dw
 import dilap.primitive.floor as df
+import dilap.primitive.road as dr
 import dilap.generate.floorplan as dfp
 
 import dp_vector as dpv
@@ -25,6 +27,10 @@ class house(dgc.context):
         self._def('wheights',[4.0 for x in range(self.stories)],**kwargs)
         self._def('stoop',(5,3,2),**kwargs)
         self.fplan = dfp.floorplan(self)
+
+    def _terrain_points(self):
+        tpts = self.fplan._terrain_points()
+        return tpts
 
     def _story_height(self,level):
         z = 0.0
@@ -63,5 +69,6 @@ class house(dgc.context):
             self.generate_story(x,worn)
         for s in self.fplan.generate_shafts(worn):self._consume(s)
         self._consume(self.fplan.generate_roof(worn))
+        return self
 
 

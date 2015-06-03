@@ -153,17 +153,34 @@ cdef class vector:
                 if self.z == other.z: return True
         return False
 
-    cpdef bint near(self,vector other):
+    cpdef bint near_xy(self,vector other):
         cdef float dx = (self.x-other.x)
         cdef float dy = (self.y-other.y)
-        cdef float dz = (self.z-other.z)
         cdef float dx2 = dx*dx
         cdef float dy2 = dy*dy
-        cdef float dz2 = dz*dz
         if dx2 > 0.0001:return 0
         if dy2 > 0.0001:return 0
-        if dz2 > 0.0001:return 0
         return 1
+
+    cpdef bint near(self,vector other):
+        cdef float dx
+        cdef float dy
+        cdef float dz
+        dx = (self.x-other.x)
+        if dx*dx > 0.001:return 0
+        dy = (self.y-other.y)
+        if dy*dy > 0.001:return 0
+        dz = (self.z-other.z)
+        if dz*dz > 0.001:return 0
+        return 1
+
+    cpdef int nearest(self,list others):
+        cdef int pcnt = len(others)
+        cdef int pdx
+        for pdx in range(pcnt):
+            if self.near(others[pcnt-1-pdx]):
+                return pcnt-1-pdx
+        return -1
 
     cpdef vector2d xy2d(self):
         cdef vector2d new = vector2d(self.x,self.y)
@@ -335,6 +352,14 @@ cdef class vector:
         self.y *= s
         self.z *= s
         return self
+
+    # r is a point in the plane; n is normal to it
+    # return a new vector which equals self projected 
+    # onto the plane defined by r and n
+    cpdef vector project_plane(self,vector r,vector n):
+        cdef float d = (self.x-r.x)*n.x+(self.y-r.y)*n.y+(self.z-r.z)*n.z
+        cdef vector new = self-n.copy().scale_u(d)
+        return new
 
     cpdef vector cross(self, vector v):
         return cross_c(self,v)
@@ -753,6 +778,27 @@ cdef vector com(list coords):
 cpdef vector center_of_mass(list coords):
     return com(coords)
 
+cdef vector com_weighted(list coords,list weights):
+    cdef int ccnt = len(coords)
+    cdef float ccntf = float(ccnt)
+    cdef int cdx = 0
+    cdef float x = 0.0
+    cdef float y = 0.0
+    cdef float z = 0.0
+    cdef vector coo
+    cdef vector new
+    for cdx in range(ccnt):
+        coo = <vector>coords[cdx]
+        wgt = <float>weights[cdx]
+        x += coo.x*wgt
+        y += coo.y*wgt
+        z += coo.z*wgt
+    new = vector(x/ccntf,y/ccntf,z/ccntf)
+    return new
+
+cpdef vector center_of_mass_weighted(list coords,list weights):
+    return com_weighted(coords,weights)
+
 cdef float distance_xy_c(vector v1, vector v2):
     cdef float dx = v2.x - v1.x
     cdef float dy = v2.y - v1.y
@@ -914,6 +960,8 @@ cpdef bint test_afxa():
     print 'ANGLETEST'
     print '\t'.join([t1,t2,t3,t4,t5,t6,t7,t8])
 
+# consider xy project of polygon corners and xy projection of pt
+# return 0 is pt is outside of polygon in this projection
 cpdef bint inside(vector pt, list corners):
     poly = [(c.x,c.y) for c in corners]
     x,y = pt.x,pt.y

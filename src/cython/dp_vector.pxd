@@ -24,7 +24,9 @@ cdef class vector:
     cdef public float x    
     cdef public float y
     cdef public float z
+    cpdef bint near_xy(self,vector other)
     cpdef bint near(self,vector other)
+    cpdef int nearest(self,list others)
     cpdef vector2d xy2d(self)
     cpdef vector2d xz2d(self)
     cpdef vector2d yz2d(self)
@@ -42,6 +44,7 @@ cdef class vector:
     cpdef vector translate(self, vector sv)
     cpdef vector scale(self, vector sv)
     cpdef vector scale_u(self, float s)
+    cpdef vector project_plane(self, vector , vector n)
     cpdef vector cross(self, vector v)
     cpdef float dot(self, vector v)
     cpdef vector flip(self)
@@ -83,6 +86,7 @@ cdef vector v1_v2_c(vector v1, vector v2)
 cdef vector vzip_c(vector v1, vector v2)
 cdef vector midpoint_c(vector v1, vector v2)
 cdef vector com(list coords)
+cdef vector com_weighted(list coords,list weights)
 cdef vector barymetric_to_world_c(float u,float v,vector v0,vector v1,vector v2)
 cdef vector2d project_coords_c(list coords, vector axis)
 

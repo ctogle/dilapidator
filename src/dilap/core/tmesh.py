@@ -7,8 +7,11 @@ import dilap.primitive.cylinder as dcy
 
 import dp_vector as dpv
 import dp_quaternion as dpq
+import dp_ray as dr
 
 import numpy,random,pdb
+import matplotlib.pyplot as plt
+#from mpl_toolkits.mplot3d import Axes3D
 
 class vertex:
 
@@ -34,6 +37,8 @@ class vertex:
                 self.edge(fs[e2dx])
                 return
 
+    def plot(self,ax):
+        ax.plot([self.p.x],[self.p.y],zs = [self.p.z],marker = 'o')
     def __init__(self,p,n,u,w,m = None):
         self.p = p # position vector
         self.n = n # normal vector
@@ -51,16 +56,51 @@ class vertex:
         return dpv.v1_v2(self.p,ncom).scale(self.w)
 
     def smooth_radial(self,selfdex):
+        if not self.vring:return dpv.zero()
         ns = [self.mesh.vs[x].p for x in self.vring]
-        ns.append(self.mesh.vs[selfdex].p)
-        ncom = dpv.center_of_mass(ns)
-        # weight the location of ncom by the distance of
-        # each 1-ring vertex to the self.p
-        # 
+        ds = [dpv.distance(n,self.p) for n in ns]
+        ws = [dpr.clamp(d/max(ds),0.5,1.0) for d in ds]
+        ncom = dpv.center_of_mass_weighted(ns,ws)
         return dpv.v1_v2(self.p,ncom).scale(self.w)
+
+# vs is a list of vertex objects, to be plotted one by one
+def plot_vertices(vs):
+    fig = plt.figure()
+    ax = fig.add_subplot(111,projection='3d')
+    for v in vs:v.plot(ax)
+    plt.show()
+
+# vs is a list of vertex objects referenced by the tuples
+# representing edges, found in es
+def plot_edges(vs,es):
+    fig = plt.figure()
+    ax = fig.add_subplot(111,projection='3d')
+    for e in es:
+        v1,v2 = e
+        vs[v1].plot(ax)
+        vs[v2].plot(ax)
+        ax.plot([vs[v1].p.x,vs[v2].p.x],
+                [vs[v1].p.y,vs[v2].p.y],
+            zs =[vs[v1].p.z,vs[v2].p.z])
+    plt.show()
+    
+# e1 and e2 are edges (tuples of ints)
+# return True if they are the same, irrespective of direction
+def sameedge(e1,e2):
+    if e1[0] == e2[0] and e1[1] == e2[1]:return True
+    if e1[0] == e2[1] and e1[1] == e2[0]:return True
+    return False
 
 class mesh:
     
+    def newvdat(self,p,n,u,w):
+        new = vertex(p,n,u,w,self)
+    def newvdata(self,ps,ns,us,ws):
+        vst = len(self.vs)
+        for vdx in range(len(ps)):
+            newv = vertex(ps[vdx],ns[vdx],us[vdx],ws[vdx],self)
+        vrng = [x for x in range(vst,len(self.vs))]
+        return vrng
     def vdat(self,v):
         self.vs.append(v)
     def vdata(self,vs):
@@ -82,8 +122,15 @@ class mesh:
         self.fs[fdx] = None
         # these indices can be recycled if i keep a stack of them!!
     def rmfdata(self,fdxs):
+        fdxs = sorted(fdxs)
+        fdxs.reverse()
         for fdx in fdxs:
             self.rmfdat(fdx)
+
+    def plot(self,rng = None):
+        if rng is None:rng = range(len(self.vs))
+        vs = [self.vs[x] for x in rng]
+        plot_vertices(vs)
     def __init__(self):
         self.vs = [] # list of vertex objects
         self.es = [] # list of vertex indices forming edges
@@ -102,6 +149,114 @@ class mesh:
                             bound.append(vx)
             self.rmfdat(rx)
         return bound
+
+    def delaunay_bridge(self,eloop1,eloop2):
+        fcnt = len(self.fs)
+        eloop1 = self.edgeloop(eloop1)
+        eloop2 = self.edgeloop(eloop2)
+        eloop = self.edgeloop_bridge(eloop1,eloop2)
+
+        #vrng = [x[0] for x in eloop]
+        vrng = [e[0] for e in eloop1]
+        patch = self.delaunaymethod(vrng)
+
+        frng = range(fcnt,len(self.fs))
+        return frng
+
+    # rng is a set of vertex indices which are relevant to the patching
+    # rng is assumed to be coplanar??
+    def delaunaymethod(self,rng):
+        fcnt = len(self.fs)
+        ps = [self.vs[x].p for x in rng]
+        bb = (dpv.project_coords(ps,dpv.xhat),dpv.project_coords(ps,dpv.yhat))
+        bb[0].x -= 1
+        bb[0].y += 1
+        bb[1].x -= 1
+        bb[1].y += 1
+
+        ps.extend([
+            dpv.vector(bb[0].x,bb[1].x,0),dpv.vector(bb[0].y,bb[1].x,0),
+            dpv.vector(bb[0].y,bb[1].y,0),dpv.vector(bb[0].x,bb[1].y,0)])
+        
+        rgcnt = len(rng)
+        cover = [(0+rgcnt,1+rgcnt,2+rgcnt),(0+rgcnt,2+rgcnt,3+rgcnt)]
+        plane = (dpv.zero(),dpv.zhat.copy())
+        for x in rng:self.delaunaystep(ps,cover,x,plane)
+
+        extras = []
+        for cvx in range(len(cover)):
+            for c in cover[cvx]:
+                if not c < rgcnt:
+                    extras.append(cvx)
+                    break
+        extras = sorted(extras)
+        extras.reverse()
+        for x in extras:cover.pop(x)
+        cover = [tuple([rng[c] for c in cover[cx]]) for cx in range(len(cover))]
+
+        self.fdata(cover)
+        for cx in range(len(cover)):
+            f = cover[cx]
+            [self.vs[f[x]].face(f,x,cx) for x in range(len(f))]
+        frng = range(fcnt,len(self.fs))
+        return frng
+
+    # ps is a list of points, 
+    # where cover specifies triangles by referencing points in ps
+    # cover is the current list of triangles composing the triangulation
+    # pt is the next candidate point (its index) for this delaunay step
+    def delaunaystep(self,ps,cover,ptx,plane):
+        control = self.vs[ptx].p
+        dtris = []
+        for cvx in range(len(cover)):
+            ptri = [ps[c] for c in cover[cvx]]
+            try:circump,circumr = dpr.circumscribe_tri(*ptri)
+            except:
+                print('delaunay step failure')
+                return
+            if dpr.inside_circle(control,circump,circumr,plane):
+                dtris.append(cvx)
+        dtris = sorted(dtris)
+        dtris.reverse()
+
+        if not dtris:pdb.set_trace()
+
+        alledges = []
+        for dtri in dtris:
+            alledges.append((cover[dtri][0],cover[dtri][1]))
+            alledges.append((cover[dtri][1],cover[dtri][2]))
+            alledges.append((cover[dtri][2],cover[dtri][0]))
+            cover.pop(dtri)
+
+        eloop = []
+        for e1 in alledges:
+            same = False
+            for e2 in alledges:
+                if e2 is e1:continue
+                same = sameedge(e1,e2)
+                if same:break
+            if not same:eloop.append(e1)
+
+        bnd = [eloop[0][0],eloop[0][1]]
+        nxt = bnd[-1]
+        while len(bnd) < len(eloop):
+            for e in eloop:
+                if   nxt == e[0] and not e[1] in bnd:
+                    nxt = e[1]
+                    break
+                elif nxt == e[1] and not e[0] in bnd:
+                    nxt = e[0]
+                    break
+            bnd.append(nxt)
+        bnd = list(set(bnd))
+        
+        tcnt = len(bnd)
+        ptdx = ps.index(control)
+        for trdx in range(tcnt):
+            c2 = trdx
+            c3 = trdx+1
+            if c3 == tcnt:c3 = 0
+            cover.append((ptdx,bnd[c2],bnd[c3]))
 
     # eloop is a list of topologically connected (edges) points
     # but the points are not in a coherent order
@@ -122,23 +277,82 @@ class mesh:
             nllen += 1
         return nloop
 
+    def afm_bridge(self,eloop1,eloop2):
+        eloop1 = self.edgeloop(eloop1)
+        eloop2 = self.edgeloop(eloop2)
+        
+        #need to somehow plot this to check it..
+        eloop = self.edgeloop_bridge(eloop1,eloop2)
+
+        fcnt = len(self.fs)
+        for x in range(500):
+            if len(eloop) < 3:break
+            self.advfront(eloop)
+        #while len(eloop) > 2:self.advfront(eloop)
+        frng = range(fcnt,len(self.fs))
+        return frng
+
     def checkfront(self,eloop):
         for x in range(len(eloop)):
             el = x-1
             en = x+1 if x < len(eloop)-1 else 0
-            if not eloop[el][1] == eloop[x][0]:
-                return x
-            if not eloop[en][0] == eloop[x][1]:
-                return x
+            if not eloop[el][1] == eloop[x][0]:return x
+            if not eloop[en][0] == eloop[x][1]:return x
+
+    # given an unordered list of vertex indices constituting a 
+    # vertex ring, produce ordered edges between them
+    def edgeloop(self,loop):
+        oloop = self.order_loop(loop)
+        looprng = range(len(oloop))
+        eloop = [(oloop[x-1],oloop[x]) for x in looprng]
+        return eloop
+
+    # given two proper edgeloops, sever intelligently and
+    # bridge the gap such that the result is a single edgeloop
+    def edgeloop_bridge(self,eloop1,eloop2):
+        vxs1 = [eloop1[x-1][1] for x in range(len(eloop1))]
+        vxs2 = [eloop2[x-1][1] for x in range(len(eloop2))]
+        vs1 = [self.vs[x] for x in vxs1]
+        vs2 = [self.vs[x] for x in vxs2]
+        vps2 = [v.p for v in vs2]
+        minx1 = 0
+        minx2 = dpv.find_closest(vs1[minx1].p,vps2,len(vps2),0.0)
+
+        pbrg = dpr.point_line(vs1[minx1].p,vs2[minx2].p,5)
+        preb = len(self.vs)
+        for pb in pbrg[1:-1]:
+            newv = vertex(pb,dpv.zhat.copy(),dpv.zero2d(),dpv.one(),self)
+        newvrng = list(range(preb,len(self.vs)))
+        newvrng.reverse()
+        brg1 = [(newvrng[x-1],newvrng[x]) for x in range(1,len(newvrng))]
+        brg2 = [(y,x) for x,y in brg1[::-1]]
+
+        #THIS IS WHERE THE REAL PROBLEM IS!!
+        brg1.append((brg1[-1][1],eloop1[minx1][0]))
+        brg1.insert(0,(eloop2[minx2][0],brg1[0][0]))
+        brg2.append((brg2[-1][1],eloop2[minx2][0]))
+        brg2.insert(0,(eloop1[minx1][0],brg2[0][0]))
+
+        bridged = brg1+eloop1[:minx1]+eloop1[minx1:]+\
+                    brg2+eloop2[minx2:]+eloop2[:minx2]
+
+        check = self.checkfront(bridged)
+        #if not check is None:pdb.set_trace()
+
+        #plot_edges(self.vs,bridged)
+
+        #pdb.set_trace()
+
+        return bridged
 
     # eloop is a list of topologically connected (edges) points
     def advfrontmethod(self,eloop):
         fcnt = len(self.fs)
-        eloop = [(eloop[x-1],eloop[x]) for x in range(len(eloop))]
-        #for x in range(500):
-        #    if len(eloop) < 3:break
-        #    self.advfront(eloop)
-        while len(eloop) > 2:self.advfront(eloop)
+        eloop = self.edgeloop(eloop)
+        for x in range(500):
+            if len(eloop) < 3:break
+            self.advfront(eloop)
+        #while len(eloop) > 2:self.advfront(eloop)
         frng = range(fcnt,len(self.fs))
         return frng
 
@@ -151,7 +365,13 @@ class mesh:
             v1,v2,v3 = vs[el1],vs[el2],vs[el3]
             e1 = dpv.v1_v2(v2.p,v1.p).normalize()
             e2 = dpv.v1_v2(v2.p,v3.p).normalize()
-            ea = dpv.signed_angle_between(e2,e1,v2.n)
+
+            #ea = dpv.signed_angle_between(e2,e1,v2.n)
+
+            ea = numpy.arccos(dpv.dot(e1,e2))
+            vn = e1.cross(e2)
+            if vn.dot(v2.n) < 0.0:ea *= -1.0
+
             if ea < 0.01:ea = numpy.pi
             if ea <= whch[1]:whch = (eacnt,ea)
             eacnt += 1
@@ -185,6 +405,7 @@ class mesh:
             eloop.insert((0 if ex == 0 else ex-1),(el4,el3))
             eloop.insert((0 if ex == 0 else ex-1),(el1,el4))
         else:
+            # shouldnt this always default to e1 and not just use whichever is shorter...
             mdist = min((e1len,e2len))
             mdelt = dpv.v1_v2(v2.p,v1.p).cross(v2.n)
             mdelt.normalize().scale_u(mdist)
@@ -203,6 +424,22 @@ class mesh:
         for fx in range(len(fs)):
             f = fs[fx]
             [self.vs[f[x]].face(f,x,fx) for x in range(len(f))]
+
+    # flatten the points on the interior of the loop to 
+    # the plane defined by planepoint and planenormal
+    # interfaces is a list of faces whose verts are moved
+    # return the indices of the vertices that were moved
+    def flatten(self,interfaces,planepoint,planenormal):
+        projected = []
+        for iface in interfaces:
+            for vx in self.fs[iface]:
+                if not vx in projected:
+                    projected.append(vx)
+                    v = self.vs[vx]
+                    vp = v.p.project_plane(planepoint,planenormal)
+                    v.p.translate(dpv.v1_v2(v.p,vp))
+                    v.w.scale_u(0.0)
+        return projected
 
     def smooths(self,scnt,sscl,rng = None,method = 'uniform'):
         for s in range(scnt):self.smooth(sscl,rng,method)
@@ -264,6 +501,79 @@ def meshme(ps,ns = None,us = None,ws = None,es = [],fs = []):
         [nvs[f[x]].face(f,x,fx) for x in range(len(f))]
     return m                   
 
+
+
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+
+def afmtest():
+    ps = [
+        dpv.vector(0,0,0),dpv.vector(5,0,0),dpv.vector(5,5,0),
+        dpv.vector(.5,5,0),dpv.vector(.5,10,0),
+        dpv.vector(10,10,0),dpv.vector(10,-10,0),
+        dpv.vector(0,-10,0),
+        dpv.vector(-10,-10,0),dpv.vector(-10,10,0),
+        dpv.vector(-.5,10,0),dpv.vector(-.5,5,0),
+        dpv.vector(-5,5,0),dpv.vector(-5,0,0),
+            ]
+    ps1 = [
+        dpv.vector(0,0,0),dpv.vector(5,0,0),dpv.vector(5,5,0),
+        dpv.vector(.5,5,0),dpv.vector(.5,10,0),
+        dpv.vector(10,10,0),dpv.vector(10,-10,0),
+        dpv.vector(0,-10,0),
+            ]
+    ps2 = [
+        dpv.vector(0,-10,0),
+        dpv.vector(-10,-10,0),dpv.vector(-10,10,0),
+        dpv.vector(-.5,10,0),dpv.vector(-.5,5,0),
+        dpv.vector(-5,5,0),dpv.vector(-5,0,0),dpv.vector(0,0,0),
+            ]
+
+    hole = [
+        dpv.vector(-5,0,0),dpv.vector(5,0,0),
+        dpv.vector(5,5,0),dpv.vector(-5,5,0),
+            ]
+
+    #ps = dpr.dice_edges(ps,1)
+    #ps1 = dpr.dice_edges(ps1,1)
+    #ps2 = dpr.dice_edges(ps2,1)
+    ps.reverse()
+    ps1.reverse()
+    ps2.reverse()
+    prng = [x for x in range(len(ps))]
+    prng1 = [x for x in range(len(ps1))]
+    prng2 = [x for x in range(len(ps2))]
+
+    def edgeloop(vrng):
+        return [(vrng[x-1],vrng[x]) for x in vrng]
+
+    es = edgeloop(prng)
+    es1 = edgeloop(prng1)
+    es2 = edgeloop(prng2)
+    #m = meshme(ps,es = es)
+    m = meshme(ps1,es = es1)
+
+    arng1 = range(len(ps1))
+    #arng2 = range(len(ps2))
+
+    plot_edges(m.vs,es1)
+    #plot_edges(m.vs,es2)
+    #pdb.set_trace()
+
+    patch = m.delaunaymethod(arng1)
+    ptchr = []
+    for p in patch:
+        ptri = [m.vs[c].p for c in m.fs[p]]
+        if dpv.inside(dpv.center_of_mass(ptri),hole):ptchr.append(p)
+    m.rmfdata(ptchr)
+
+    #patch = m.advfrontmethod(range(len(m.vs)))
+    #patch = m.advfrontmethod(arng1)
+    #patch = m.advfrontmethod(arng2)
+    return m.pelt()
     
 
 

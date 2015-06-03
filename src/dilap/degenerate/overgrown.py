@@ -26,7 +26,7 @@ class ivy(dd.dilapidor):
         nfaces = model._face_normals(model.faces)
         mbb = model._aaabbb()
         # pfaces must not be empty...
-        hitfaces,hitcasts = dr.ray_grid(dpv.nzhat,mbb,pfaces,4.0)
+        hitfaces,hitcasts = dr.ray_grid(dpv.nzhat,mbb,pfaces,20.0)
         for hdx in range(len(hitfaces)):
             hf = hitfaces[hdx]
             hc = hitcasts[hdx]
@@ -49,12 +49,12 @@ class ivy(dd.dilapidor):
         pfaces = self.hitdata['pfaces']
         #nfaces = self.hitdata['nfaces']
         for hdx in range(len(hitfaces)):
-            if random.random() < 0.99:continue
+            #if random.random() < 0.99:continue
             hf = hitfaces[hdx]
             hc = hitcasts[hdx]
-            dtb = dpv.distance_to_border_xy(hc,pfaces[hf])
-            rad = dtb
-            if rad < 1:continue
+            #dtb = dpv.distance_to_border_xy(hc,pfaces[hf])
+            #rad = dtb
+            #if rad < 1:continue
             tree = dcyl.cylinder().translate_z(0.5).scale_z(10)
             #tree = dpi.pipe()
             growth._consume(tree.translate(hc))

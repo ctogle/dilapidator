@@ -27,6 +27,13 @@ class context(db.base):
         self._def('iotype','obj',**kwargs)
         self._def('dilapidors',[],**kwargs)
 
+    # transform all nodes in the sgraph by t,q
+    def _transform(self,t,q,s):
+        for n in self.sgraph.nodes:
+            n.scale(s)
+            n.rotate(q)
+            n.translate(t)
+
     # for one or many nodes, return a node consuming them
     def _node_consume(self,*nodes):
         consumenode = dsg.node(children = list(nodes),consumption = True)

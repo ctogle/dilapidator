@@ -148,9 +148,19 @@ cdef class quaternion:
         rotated.z = purerotated.z
         return rotated
 
+    # given rotation q, rotate self so that self represents
+    # a rotation by self and then q (q * self)
     cpdef quaternion rotate(self, quaternion q):
         print('MUST IMPLEMENT QUAT ROT')
-        
+        cdef rotw = q.w*self.w - q.x*self.x - q.y*self.y - q.z*self.z
+        cdef rotx = q.w*self.x + q.x*self.w + q.y*self.z - q.z*self.y
+        cdef roty = q.w*self.y - q.x*self.z + q.y*self.w + q.z*self.x
+        cdef rotz = q.w*self.z + q.x*self.y - q.y*self.x + q.z*self.w
+        if self.magnitude() < 0.1:rotw,rotx,roty,rotz = q.to_tuple()
+        self.w = rotw
+        self.x = rotx
+        self.y = roty
+        self.z = rotz
         return self
 
     cpdef quaternion rotate_x(self, float zang):

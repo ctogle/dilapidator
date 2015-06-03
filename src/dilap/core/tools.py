@@ -16,6 +16,22 @@ def combine(models):
             final._consume(m)
     return final
 
+def circumscribe_tri(p1,p2,p3):
+    e1 = p1 - p3
+    e2 = p2 - p3
+    th = dpv.angle_between(e1,e2)
+    cr = dpv.distance(p1,p2)/(2*numpy.sin(th))
+    cp = e2.copy().scale_u(e1.magnitude2())-e1.copy().scale_u(e2.magnitude2())
+    cp = cp.cross(e1.cross(e2)).scale_u(1.0/(2.0*(e1.cross(e2).magnitude2())))
+    return cp+p3,cr
+
+def inside_circle(pt,center,radius,plane):
+    pt = pt.project_plane(*plane)
+    center = center.project_plane(*plane)
+    ins = not dpv.distance(pt,center) > radius
+    print('insideeeeeee',plane[0],plane[1],ins)
+    return ins
+
 # return a polygon of radius 1 with n sides
 # similar to point_ring
 def polygon(n):
@@ -54,6 +70,21 @@ def point_ring(r,n):
     for x in range(n):
         points.append(st.copy().rotate_z(x*alpha))
     return points
+
+def dice_edges(verts,dices = 3):
+    for di in range(dices):
+        newpts = []
+        vcnt = len(verts)
+        for tdx in range(vcnt):
+            p1 = verts[tdx-1]
+            p2 = verts[tdx]
+            mpt = dpv.midpoint(p1,p2)
+            newpts.append(p1)
+            newpts.append(mpt)
+        newpts.append(newpts.pop(0))
+        newpts.append(newpts.pop(0))
+        verts = newpts
+    return verts
 
 def inflate(convex,radius):
     enorms = dpv.edge_normals_xy(convex)

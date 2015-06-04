@@ -4,9 +4,19 @@ import dp_vector as dpv
 import dp_quaternion as dpq
 import dp_ray as dr
 
-import numpy,os,appdirs,pdb
+import math,numpy,os,appdirs,pdb
+import matplotlib.pyplot as plt
 
 PI = numpy.pi
+
+def plot_points(pts):
+    xs = [v.x for v in pts]
+    ys = [v.y for v in pts]
+    zs = [v.z for v in pts]
+    fig = plt.figure()
+    ax = fig.add_subplot(111,projection='3d')
+    ax.plot(xs,ys,zs = zs,marker = 'o')
+    plt.show()
 
 # reduce a list of models to a single model
 def combine(models):
@@ -95,6 +105,112 @@ def inflate(convex,radius):
         convex[cdx].translate(norm.scale_u(radius))
     return convex
 
+def pts_to_convex_xy(pts):
+    # return the corners of the polygon, a subset of pts
+    # it could be that pts is all one point or is colinear
+    new = find_extremes_x(pts)[1]
+    tang = None
+    shape = []
+    while not new in shape:
+        shape.append(new)
+        if len(shape) > 1:
+            tang = dpv.v1_v2(shape[-2],shape[-1])
+        new = sweep_search(pts,new,tang)
+    return shape
+
+def find_extremes_y(pts):
+    lo = pts[0]
+    hi = pts[0]
+    for pt in pts[1:]:
+        if pt.y < lo.y:lo = pt
+        if pt.y > hi.y:hi = pt
+    return lo,hi
+
+def find_extremes_x(pts):
+    lo = pts[0]
+    hi = pts[0]
+    for pt in pts[1:]:
+        if pt.x < lo.x:lo = pt
+        if pt.x > hi.x:hi = pt
+    return lo,hi
+
+def sweep_search(pts,center,tangent = None):
+    # this will behave oddly when `which` would
+    #  be a colinear set
+    offset = center.copy().flip()
+    dpv.translate_coords(pts,offset)
+    if not tangent is None:
+        tangent_rot = dpv.angle_from_xaxis_xy(tangent)
+        dpv.rotate_z_coords(pts,-tangent_rot)
+    which = center
+    pang = 2*PI
+    pcnt = len(pts)
+    for adx in range(pcnt):
+        pt = pts[adx]
+        if pt is center: continue
+        tpang = dpv.angle_from_xaxis_xy(pt)
+        if tpang < pang:
+            pang = tpang
+            which = pt
+    if not tangent is None:
+        dpv.rotate_z_coords(pts,tangent_rot)
+    dpv.translate_coords(pts,offset.flip())
+    return which
+
+def triangle_cover(boundary,side_length):
+    side_length = float(side_length)
+    perp_side_length = math.sqrt(3)*side_length/2.0
+    bproj_x = dpv.project_coords(boundary,dpv.xhat)
+    bproj_y = dpv.project_coords(boundary,dpv.yhat)
+    xrng = bproj_x.y - bproj_x.x
+    yrng = bproj_y.y - bproj_y.x
+    total_offset = dpv.vector(
+        bproj_x.x - side_length,
+        bproj_y.x - perp_side_length,0)
+
+    xtcnt = int(xrng/side_length+0.5) + 3
+    ytcnt = int(yrng/perp_side_length+0.5) + 3
+
+    broffset = dpv.vector(side_length/2.0,perp_side_length,0)
+    corners = []
+    xs = [x*side_length for x in range(xtcnt)]
+
+    pts = []
+    seedrow = [dpv.vector(x,0,0).translate(total_offset) for x in xs]
+    rowleng = len(seedrow)
+    pts.extend(seedrow)
+    bottomrow = [x for x in range(rowleng)]
+    pts.extend([b.copy().translate(broffset) for b in seedrow])
+    toprow = [x+rowleng for x in range(rowleng)]
+    
+    def next_rows(bottom,top,even):
+        sign = -1 if even else 1
+        broffset.translate_x(sign*side_length)
+        newpts = [pts[t].copy().translate(broffset) for t in top]
+        pcnt = len(pts)
+        pts.extend(newpts)
+        newrng = range(pcnt,len(pts))
+        newtop = [x for x in newrng]
+        newbottom = [x for x in top]
+        return newbottom,newtop
+
+    for rdx in range(ytcnt):
+        even = rdx % 2 == 0
+        for vdx in range(1,len(bottomrow)):
+            c1 = bottomrow[vdx-1]
+            c2 = bottomrow[vdx]
+            c3 = toprow[vdx-1]
+            c4 = toprow[vdx]
+            if even:
+                corners.append((c1,c2,c3))
+                corners.append((c3,c2,c4))
+            else:
+                corners.append((c1,c2,c4))
+                corners.append((c3,c1,c4))
+        if not rdx == ytcnt - 1:
+            bottomrow,toprow = next_rows(bottomrow,toprow,even)
+    return pts,corners
+
 def extrude_edge(c1,c2,length,direction):
     c1c2n = direction.copy().normalize().scale_u(length)
     c3 = c2.copy().translate(c1c2n)
@@ -102,8 +218,8 @@ def extrude_edge(c1,c2,length,direction):
     return c3,c4
 
 def extrude_edge_normal(c1,c2,length):
-    c1c2 = cv.v1_v2(c1,c2)
-    c1c2n = cv.cross(cv.zhat,c1c2)
+    c1c2 = dpv.v1_v2(c1,c2)
+    c1c2n = dpv.cross(dpv.zhat,c1c2)
     return extrude_edge(c1,c2,length,c1c2n)
 
 # return a square of length,width l,w at position p and zrot phi
@@ -150,7 +266,7 @@ def orient_loop(loop,targetnormal,control = None):
     if n == targetnormal.copy().flip():
         #print('HACK?')
         #qrot = dpq.q_from_av(numpy.pi,dpv.zhat)
-        qrot = dpq.q_from_av(numpy.pi,dpv.yhat)
+        qrot = dpq.q_from_av(PI,dpv.yhat)
     else:qrot = dpq.q_from_uu(n,targetnormal)
     looprot = dpq.rotate_coords(loop,control,qrot)
     return looprot
@@ -182,8 +298,8 @@ def clamp(v,f,c):
     elif v > c: return c
     else: return v
 
-def rad(deg):return numpy.pi*deg/180.0
-def deg(rad):return 180.0*rad/numpy.pi
+def rad(deg):return PI*deg/180.0
+def deg(rad):return 180.0*rad/PI
 
 # return the path to a safe resource directory, 
 # or a full path to a file therein

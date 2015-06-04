@@ -37,7 +37,7 @@ class floorplan(dgc.context):
     def __init__(self,building,*args,**kwargs):
         dgc.context.__init__(self,*args,**kwargs)
         self.bldg = building
-        self._def('max_rooms',5,**kwargs)
+        self._def('max_rooms',0,**kwargs)
         self._def('min_shaft_distance',50,**kwargs)
 
     # return a plan if a shaft would be good, otherwise None

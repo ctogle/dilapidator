@@ -19,8 +19,10 @@ class landscape(dgc.context):
 
     def __init__(self,*args,**kwargs):
         dgc.context.__init__(self,*args,**kwargs)
-        self._def('boundary',dpr.point_ring(250,6),**kwargs)
+        #self._def('boundary',dpr.point_ring(250,6),**kwargs)
         self._def('controls',[],**kwargs)
+        self._def('holes',[],**kwargs)
+        self._def('regions',[],**kwargs)
         self._def('sealevel',-0.5,**kwargs)
 
     def search_offset_random(self,p1,p2):
@@ -80,39 +82,30 @@ class landscape(dgc.context):
             ws.append(l[2])
         return after
 
-    def tmodels(self):
-        tris = []
-        for x in range(6):
-            c1 = 6
-            c2 = x
-            c3 = x+1
-            if c3 == 6:c3 = 0
-            tris.append((c1,c2,c3))
-        pts = [b.copy() for b in self.boundary]
-        wts = [dpv.zero() for p in pts]
-        pts.append(dpv.center_of_mass(pts))
-        wts.append(dpv.one())
-        bnd = dpr.inflate([b.copy() for b in pts],-10.0)
+    def _cover(self,radius = 100,tri_edgelength = 10,mod_edgelength = 250):
+        convexcover = dpr.pts_to_convex_xy(self.regions)
+        dpr.inflate(convexcover,radius)
+        pts,tris = dpr.triangle_cover(convexcover,mod_edgelength)
+        wts = [dpv.one() for x in pts]
+        #dpr.plot_points(pts)
+        return pts,wts,tris
 
-        for p in pts:p.translate_z((2.0*random.random()-1.0)*100)
-        for x in range(5):tris = self.split(pts,wts,tris)
+    def tmodels(self):
+        pts,wts,tris = self._cover()
+        #for p in pts:p.translate_z((2.0*random.random()-1.0)*100)
+        for p in pts:p.translate_z(random.random()*100)
+        for x in range(4):tris = self.split(pts,wts,tris)
 
         m = dtm.meshme(pts,None,None,wts,[],tris)
+        vbnd = [x for x in range(len(m.vs)) if len(m.vs[x].vring) < 6]
 
-        '''#
-        pfaces = [(m.vs[x].p,m.vs[y].p,m.vs[z].p) for x,y,z in m.fs]
-        mbb = dcu.cube().scale_u(100).scale_z(10)._aaabbb()
-        mps = m.gpdata()
-        hitfaces = dbb.intersect_tri_filter(mbb,m.fs,mps)
-        hbnd = m.order_loop(m.cut_hole(hitfaces))
-        patch = m.advfrontmethod(hbnd)
-        flatpatch = m.flatten(patch,dpv.vector(0,0,50),dpv.zhat.copy())
-        '''#
-
-        #vbnd = [v for v in m.vs if not dpv.inside(v.p,bnd)]
-        #for vb in vbnd:
-        #    vb.w.x = 0.0
-        #    vb.w.y = 0.0
+        dpr.plot_points([m.vs[x].p for x in vbnd])
+        for vbx in vbnd:
+            #m.vs[vbx].w.x = 0.0
+            #m.vs[vbx].w.y = 0.0
+            m.vs[vbx].w.scale_u(0.0)
+            m.vs[vbx].p.z = -20.5
+        #m.smooths(100,0.2)
         return m
 
     def generate(self,other = None,worn = 0):
@@ -151,15 +144,10 @@ class landscape(dgc.context):
         flatpatch = m.flatten(patch,dpv.vector(0,0,50),dpv.zhat.copy())
         '''#
 
-        m.smooths(50,0.1,method = 'uniform')
+        m.smooths(100,0.1,method = 'uniform')
                                                                             
         # add terrain models to scenegraph
         self._models_to_graph(m.pelt())
-        # add water models to scenegraph
-        water = dcu.cube().scale_x(100).scale_y(100).scale_z(20)
-        water.translate_z(-19.5).translate_z(self.sealevel)
-        #wnode = self._node_wrap(water)
-        #self._nodes_to_graph(wnode)
         return self
 
 

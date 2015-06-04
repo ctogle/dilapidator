@@ -13,6 +13,7 @@ import dilap.generate.context as dgc
 import dilap.generate.landscape as dls
 import dilap.generate.lot as dlot
 import dilap.generate.street as dstr
+import dilap.generate.continent as dct
 
 import dp_vector as dpv
 
@@ -115,6 +116,10 @@ def street(io = 'obj',dilaps = []):
     cx = dstr.street(iotype = io,dilapidors = dilaps)
     return cx
 
+def continent(io = 'obj',dilaps = []):
+    cx = dct.continent(iotype = io,dilapidors = dilaps)
+    return cx
+
 ###############################################################################
 
 ###############################################################################
@@ -141,6 +146,7 @@ contextualizer = {
     'landscape':landscape,
     'lot':lot,
     'street':street,
+    'continent':continent,
 }
 
 ###############################################################################

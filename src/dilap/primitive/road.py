@@ -7,7 +7,6 @@ import dilap.primitive.cube as dcu
 import dp_vector as dpv
 import dp_quaternion as dpq
 
-import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 import pdb,numpy,random
@@ -116,15 +115,22 @@ class lane(db.base):
         m._consume(dcu.cube().translate(lpt1).translate_z(0.5))
         m._consume(dcu.cube().translate(lpt2).translate_z(0.5))
 
+        lrow = [lpt1]
+        rrow = [lpt2]
+
         for pdx in range(1,len(self.road.vertices)):
             pt1,pt2 = self._geo_pair(pdx)
 
             m._quad(pt1,pt2,lpt2,lpt1)
 
             lpt1,lpt2 = pt1,pt2
+            lrow.append(lpt1)
+            rrow.append(lpt2)
 
             m._consume(dcu.cube().translate(pt1).translate_z(0.5))
             m._consume(dcu.cube().translate(pt2).translate_z(0.5))
+        self.leftrow = lrow
+        self.rightrow = rrow
         return m
         
 # a road is a topological structure where lanes (vertices) are connected
@@ -192,20 +198,18 @@ class road(dmo.model):
         self.calculate_tips(controls)
         self.calculate_vertices()
 
-        self.plot_vertices()
+        #self.plot_vertices()
         #self.xy_bbox()                                
 
     def plot_vertices(self):
-        xs = [v.x for v in self.vertices]
-        ys = [v.y for v in self.vertices]
-        zs = [v.z for v in self.vertices]
-        fig = plt.figure()
-        ax = fig.add_subplot(111,projection='3d')
-        ax.plot(xs,ys,zs = zs,marker = 'o')
-        plt.show()
+        dpr.plot_points(self.vertices)
 
     def _terrain_points(self):
-        return [v.copy() for v in self.vertices]
+        rln = self._leftist()
+        lln = self._rightist()
+        tpts = rln.rightrow+lln.rightrow
+        #dpr.plot_points(tpts)
+        return tpts
 
     def _lotspace(self,bbs):
 
@@ -215,14 +219,16 @@ class road(dmo.model):
         rdvts = self.vertices
         segcnt = len(rdvts) - 1
 
-        rdist = -1.0*sum([l.w for l in self._rightside()])
+        rdist = sum([l.w for l in self._rightside()])
+        rdist = 0
+
         which = random.randint(0,segcnt)
         rvt,rnm = rdvts[which],rdnorms[which].copy()
         lotp = rvt.copy().translate(rnm.scale_u(rdist))
         lotzrot = dpv.angle_from_xaxis_xy(rdtangs[which])
 
         #####
-        #lotzrot = 0.0 
+        lotzrot = 0.0 
         #####
 
         l,w,p,q = 50,50,lotp,dpq.q_from_av(lotzrot,dpv.zhat)
@@ -238,11 +244,23 @@ class road(dmo.model):
         self._lanes()
         self._geo()
 
+    def _leftist(self):
+        ls = self._leftside()
+        return self._farside(ls)
+
     def _leftside(self):
         return self._side(-1)
 
+    def _rightist(self):
+        ls = self._rightside()
+        return self._farside(ls)
+
     def _rightside(self):
         return self._side(1)
+
+    def _farside(self,ls):
+        la = [l.alignment for l in ls]
+        return ls[la.index(max(la))]
 
     def _side(self,side):
         lanes = []

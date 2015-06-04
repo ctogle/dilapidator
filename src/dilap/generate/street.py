@@ -17,20 +17,20 @@ class street(dgc.context):
         rd = dr.road(start,end,tip,tail,controls = cs)
         self._nodes_to_graph(self._node_wrap(rd))
 
-        bbs = []
-        lotspace = rd._lotspace(bbs)
-        dlot = dlt.lot(lotspace[0],lotspace[1]).generate(worn)
-        lsppos,lsprot = lotspace[2],lotspace[3]
-        dlot._transform(lsppos,lsprot,dpv.one())
-        self._consume(dlot)
-        lotspace = rd._lotspace(bbs)
-        dlot = dlt.lot(lotspace[0],lotspace[1]).generate(worn)
-        lsppos,lsprot = lotspace[2],lotspace[3]
-        dlot._transform(lsppos,lsprot,dpv.one())
-        self._consume(dlot)
+        #bbs = []
+        #lotspace = rd._lotspace(bbs)
+        #dlot = dlt.lot(lotspace[0],lotspace[1]).generate(worn)
+        #lsppos,lsprot = lotspace[2],lotspace[3]
+        #dlot._transform(lsppos,lsprot,dpv.one())
+        #self._consume(dlot)
+        #lotspace = rd._lotspace(bbs)
+        #dlot = dlt.lot(lotspace[0],lotspace[1]).generate(worn)
+        #lsppos,lsprot = lotspace[2],lotspace[3]
+        #dlot._transform(lsppos,lsprot,dpv.one())
+        #self._consume(dlot)
 
         tpts = []
-        tpts.extend(dlot.terrain_points)
+        #tpts.extend(dlot.terrain_points)
         tpts.extend(rd._terrain_points())
 
         lscape = dls.landscape(controls = tpts)

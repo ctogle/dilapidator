@@ -56,11 +56,18 @@ def street():
     dds = dld.dilapidors['ivy'](4)
     dlc.realize(dlc.contextualizer['street'](dilaps = [dds]),7)
 
+def cont():
+    dds = dld.dilapidors['ivy'](4)
+    dlc.realize(dlc.contextualizer['continent'](dilaps = [dds]),7)
+
 def prf_houselot():
     prf.profile_function(houselot)
 
 def prf_street():
     prf.profile_function(street)
+
+def prf_cont():
+    prf.profile_function(cont)
 
 def prf_lstest():
     prf.profile_function(pls.test)
@@ -77,7 +84,7 @@ def afmtest():
 #pipes()
 #roads()
 #prf_houselot()
-prf_street()
+prf_cont()
 #prf_lstest()
 #pls.test()
 #afmtest()

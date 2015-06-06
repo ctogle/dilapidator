@@ -11,59 +11,6 @@ from mpl_toolkits.mplot3d import Axes3D
 
 import pdb,numpy,random
 
-class segment(dmo.model):
-
-    def _calculate(self):
-        t = cv.v1_v2(self.start,self.end).normalize()
-        l = cv.distance(self.start,self.end)
-        n = t.copy().xy().rotate_z(dpr.rad(90)).normalize()
-        sn = n.copy().rotate_z(-1*self.a1).normalize()
-        en = n.copy().rotate_z(   self.a2).normalize()
-        self.t = t
-        self.l = l
-        self.n = n
-        self.sn = sn
-        self.en = en
-
-    def __init__(self,start,end,**kwargs):
-        dmo.model.__init__(self,*args,**kwargs)
-        self.start = start
-        self.end = end
-        self._def('a1',0.0,**kwargs)
-        self._def('a2',0.0,**kwargs)
-        self._def('lanecount',2,**kwargs)
-
-        self._calculate()
-        self._geo()
-
-    def _geo(self):
-        lc,lw,m = self.lanecount,self.lw,'generic'
-        lanes = [x-(lc-1)/2.0 for x in range(lc)]
-        for lan in lanes:
-            lanw = lan*lw
-            self._build_lane(lanw,lw,project = True,m = m)
-
-    def _geo_lane(self):
-        pass
-    def _build_lane(self,l,lw,lh = 0,rh = 0,
-            project = False,m = 'gridmat'):
-        lt1 = self.sn.copy().scale_u(l)
-        lt2 = self.en.copy().scale_u(l)
-        tr = self.n.copy().scale_u(lw/2.0)
-        v1 = self.start.copy().translate(lt1)
-        v2 = v1.copy()
-        v3 = self.end.copy().translate(lt2)
-        v4 = v3.copy()
-        v1.translate(tr).translate_z(lh)
-        v2.translate(tr.flip()).translate_z(rh)
-        v3.translate(tr).translate_z(rh)
-        v4.translate(tr.flip()).translate_z(lh)
-        mbp.rotate_pair([v1,v2],-1*self.a1)
-        mbp.rotate_pair([v3,v4],self.a2)
-        nfs = self._quad(v1,v2,v3,v4,m = m)
-        if project:self._project_uv_xy(nfs)
-        return nfs
-
 class lane(db.base):
 
     def __init__(self,*args,**kwargs):
@@ -80,21 +27,24 @@ class lane(db.base):
 
     def _tolane(self,ptx):
         nsoffs = [self.road.lanes[lx].w for lx in self.lnstocenter]
-        offdst = self.direction*(self.w/2.0)+sum(nsoffs)
+        offdst = self.direction*((self.w/2.0)+sum(nsoffs))
         offset = self.road.normals[ptx].copy().scale_u(offdst)
         pt = self.road.vertices[ptx].copy().translate(offset)
         return pt
 
     def _fromlane(self,ptx):
+        raise NotImplemented
         return pt
         
     def _lanestocenter(self):
         lanestocenter = []
         for lx in range(len(self.road.lanes)):
             l = self.road.lanes[lx]
-            if not l.direction == self.direction:continue
-            if not l.alignment < self.alignment:continue
-            lanestocenter.append(lx)
+            if l is self or not l.direction == self.direction:continue
+            if l.alignment == self.alignment:
+                print('two lanes cannot have equal alignment and direction')
+                raise ValueError
+            elif l.alignment < self.alignment:lanestocenter.append(lx)
         return lanestocenter
 
     def _geo_pair(self,x):
@@ -108,6 +58,7 @@ class lane(db.base):
     # return a model containing this lane
     def _geo(self):
         self.lnstocenter = self._lanestocenter()
+        print('ltocccccc',self.lnstocenter)
         #m = dtm.meshme(pts,None,None,None,[],tris)
         m = dmo.model()
         
@@ -135,8 +86,17 @@ class lane(db.base):
         
 # a road is a topological structure where lanes (vertices) are connected
 # by sharing edges and merging/splitting
-
 class road(dmo.model):
+
+    def translate(self,v):
+        dpv.translate_coords(self.vertices,v)
+        dpv.translate_coords(self.controls,v)
+        dpv.translate_coords(self.tpts,v)
+        self.start.translate(v)
+        self.end.translate(v)
+        self.tip.translate(v)
+        self.tail.translate(v)
+        return dmo.model.translate(self,v)
 
     def calculate_tips(self,controls):
         eleng = 3.0
@@ -207,9 +167,15 @@ class road(dmo.model):
     def _terrain_points(self):
         rln = self._leftist()
         lln = self._rightist()
-        tpts = rln.rightrow+lln.rightrow
-        #dpr.plot_points(tpts)
-        return tpts
+        self.tpts = rln.rightrow+lln.rightrow
+        return self.tpts
+
+    def _hole_points(self):
+        rln = self._leftist()
+        lln = self._rightist()
+        self.hpts = []
+
+        return self.hpts
 
     def _lotspace(self,bbs):
 
@@ -241,8 +207,16 @@ class road(dmo.model):
         self.tip = tip
         self.tail = tail
         self.calculate()
+        if not 'largs' in kwargs:
+            self.largs = [
+                {'direction':-1,'alignment':0},
+                {'direction': 1,'alignment':0},
+                {'direction': 1,'alignment':1},
+                    ]
+        else:self.largs = kwargs['largs']
         self._lanes()
-        self._geo()
+        #self._geo()
+        #self._terrain_points()
 
     def _leftist(self):
         ls = self._leftside()
@@ -272,16 +246,85 @@ class road(dmo.model):
     # create a collection of lane objects representing how this road
     # should evolve (merges, shoulders, gutters, sidewalks, etc...)
     def _lanes(self):
-        same = {'road':self}
-        self.lanes = [
-            lane(direction = -1,alignment = 0,**same),
-            lane(direction =  1,alignment = 0,**same),
-            lane(direction =  1,alignment = 1,**same)]
+        for larg in self.largs:larg['road'] = self
+        self.lanes = [lane(**larg) for larg in self.largs]
 
     # use the lane objects to build a model
     def _geo(self):
         m = dmo.model()
         for l in self.lanes:m._consume(l._geo())
         self._consume(m)
+
+class intersection(dmo.model):
+
+    def calculate(self,roads):
+        for r in roads:
+            pstd = dpv.distance(self.p,r.start)
+            pend = dpv.distance(self.p,r.end)
+            if pend < pstd:r.end.translate(r.tip.copy().flip().scale_u(10))
+            else:r.start.translate(r.tail.copy().scale_u(10))
+            r.calculate()
+
+    def _terrain_points(self):
+        self.tpts = [self.p.copy()]
+        return self.tpts
+
+    def __init__(self,p,*roads,**kwargs):
+        dmo.model.__init__(self,**kwargs)
+        self.p = p
+        self.calculate(roads)
+        self._geo()
+        self._terrain_points()
+
+    # use the lane objects to build a model
+    def _geo(self):
+        m = dcu.cube().translate_z(0.5).scale_x(20).scale_y(20).translate(self.p)
+        self._consume(m)
+
+# use/modify *args/**kwargs to made a highway like road model
+def highway(*args,**kwargs):
+    largs = [
+        {'direction':-1,'alignment':1},
+        {'direction':-1,'alignment':0},
+        {'direction': 1,'alignment':0},
+        {'direction': 1,'alignment':1},
+            ]
+    kwargs['largs'] = largs
+    hway = road(*args,**kwargs)
+    return hway
+
+def circle(rtype,*args,**kwargs):
+    ring = dpr.point_ring(100,12)
+    ring.append(ring[0])
+    tips = [
+        dpv.yhat.copy(),dpv.nxhat.copy(),
+        dpv.nyhat.copy(),dpv.xhat.copy()]
+    tips.append(tips[0])
+    roads,isects = [],[]
+    for x in range(4):
+        kwargs['controls'] = [ring[3*x+1],ring[3*x+2]]
+        st,en = ring[(3*x)].copy(),ring[3*(x+1)].copy()
+        rd = rtype(st,en,tips[x+1].copy(),tips[x].copy(),**kwargs)
+        roads.append(rd)
+    for x in range(4):
+        r1,r2 = roads[x-1],roads[x]
+        isect = intersection(ring[3*x],r1,r2)
+        isects.append(isect)
+    for r in roads:
+        r._geo()
+        r._terrain_points()
+        r._hole_points()
+    return roads,isects
+
+#start = dpv.vector(-100,-300, 20)
+#end   = dpv.vector( 100, 300, 40)
+#tip  = dpv.vector(0,1,0)
+#tail = dpv.vector(1,1,0)
+#cs = [dpv.vector(-100,-100, 30),dpv.vector( 100, 100, 40)]
+#rd = dr.highway(start,end,tip,tail,controls = cs)
+#self.roads = [rd]
+
+
+
 
 

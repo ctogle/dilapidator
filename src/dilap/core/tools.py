@@ -209,6 +209,27 @@ def triangle_cover(boundary,side_length):
                 corners.append((c3,c1,c4))
         if not rdx == ytcnt - 1:
             bottomrow,toprow = next_rows(bottomrow,toprow,even)
+
+    extras = []
+    keeppts = []
+    for cnx in range(len(corners)):
+        ptri = [pts[x] for x in corners[cnx]]
+        ins = [dpv.inside(c,boundary) for c in ptri]
+        if not ins.count(True) > 0:extras.append(cnx)
+        else:
+            for x in corners[cnx]:
+                if not x in keeppts:
+                    keeppts.append(x)
+
+    extras = sorted(extras)
+    extras.reverse()
+    for x in extras:corners.pop(x)
+    extrapts = [x for x in range(len(pts)) if not x in keeppts]
+    extrapts = sorted(extrapts)
+    extrapts.reverse()
+    # THIS MESSES UP THE INDICES OF CORNERS!!!
+    #for x in extrapts:pts.pop(x)
+    #plot_points(pts+boundary)
     return pts,corners
 
 def extrude_edge(c1,c2,length,direction):

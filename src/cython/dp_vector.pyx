@@ -496,7 +496,6 @@ cpdef vector2d project_coords(list coords, vector axis):
     return project_coords_c(coords,axis)
 
 cdef float distance_to_edge_c(vector pt,vector e1,vector e2,vector nm):
-    print('not implemented?')
     eproj = project_coords_c([e1,e2],nm)
     pproj = project_coords_c([pt],nm)
     return abs(eproj.x - pproj.x)

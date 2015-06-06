@@ -40,7 +40,8 @@ class landscape(dgc.context):
         elif controld < thresh2:
             rz = self.search_offset_random(p1,p2)
             pz = self.controls[controlx].z-p.z
-            z = pz+(rz-pz)*(controld/thresh2)**2
+            #z = pz+(rz-pz)*(controld/thresh2)**2
+            z = pz+(rz-pz)*(controld/thresh2)**3
         else:z = self.search_offset_random(p1,p2)
         return z
 
@@ -87,31 +88,37 @@ class landscape(dgc.context):
         dpr.inflate(convexcover,radius)
         pts,tris = dpr.triangle_cover(convexcover,mod_edgelength)
         wts = [dpv.one() for x in pts]
-        #dpr.plot_points(pts)
-        return pts,wts,tris
+        self.center = dpv.center_of_mass(convexcover)
+        return pts,wts,tris,convexcover
 
-    def tmodels(self):
-        pts,wts,tris = self._cover()
-        #for p in pts:p.translate_z((2.0*random.random()-1.0)*100)
-        for p in pts:p.translate_z(random.random()*100)
-        for x in range(4):tris = self.split(pts,wts,tris)
+    def tmodels(self,splits = 4):
+        pts,wts,tris,convex = self._cover()
+        maxh = 200.0
+        dtbs = [dpv.distance_to_border_xy(p,convex) for p in pts]
+        mdtb = max(dtbs)
+        deltas = [(0.0 + maxh*(dtbs[x]/mdtb)**3) 
+            if dpv.inside(pts[x],convex) else -20.0 for x in range(len(dtbs))]
+        for x in range(len(pts)):pts[x].translate_z(deltas[x])
+        dpr.plot_points(pts)
 
+        for x in range(splits):tris = self.split(pts,wts,tris)
         m = dtm.meshme(pts,None,None,wts,[],tris)
         vbnd = [x for x in range(len(m.vs)) if len(m.vs[x].vring) < 6]
 
-        dpr.plot_points([m.vs[x].p for x in vbnd])
+        #dpr.plot_points([m.vs[x].p for x in vbnd])
         for vbx in vbnd:
-            #m.vs[vbx].w.x = 0.0
-            #m.vs[vbx].w.y = 0.0
             m.vs[vbx].w.scale_u(0.0)
-            m.vs[vbx].p.z = -20.5
-        #m.smooths(100,0.2)
+            m.vs[vbx].p.z = -20.0
         return m
 
     def generate(self,other = None,worn = 0):
         random.seed(0)
         m = self.tmodels()
-        
+        m.smooths(100,0.1,method = 'uniform')
+
+        holes = self.holes
+        #pdb.set_trace()
+
         '''#
         pfaces = [(m.vs[x].p,m.vs[y].p,m.vs[z].p) for x,y,z in m.fs]
         mbb = dcu.cube().scale_u(100).scale_z(10)._aaabbb()
@@ -144,10 +151,9 @@ class landscape(dgc.context):
         flatpatch = m.flatten(patch,dpv.vector(0,0,50),dpv.zhat.copy())
         '''#
 
-        m.smooths(100,0.1,method = 'uniform')
-                                                                            
-        # add terrain models to scenegraph
-        self._models_to_graph(m.pelt())
+        self.landmd = m.pelt()
+        self.landbb = self.landmd._aaabbb()
+        self._models_to_graph(self.landmd)
         return self
 
 

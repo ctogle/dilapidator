@@ -1,15 +1,15 @@
 import dilap.core.context as dgc
 import dilap.core.tools as dpr
 import dilap.generate.landscape as dls
+import dilap.generate.infrastructure as pif
 
 import dilap.generate.lot as dlt
+import dilap.primitive.cube as dcu
 import dilap.primitive.road as dr
 
 import dp_vector as dpv
 import dp_quaternion as dpq
 
-# a continent should be a top level context for dilap
-# it creates a full world (island), with a true boundary (ocean)
 class city(dgc.context):
 
     def _terrain_points(self):
@@ -22,18 +22,18 @@ class city(dgc.context):
         return self.rpts
 
     def generate(self,seed,worn = 0):
+        self._nodes_to_graph(self._node_wrap(
+            dcu.cube().scale_u(10).translate_z(5).translate(seed)))
         self.tpts = [seed]
         self.hpts = []
-        self.rpts = dpr.point_ring(100,6)
+        self.rpts = dpr.point_ring(100*worn,6)
+        dpv.translate_coords(self.rpts,seed)
 
-        start = dpv.vector(-100,-300, 20)
-        end   = dpv.vector( 100, 300, 40)
-        tip  = dpv.vector(0,1,0)
-        tail = dpv.vector(1,1,0)
-        cs = [dpv.vector(-100,-100, 30),dpv.vector( 100, 100, 40)]
-        rd = dr.road(start,end,tip,tail,controls = cs)
-        self.tpts.extend(rd._terrain_points())
-        self._nodes_to_graph(self._node_wrap(rd))
+        rsys = pif.infrastructure().generate(seed,self.rpts,worn)
+        self._consume(rsys)
+        self.tpts.extend(rsys._terrain_points())
+        self.hpts.extend(rsys._hole_points())
 
         return self
+
 

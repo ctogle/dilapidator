@@ -58,7 +58,6 @@ class lane(db.base):
     # return a model containing this lane
     def _geo(self):
         self.lnstocenter = self._lanestocenter()
-        print('ltocccccc',self.lnstocenter)
         #m = dtm.meshme(pts,None,None,None,[],tris)
         m = dmo.model()
         
@@ -92,6 +91,7 @@ class road(dmo.model):
         dpv.translate_coords(self.vertices,v)
         dpv.translate_coords(self.controls,v)
         dpv.translate_coords(self.tpts,v)
+        for h in self.hpts:dpv.translate_coords(h,v)
         self.start.translate(v)
         self.end.translate(v)
         self.tip.translate(v)
@@ -171,10 +171,14 @@ class road(dmo.model):
         return self.tpts
 
     def _hole_points(self):
-        rln = self._leftist()
-        lln = self._rightist()
+        llnrow = self._leftist().rightrow
+        rlnrow = self._rightist().leftrow
         self.hpts = []
-
+        for hdx in range(1,len(rlnrow)):
+            hole = [
+                rlnrow[hdx-1].copy(),rlnrow[hdx].copy(),
+                llnrow[hdx].copy(),llnrow[hdx-1].copy()]
+            self.hpts.append(hole)
         return self.hpts
 
     def _lotspace(self,bbs):
@@ -194,7 +198,7 @@ class road(dmo.model):
         lotzrot = dpv.angle_from_xaxis_xy(rdtangs[which])
 
         #####
-        lotzrot = 0.0 
+        #lotzrot = 0.0 
         #####
 
         l,w,p,q = 50,50,lotp,dpq.q_from_av(lotzrot,dpv.zhat)
@@ -215,8 +219,6 @@ class road(dmo.model):
                     ]
         else:self.largs = kwargs['largs']
         self._lanes()
-        #self._geo()
-        #self._terrain_points()
 
     def _leftist(self):
         ls = self._leftside()
@@ -257,6 +259,12 @@ class road(dmo.model):
 
 class intersection(dmo.model):
 
+    def translate(self,v):
+        self.p.translate(v)
+        dpv.translate_coords(self.tpts,v)
+        for h in self.hpts:dpv.translate_coords(h,v)
+        return dmo.model.translate(self,v)
+
     def calculate(self,roads):
         for r in roads:
             pstd = dpv.distance(self.p,r.start)
@@ -266,15 +274,19 @@ class intersection(dmo.model):
             r.calculate()
 
     def _terrain_points(self):
-        self.tpts = [self.p.copy()]
+        self.tpts = []
+        self.tpts.extend(dpr.corners(20,20,self.p))
         return self.tpts
+
+    def _hole_points(self):
+        self.hpts = []
+        self.hpts.append(dpr.corners(20,20,self.p))
+        return self.hpts
 
     def __init__(self,p,*roads,**kwargs):
         dmo.model.__init__(self,**kwargs)
         self.p = p
         self.calculate(roads)
-        self._geo()
-        self._terrain_points()
 
     # use the lane objects to build a model
     def _geo(self):
@@ -314,6 +326,10 @@ def circle(rtype,*args,**kwargs):
         r._geo()
         r._terrain_points()
         r._hole_points()
+    for i in isects:
+        i._geo()
+        i._terrain_points()
+        i._hole_points()
     return roads,isects
 
 #start = dpv.vector(-100,-300, 20)

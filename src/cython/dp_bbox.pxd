@@ -17,5 +17,6 @@ cdef class bbox:
     cpdef bbox _consume(self,bbox other)
     cpdef bint point_inside(self,dpv.vector point)
     cpdef bint intersect_tri(self,list tri)
+    cpdef bint separating_axis(self,bbox other)
 
 

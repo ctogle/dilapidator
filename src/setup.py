@@ -30,6 +30,7 @@ pkgs = [
     'dilap',
     'dilap.io',
     'dilap.core',
+    'dilap.core.mesh',
     'dilap.primitive',
     'dilap.generate',
     'dilap.degenerate',

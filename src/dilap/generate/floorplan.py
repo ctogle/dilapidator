@@ -141,7 +141,8 @@ class floorplan(dgc.context):
         for rp in plans[0]:
             bb = rp[1]['bbox']
             print('bb',bb)
-            if not dbb.separating_axis(mbb,bb):
+            #if not dbb.separating_axis(mbb,bb):
+            if not mbb.separating_axis(bb):
                 print('mbb',mbb)
                 print('bb',bb)
                 print('bbs intersected')

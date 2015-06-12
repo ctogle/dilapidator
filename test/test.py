@@ -1,12 +1,18 @@
 import dilap.construct as dlc
 import dilap.destruct as dld
-import dilap.primitive.tools as pdr
+import dilap.core.tools as dpr
 import dilap.core.profiler as prf
 
 import dilap.core.lsystem as pls
 import dilap.core.tmesh as tms
 
+import dilap.core.ugrid as dgrid
+
+import dilap.core.mesh.piecewisecomplex as pwc
+
 import dp_vector as dpv
+
+import matplotlib.pyplot as plt
 
 def cube():
     l = 2.4
@@ -31,7 +37,7 @@ def wall():
     dlc.build(wa)
 
 def perim():
-    vs = pdr.point_ring(10,6)
+    vs = dpr.point_ring(10,6)
     pm = dlc.perimeter(vs,3,0.25)
     dlc.build(pm)
 
@@ -75,6 +81,45 @@ def prf_lstest():
 def afmtest():
     dlc.build(tms.afmtest())
 
+def tetra():
+    pts = dpr.dice_edges(dpr.corners(5,5),1)
+    pts.extend([d.copy().translate_z(10) for d in pts])
+
+    plc = pwc.piecewise_linear_complex()
+    plcxs = plc.add_points(*pts)
+
+    for x in range(8):
+        y = x+1 if x < 7 else 0
+        plc.connect(x,y)
+
+    plc.plot()
+    plt.show()
+    plc.tetrahedralize()
+
+    pdb.set_trace()
+
+    plc.plot()
+    plt.show()
+
+def triang():
+    pts = dpr.dice_edges(dpr.corners(5,5),1)
+
+    plc = pwc.piecewise_linear_complex()
+    plcxs = plc.add_points(*pts)
+
+    for x in range(8):
+        y = x+1 if x < 7 else 0
+        plc.connect(x,y)
+
+    plc.plot()
+    plt.show()
+    plc.triangulate_xy()
+
+    pdb.set_trace()
+
+    plc.plot()
+    plt.show()
+
 #cube()
 #cone()
 #stonehenge()
@@ -84,9 +129,12 @@ def afmtest():
 #pipes()
 #roads()
 #prf_houselot()
-prf_cont()
+#prf_cont()
 #prf_lstest()
 #pls.test()
 #afmtest()
+#tetra()
+triang()
+
 
 

@@ -1,4 +1,7 @@
 cimport dp_quaternion as dpq
+cimport dp_bbox as dbb
+
+import dp_bbox as dbb
 
 stuff = 'hi'
 

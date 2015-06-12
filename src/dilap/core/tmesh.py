@@ -9,7 +9,7 @@ import dp_vector as dpv
 import dp_quaternion as dpq
 import dp_ray as dr
 
-import numpy,random,pdb
+import pdb,numpy,random,sys,traceback
 import matplotlib.pyplot as plt
 #from mpl_toolkits.mplot3d import Axes3D
 
@@ -126,6 +126,31 @@ class mesh:
         fdxs.reverse()
         for fdx in fdxs:
             self.rmfdat(fdx)
+    def gfdata(self,rng = None):
+        if rng is None:rng = range(len(self.fs))
+        gfs = [self.fs[x] for x in rng]
+        return gfs
+    def gfpdat(self,fx):
+        gfps = [self.vs[x].p for x in self.fs[fx]]
+        return gfps
+    def gfpdata(self,rng = None):
+        if rng is None:rng = range(len(self.fs))
+        gfps = [[self.vs[y].p for y in self.fs[x]] for x in rng]
+        return gfps
+    def gfpdata_aaabbb(self,bb,rng = None):
+        if rng is None:rng = range(len(self.fs))
+        gfps = []
+        for x in rng:
+            ptri = [self.vs[y].p for y in self.fs[x]]
+            if bb.intersect_tri(ptri):gfps.append(ptri)
+        return gfps
+    def intersect_aaabbb(self,bb,rng = None):
+        if rng is None:rng = range(len(self.fs))
+        gfs = []
+        for x in rng:
+            ptri = [self.vs[y].p for y in self.fs[x]]
+            if bb.intersect_tri(ptri):gfs.append(x)
+        return gfs
 
     def plot(self,rng = None):
         if rng is None:rng = range(len(self.vs))
@@ -135,7 +160,7 @@ class mesh:
         self.vs = [] # list of vertex objects
         self.es = [] # list of vertex indices forming edges
         self.fs = [] # list of vertex indices forming faces
-        
+
     def cut_hole(self,rng):
         bound = []
         for rx in rng:
@@ -163,16 +188,23 @@ class mesh:
         frng = range(fcnt,len(self.fs))
         return frng
 
+    # order the indices found in rng based on the positions of the points
+    # of the vertices which they correspond to
+    def delaunay_lexicographic_range(self,rng):
+        ps = [self.vs[x].p for x in rng]
+        lrng = [rng[x] for x in dpv.lexicographic_order_xy(ps)]
+        return lrng
+
     # rng is a set of vertex indices which are relevant to the patching
     # rng is assumed to be coplanar??
     def delaunaymethod(self,rng):
         fcnt = len(self.fs)
         ps = [self.vs[x].p for x in rng]
         bb = (dpv.project_coords(ps,dpv.xhat),dpv.project_coords(ps,dpv.yhat))
-        bb[0].x -= 1
-        bb[0].y += 1
-        bb[1].x -= 1
-        bb[1].y += 1
+        bb[0].x -= 100
+        bb[0].y += 100
+        bb[1].x -= 100
+        bb[1].y += 100
 
         ps.extend([
             dpv.vector(bb[0].x,bb[1].x,0),dpv.vector(bb[0].y,bb[1].x,0),
@@ -181,7 +213,35 @@ class mesh:
         rgcnt = len(rng)
         cover = [(0+rgcnt,1+rgcnt,2+rgcnt),(0+rgcnt,2+rgcnt,3+rgcnt)]
         plane = (dpv.zero(),dpv.zhat.copy())
-        for x in rng:self.delaunaystep(ps,cover,x,plane)
+
+        print('prerange',rng)
+        rng = self.delaunay_lexicographic_range(rng)
+        print('postrange',rng)
+
+        for x in rng:
+            self.delaunaystep(ps,cover,x,plane)
+
+            xs = [v.x for v in ps]
+            ys = [v.y for v in ps]
+            zs = [v.z for v in ps]
+            fig = plt.figure()
+            #ax = fig.add_subplot(111,projection = '3d')
+            ax = fig.add_subplot(111)
+            #[ax.plot([x],[y],[z],marker = 'x',zdir = 'z') for x,y,z in zip(xs,ys,zs)]
+            #[ax.plot([x],[y],[0.0],marker = 'x',zdir = 'z') for x,y,z in zip(xs,ys,zs)]
+            [ax.plot([x],[y],marker = 'x') for x,y,z in zip(xs,ys,zs)]
+            for c in cover:
+                ptri = [ps[cx] for cx in c]
+                ptri.append(ptri[0])
+                xs = [v.x for v in ptri]
+                ys = [v.y for v in ptri]
+                #zs = [v.z for v in ptri]
+                zs = [0.0 for v in ptri]
+                #ax.plot(xs,ys,zs = zs,marker = 'o',zdir = 'z')
+                ax.plot(xs,ys,marker = 'o')
+            plt.show()
+
+        #pdb.set_trace()
 
         extras = []
         for cvx in range(len(cover)):
@@ -210,16 +270,19 @@ class mesh:
         dtris = []
         for cvx in range(len(cover)):
             ptri = [ps[c] for c in cover[cvx]]
-            try:circump,circumr = dpr.circumscribe_tri(*ptri)
-            except:
-                print('delaunay step failure')
-                return
+            circump,circumr = dpr.circumscribe_tri(
+                    ptri[0],ptri[1],ptri[2],plane)
+            #try:
+            #    circump,circumr = dpr.circumscribe_tri(
+            #            ptri[0],ptri[1],ptri[2],plane)
+            #except:
+            #    traceback.print_exc(file=sys.stdout)
+            #    print('delaunay step failure')
+            #    return
             if dpr.inside_circle(control,circump,circumr,plane):
                 dtris.append(cvx)
         dtris = sorted(dtris)
         dtris.reverse()
-
-        if not dtris:pdb.set_trace()
 
         alledges = []
         for dtri in dtris:
@@ -249,6 +312,16 @@ class mesh:
                     break
             bnd.append(nxt)
         bnd = list(set(bnd))
+
+        xbnd = bnd[:]
+        xbnd.append(xbnd[0])
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        xs = [ps[b].x for b in xbnd]
+        ys = [ps[b].y for b in xbnd]
+        ax.plot(xs,ys,marker = 'o')
+        plt.show()
         
         tcnt = len(bnd)
         ptdx = ps.index(control)
@@ -272,7 +345,8 @@ class mesh:
             last = nloop[-1]
             ns = [vr for vr in vs[last].vring 
                 if vr in eloop and not vr in nloop]
-            nxt = ns[0]
+            try:nxt = ns[0]
+            except IndexError:raise ValueError
             nloop.append(nxt)
             nllen += 1
         return nloop

@@ -2,8 +2,8 @@ import dilap.core.context as dgc
 import dilap.core.tools as dpr
 import dilap.generate.landscape as dls
 import dilap.generate.infrastructure as pif
-
 import dilap.generate.lot as dlt
+
 import dilap.primitive.cube as dcu
 import dilap.primitive.road as dr
 
@@ -34,6 +34,15 @@ class city(dgc.context):
         self.tpts.extend(rsys._terrain_points())
         self.hpts.extend(rsys._hole_points())
 
+        '''#
+        bbs = []
+        for rd in rsys.roads:
+            lotspace = rd._lotspace(bbs)
+            dlot = dlt.lot(lotspace[0],lotspace[1]).generate(worn)
+            lsppos,lsprot = lotspace[2],lotspace[3]
+            dlot._transform(lsppos,lsprot,dpv.one())
+            self._consume(dlot)
+        '''#
         return self
 
 

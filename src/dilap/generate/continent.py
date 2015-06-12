@@ -4,7 +4,7 @@ import dilap.generate.landscape as dls
 import dilap.generate.city as dcy
 
 import dilap.generate.lot as dlt
-import dilap.primitive.cube as dcu
+import dilap.primitive.cylinder as dcyl
 import dilap.primitive.road as dr
 
 import dp_vector as dpv
@@ -16,7 +16,6 @@ class continent(dgc.context):
 
     def __init__(self,*args,**kwargs):
         dgc.context.__init__(self,*args,**kwargs)
-        #self._def('boundary',dpr.point_ring(250,6),**kwargs)
         self._def('sealevel',-0.5,**kwargs)
         self.define()
 
@@ -43,10 +42,11 @@ class continent(dgc.context):
         # add water models to scenegraph
         wl = lscape.landbb.x.y - lscape.landbb.x.x + 100.0
         ww = lscape.landbb.y.y - lscape.landbb.y.x + 100.0
-        water = dcu.cube().translate_z(-0.5)
-        water.scale_x(wl).scale_y(ww).scale_z(20)
+        wr = max([wl,ww])
+        water = dcyl.cylinder(n = 8).translate_z(-0.5)
+        water.scale_x(wr).scale_y(wr).scale_z(20)
         water.translate_z(self.sealevel)
-        water.translate(lscape.landbb.center.xy())
+        water.translate(lscape.landbb._center().xy())
         wnode = self._node_wrap(water)
         self._nodes_to_graph(wnode)
         return self

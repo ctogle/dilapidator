@@ -2,6 +2,7 @@
 # cython: profile=True
 #cimport cython
 cimport dp_quaternion as dpq
+cimport dp_bbox as dbb
 
 import matplotlib.pyplot as plt
 
@@ -798,6 +799,15 @@ cdef vector com_weighted(list coords,list weights):
 cpdef vector center_of_mass_weighted(list coords,list weights):
     return com_weighted(coords,weights)
 
+cdef float distance_planer_c(vector v1,vector v2,vector pr0,vector pn):
+    cdef vector v1p = v1.project_plane(pr0,pn)
+    cdef vector v2p = v2.project_plane(pr0,pn)
+    cdef float ds = distance_c(v1p,v2p)
+    return ds
+
+cpdef float distance_planer(vector v1,vector v2,vector pr0,vector pn):
+    return distance_planer_c(v1,v2,pr0,pn)
+
 cdef float distance_xy_c(vector v1, vector v2):
     cdef float dx = v2.x - v1.x
     cdef float dy = v2.y - v1.y
@@ -1003,6 +1013,81 @@ cdef list line_normals_c(list verts):
 cpdef list line_normals(list verts):
     return line_normals_c(verts)
 
+cdef bint overlap_c(vector2d rng1,vector2d rng2):
+    if   rng1.y < rng2.x:return 0
+    elif rng2.y < rng1.x:return 0
+    else:return 1
+
+# return 1 if a separating axis IS found
+# return 0 if none are found
+cdef bint separating_axis_c(list bb1,list bb2):
+    cdef list ns1 = edge_normals_xy(bb1)
+    cdef list ns2 = edge_normals_xy(bb2)
+    cdef int egcnt1 = len(ns1)
+    cdef int egcnt2 = len(ns2)
+    cdef vector edgenorm
+    cdef int egdx
+    cdef vector2d proj1
+    cdef vector2d proj2
+    for egdx in range(egcnt1):
+        edgenorm = <vector>ns1[egdx]
+        proj1 = <vector2d>project_coords_c(bb1,edgenorm)
+        proj2 = <vector2d>project_coords_c(bb2,edgenorm)
+        if not <bint>overlap_c(proj1,proj2):return 1
+    for egdx in range(egcnt2):
+        edgenorm = <vector>ns2[egdx]
+        proj1 = <vector2d>project_coords_c(bb1,edgenorm)
+        proj2 = <vector2d>project_coords_c(bb2,edgenorm)
+        if not <bint>overlap_c(proj1,proj2):return 1
+    return 0
+
+cpdef bint separating_axis(list bb1,list bb2):
+    return separating_axis_c(bb1,bb2)
+
+cdef list lowest_x_c(list pts):
+    cdef int pcnt = len(pts)
+    cdef int x
+    cdef list lox = [0]
+    cdef vector lo = pts[lox[0]]
+    for x in range(1,pcnt):
+        pt = pts[x]
+        if pt.x < lo.x:
+            lo = pt
+            lox = [x]
+        elif pt.x == lo.x:
+            lox.append(x)
+    return lox
+
+cdef list lowest_y_c(list pts):
+    cdef int pcnt = len(pts)
+    cdef int x
+    cdef list lox = [0]
+    cdef vector lo = pts[lox[0]]
+    for x in range(1,pcnt):
+        pt = pts[x]
+        if pt.y < lo.y:
+            lo = pt
+            lox = [x]
+        elif pt.y == lo.y:
+            lox.append(x)
+    return lox
+
+cpdef lexicographic_order_xy(list pts):
+    cdef list proxy = pts[:]
+    cdef int pcnt = len(pts)
+    cdef int nxt = 0
+    cdef int ocnt = 0
+    cdef list ordered = []
+    while ocnt < pcnt:
+        pxord = [pts[x] for x in lowest_x_c(proxy)]
+        if len(pxord) > 1:
+            pyord = lowest_y_c(pxord)[0]
+            nxt = pts.index(pxord[pyord])
+        else:nxt = pts.index(pxord[0])
+        nxt = pts.index(proxy.pop(nxt))
+        ordered.append(nxt)
+        ocnt += 1
+    return ordered
 
 
 

@@ -19,7 +19,6 @@ class landscape(dgc.context):
 
     def __init__(self,*args,**kwargs):
         dgc.context.__init__(self,*args,**kwargs)
-        #self._def('boundary',dpr.point_ring(250,6),**kwargs)
         self._def('controls',[],**kwargs)
         self._def('holes',[],**kwargs)
         self._def('regions',[],**kwargs)
@@ -91,7 +90,7 @@ class landscape(dgc.context):
         self.center = dpv.center_of_mass(convexcover)
         return pts,wts,tris,convexcover
 
-    def tmodels(self,splits = 4):
+    def tmodels(self,splits = 3):
         pts,wts,tris,convex = self._cover()
         maxh = 200.0
         dtbs = [dpv.distance_to_border_xy(p,convex) for p in pts]
@@ -99,7 +98,7 @@ class landscape(dgc.context):
         deltas = [(0.0 + maxh*(dtbs[x]/mdtb)**3) 
             if dpv.inside(pts[x],convex) else -20.0 for x in range(len(dtbs))]
         for x in range(len(pts)):pts[x].translate_z(deltas[x])
-        dpr.plot_points(pts)
+        #dpr.plot_points(pts,edges = False)
 
         for x in range(splits):tris = self.split(pts,wts,tris)
         m = dtm.meshme(pts,None,None,wts,[],tris)
@@ -116,8 +115,44 @@ class landscape(dgc.context):
         m = self.tmodels()
         m.smooths(100,0.1,method = 'uniform')
 
-        holes = self.holes
-        #pdb.set_trace()
+        flatholes = dpr.flatten(self.holes)
+        hbb = dbb.bb_from_ps(flatholes)
+        hbb._consume_x(dpv.vector2d(hbb.x.x-5.0,hbb.x.y+5.0))
+        hbb._consume_y(dpv.vector2d(hbb.y.x-5.0,hbb.y.y+5.0))
+        hbb._consume_z(dpv.vector2d(-1000.0,1000.0))
+        mps = m.gpdata()
+        mfs = m.intersect_aaabbb(hbb)
+
+        cutrng = []
+        for mfx in range(len(mfs)):
+            mfps = m.gfpdat(mfs[mfx])
+            for hdx in range(len(self.holes)):
+                hole = self.holes[hdx]
+                isect = 1 - dpv.separating_axis(mfps,hole)
+                if isect:
+                    if not mfx in cutrng:
+                        cutrng.append(mfs[mfx])
+
+        hbnd = m.cut_hole(cutrng)
+        for h in hbnd:m.vs[h].w.scale_u(0.0)
+
+        bns = [dpv.zhat.copy() for x in flatholes]
+        bus = [dpv.zero2d() for x in flatholes]
+        bws = [dpv.one() for x in flatholes]
+        fvs = m.newvdata(flatholes,bns,bus,bws)
+
+        dpr.plot_points([m.vs[h].p for h in hbnd],edges = False)
+
+        for hx in hbnd:
+            m.vs[hx].p.z = 100
+            for hxx in m.vs[hx].vring:m.vs[hxx].p.z = 100
+
+        #loops = m.looprank(hbnd)
+        #dvs = loops[0][0] + fvs
+        dvs = hbnd[:]
+
+        patch = m.delaunaymethod(dvs)
+        #flatpatch = m.flatten(patch,dpv.vector(0,0,100),dpv.zhat.copy())
 
         '''#
         pfaces = [(m.vs[x].p,m.vs[y].p,m.vs[z].p) for x,y,z in m.fs]

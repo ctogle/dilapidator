@@ -86,11 +86,13 @@ class infrastructure(dgc.context):
     def _terrain_points(self):
         self.tpts = []
         [self.tpts.extend(r.tpts) for r in self.roads]
+        [self.tpts.extend(i.tpts) for i in self.intersections]
         return self.tpts
 
     def _hole_points(self):
         self.hpts = []
         [self.hpts.extend(r.hpts) for r in self.roads]
+        [self.hpts.extend(i.hpts) for i in self.intersections]
         return self.hpts
 
     def generate(self,seed,boundary,worn = 0):
@@ -100,11 +102,11 @@ class infrastructure(dgc.context):
         self.intersections.extend([i.translate(seed) for i in ris])
         self.roads.extend([r.translate(seed) for r in rcs])
 
-        p = dpv.zero()
-        d = dpv.xhat.copy()
-        rmeshmodel = rmesh(-1)._realize(p,d).model
-        rmeshmodel.translate(seed)
-        self._nodes_to_graph(self._node_wrap(rmeshmodel))
+        #p = dpv.zero()
+        #d = dpv.xhat.copy()
+        #rmeshmodel = rmesh(-1)._realize(p,d).model
+        #rmeshmodel.translate(seed)
+        #self._nodes_to_graph(self._node_wrap(rmeshmodel))
 
         [self._nodes_to_graph(self._node_wrap(i)) for i in self.intersections]
         [self._nodes_to_graph(self._node_wrap(r)) for r in self.roads]

@@ -9,13 +9,21 @@ import matplotlib.pyplot as plt
 
 PI = numpy.pi
 
-def plot_points(pts):
+def flatten(unflat):
+    return [item for sublist in unflat for item in sublist]
+
+def plot_points(pts,proj = '3d',edges = True,mark = 'o',postpone = False):
     xs = [v.x for v in pts]
     ys = [v.y for v in pts]
     zs = [v.z for v in pts]
     fig = plt.figure()
-    ax = fig.add_subplot(111,projection='3d')
-    ax.plot(xs,ys,zs = zs,marker = 'o')
+    ax = fig.add_subplot(111,projection = proj)
+    if edges:ax.plot(xs,ys,zs = zs,marker = mark,zdir = 'z')
+    else:
+        for x,y,z in zip(xs,ys,zs):
+            ax.plot([x],[y],[z],marker = mark,zdir = 'z')
+        #[ax.plot([x],[y],[z],marker = mark,zdir = 'z') for x,y,z in zip(xs,ys,zs)]
+    #if not postpone:plt.show()
     plt.show()
 
 # reduce a list of models to a single model
@@ -26,10 +34,14 @@ def combine(models):
             final._consume(m)
     return final
 
-def circumscribe_tri(p1,p2,p3):
+def circumscribe_tri(p1,p2,p3,plane):
+    p1 = p1.project_plane(*plane)
+    p2 = p2.project_plane(*plane)
+    p3 = p3.project_plane(*plane)
     e1 = p1 - p3
     e2 = p2 - p3
     th = dpv.angle_between(e1,e2)
+    th = numpy.pi if th < 0.0001 else th
     cr = dpv.distance(p1,p2)/(2*numpy.sin(th))
     cp = e2.copy().scale_u(e1.magnitude2())-e1.copy().scale_u(e2.magnitude2())
     cp = cp.cross(e1.cross(e2)).scale_u(1.0/(2.0*(e1.cross(e2).magnitude2())))
@@ -39,7 +51,6 @@ def inside_circle(pt,center,radius,plane):
     pt = pt.project_plane(*plane)
     center = center.project_plane(*plane)
     ins = not dpv.distance(pt,center) > radius
-    print('insideeeeeee',plane[0],plane[1],ins)
     return ins
 
 # return a polygon of radius 1 with n sides

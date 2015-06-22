@@ -88,7 +88,7 @@ class tetrahedralization:
             if tetra is None:continue
             else:u,v,w,x = tetra
             vu,vv,vw,vx = self.points.get_points(u,v,w,x)
-            if dtl.insphere(vu,vv,vw,vx,y):return tdx
+            if dtl.insphere(vu,vv,vw,vx,y) > 0:return tdx
         # find a ghost tetrahedron instead
 
     # add a positively oriented ghost tetrahedron u,v,w,x
@@ -161,7 +161,7 @@ class tetrahedralization:
             self.add_tetrahedron(u,v,w,x)
         else:
             vu,vv,vw,vx,vy = self.points.get_points(u,v,w,x,y)
-            if dtl.insphere(vu,vv,vw,vx,vy):
+            if dtl.insphere(vu,vv,vw,vx,vy) > 0:
                 # tetrahedra uvwx and vwxy are not delaunay
                 self.delete_tetrahedron(v,w,x,y)
                 print('i just deleted',v,w,x,y)

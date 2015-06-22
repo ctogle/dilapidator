@@ -40,6 +40,9 @@ class piecewise_linear_complex:
     def connect(self,u,v):
         self.edges.append((u,v))
 
+    def polygon(self,ebnd,*ibnds):
+        self.polygons.append((ebnd,ibnds))
+
     def tetrahedralize(self):
         tetra = dth.tetrahedralization(self)
         self.covers['tetra'] = tetra

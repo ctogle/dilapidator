@@ -102,23 +102,59 @@ def tetra():
     plt.show()
 
 def triang():
-    pts = dpr.dice_edges(dpr.corners(5,5),1)
-
     plc = pwc.piecewise_linear_complex()
+
+    pts = dpr.dice_edges(dpr.corners(50,10),2)
     plcxs = plc.add_points(*pts)
 
-    for x in range(8):
-        y = x+1 if x < 7 else 0
+    for x in range(16):
+        y = x+1 if x < 15 else 0
         plc.connect(x,y)
+
+    hpts = [dpv.vector(5,-2,0)]
+    hpts.append(hpts[-1].copy().translate(dpv.vector(0,4,0)))
+    hpts.append(hpts[-1].copy().translate(dpv.vector(-10,0,0)))
+    hpts.append(hpts[-1].copy().translate(dpv.vector(0,-2,0)))
+    hpts.append(hpts[-1].copy().translate(dpv.vector(5,0,0)))
+    hpts.append(hpts[-1].copy().translate(dpv.vector(0,-2,0)))
+    #hpts.append(hpts[-1].copy().translate(dpv.vector(5,-2,0)))
+    #hpts.append(hpts[-1].copy().translate(dpv.vector(5,0,0)))
+    #hpts = dpr.dice_edges(hpts,2)
+    #hpts.reverse()
+    plcxs = plc.add_points(*hpts)
+
+    for x in range(6):
+        y = x+1 if x < 5 else 0
+        plc.connect(plcxs[x],plcxs[y])
+
+    plc.polygon(
+        tuple([x for x in range(16)]),
+        tuple([x for x in range(16,22)]))
+
+    #hpts = dpv.translate_coords(dpr.corners(5,5),dpv.vector(10,0,0))
+    #hpts.reverse()
+    #plcxs = plc.add_points(*hpts)
+    #for x in range(4):
+    #    y = x+1 if x < 3 else 0
+    #    plc.connect(plcxs[x],plcxs[y])
+
+    #hpts = dpv.translate_coords(dpr.corners(5,3),dpv.vector(5,0,0))
+    #hpts.reverse()
+    #plcxs = plc.add_points(*hpts)
+    #for x in range(4):
+    #    y = x+1 if x < 3 else 0
+    #    plc.connect(plcxs[x],plcxs[y])
+
+    #plc.polygon(
+    #    tuple([x for x in range(16)]),
+    #    tuple([x for x in range(16,20)]),
+    #    tuple([x for x in range(20,24)]))
 
     plc.plot()
     plt.show()
     plc.triangulate_xy()
 
     pdb.set_trace()
-
-    plc.plot()
-    plt.show()
 
 #cube()
 #cone()

@@ -4,8 +4,6 @@
 cimport dp_quaternion as dpq
 cimport dp_bbox as dbb
 
-import matplotlib.pyplot as plt
-
 from libc.math cimport sqrt
 from libc.math cimport cos
 from libc.math cimport sin
@@ -15,6 +13,7 @@ import numpy as np
  
 #import make_places.core.support.mp_utils as mpu
 
+import matplotlib.pyplot as plt
 
 
 stuff = 'hi'
@@ -1013,6 +1012,13 @@ cdef list line_normals_c(list verts):
 cpdef list line_normals(list verts):
     return line_normals_c(verts)
 
+# return 1 if rng1,rng2 overlap by more than a single point
+cdef bint overlap_nonlimit_c(vector2d rng1,vector2d rng2):
+    if   rng1.y <= rng2.x:return 0
+    elif rng2.y <= rng1.x:return 0
+    else:return 1
+
+# return 1 rng1,rng2 overlap, even if it is just one point
 cdef bint overlap_c(vector2d rng1,vector2d rng2):
     if   rng1.y < rng2.x:return 0
     elif rng2.y < rng1.x:return 0
@@ -1033,12 +1039,14 @@ cdef bint separating_axis_c(list bb1,list bb2):
         edgenorm = <vector>ns1[egdx]
         proj1 = <vector2d>project_coords_c(bb1,edgenorm)
         proj2 = <vector2d>project_coords_c(bb2,edgenorm)
-        if not <bint>overlap_c(proj1,proj2):return 1
+        #if not <bint>overlap_c(proj1,proj2):return 1
+        if not <bint>overlap_nonlimit_c(proj1,proj2):return 1
     for egdx in range(egcnt2):
         edgenorm = <vector>ns2[egdx]
         proj1 = <vector2d>project_coords_c(bb1,edgenorm)
         proj2 = <vector2d>project_coords_c(bb2,edgenorm)
-        if not <bint>overlap_c(proj1,proj2):return 1
+        #if not <bint>overlap_c(proj1,proj2):return 1
+        if not <bint>overlap_nonlimit_c(proj1,proj2):return 1
     return 0
 
 cpdef bint separating_axis(list bb1,list bb2):

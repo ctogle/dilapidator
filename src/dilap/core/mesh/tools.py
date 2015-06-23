@@ -58,11 +58,13 @@ def plot_tetrahedron(points,ax = None):
 
 def plot_circle_xy(c,r,ax = None,center = False):
     circ = dpv.translate_coords(dpr.point_ring(r,32),c)
-    plot_polygon_xy(circ,ax,center)
+    ax = plot_polygon_xy(circ,ax,center)
+    return ax
 
 def plot_circle(c,r,ax = None,center = False):
     circ = dpv.translate_coords(dpr.point_ring(r,32),c)
-    plot_polygon(circ,ax,center)
+    ax = plot_polygon(circ,ax,center)
+    return ax
 
 ###############################################################################
 
@@ -125,54 +127,36 @@ def insphere(a,b,c,d,e):
     return insphr
 
 def inconcave(pt,poly):
-
-    print('inconcave call!!!!')
-    ax = plot_polygon_xy(poly)
-    plot_point_xy(pt,ax)
-    plt.show()
-
-    pdb.set_trace()
+    angle = 0.0
+    for x in range(len(poly)):
+        p1 = poly[x-1]
+        p2 = poly[x]
+        e1 = p1 - pt
+        e2 = p2 - pt
+        angle += dpv.signed_angle_between_xy(e1,e2)
+    if abs(angle) < numpy.pi:return False
+    else:return True
 
 '''#
-    int InsidePolygon(Point *polygon,int n,Point p)
-    {
-           int i;
-              double angle=0;
-                 Point p1,p2;
+/*
+ *    Return the angle between two vectors on a plane
+ *       The angle is from vector 1 to vector 2, positive anticlockwise
+ *          The result is between -pi -> pi
+ *          */
+double Angle2D(double x1, double y1, double x2, double y2)
+{
+    double dtheta,theta1,theta2;
 
-                    for (i=0;i<n;i++) {
-                            p1.h = polygon[i].h - p.h;
-                                  p1.v = polygon[i].v - p.v;
-                                        p2.h = polygon[(i+1)%n].h - p.h;
-                                              p2.v = polygon[(i+1)%n].v - p.v;
-                                                    angle += Angle2D(p1.h,p1.v,p2.h,p2.v);
-                                                       }
+    theta1 = atan2(y1,x1);
+    theta2 = atan2(y2,x2);
+    dtheta = theta2 - theta1;
+    while (dtheta > PI)
+        dtheta -= TWOPI;
+    while (dtheta < -PI)
+        dtheta += TWOPI;
 
-                       if (ABS(angle) < PI)
-                             return(FALSE);
-                                else
-                                      return(TRUE);
-                                      }
-
-    /*
-     *    Return the angle between two vectors on a plane
-     *       The angle is from vector 1 to vector 2, positive anticlockwise
-     *          The result is between -pi -> pi
-     *          */
-    double Angle2D(double x1, double y1, double x2, double y2)
-    {
-           double dtheta,theta1,theta2;
-
-              theta1 = atan2(y1,x1);
-                 theta2 = atan2(y2,x2);
-                    dtheta = theta2 - theta1;
-                       while (dtheta > PI)
-                             dtheta -= TWOPI;
-                                while (dtheta < -PI)
-                                      dtheta += TWOPI;
-
-                                         return(dtheta);
-                                         }
+    return(dtheta);
+}
 '''#
 
 # given line segment s1, line segment s2
@@ -188,10 +172,10 @@ def segments_intersect(s1,s2):
         proj1 = dpv.project_coords([s1[0],s1[1]],n2)
         proj2 = dpv.project_coords([s2[0],s2[1]],n2)
         if proj1.x < proj2.x and proj1.y > proj2.x:
-            print('these intersect!!!!')
-            ax = plot_edges_xy(s1)
-            plot_edges_xy(s2,ax)
-            plt.show()
+            #print('these intersect!!!!')
+            #ax = plot_edges_xy(s1)
+            #plot_edges_xy(s2,ax)
+            #plt.show()
             return 1
     #if s1[0].near_xy(s2[0]) and s1[1].near_xy(s2[1]):return 1
     #elif s1[0].near_xy(s2[1]) and s1[1].near_xy(s2[0]):return 1
@@ -213,15 +197,14 @@ def concaves_intersect(p1,p2):
     i2 = dpv.center_of_mass(p2)
     if inconcave(i2,p1) or isegsectfound:ins = True
     else:ins = False
-    print('INZZZZ',ins)
 
+    #print('INZZZZ',ins)
+    #if ins and False:
+    #    ax = plot_polygon_xy(p1)
+    #    plot_polygon_xy(p2,ax)
+    #    plt.show()
 
-    ax = plot_polygon_xy(p1)
-    plot_polygon_xy(p2,ax)
-    plt.show()
-
-
-    pdb.set_trace()
+    return ins
 
 
 

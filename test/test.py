@@ -13,6 +13,7 @@ import dilap.core.mesh.piecewisecomplex as pwc
 import dp_vector as dpv
 
 import matplotlib.pyplot as plt
+import pdb
 
 def cube():
     l = 2.4
@@ -90,7 +91,7 @@ def tetra():
 
     for x in range(8):
         y = x+1 if x < 7 else 0
-        plc.connect(x,y)
+        plc.add_edge(x,y)
 
     plc.plot()
     plt.show()
@@ -102,59 +103,29 @@ def tetra():
     plt.show()
 
 def triang():
-    plc = pwc.piecewise_linear_complex()
 
-    pts = dpr.dice_edges(dpr.corners(50,10),2)
-    plcxs = plc.add_points(*pts)
-
-    for x in range(16):
-        y = x+1 if x < 15 else 0
-        plc.connect(x,y)
-
+    #pts = dpr.dice_edges(dpr.corners(50,10),2)
+    pts = dpr.corners(50,10)
     hpts = [dpv.vector(5,-2,0)]
-    hpts.append(hpts[-1].copy().translate(dpv.vector(0,4,0)))
+    hpts.append(hpts[-1].copy().translate(dpv.vector(0,5,0)))
     hpts.append(hpts[-1].copy().translate(dpv.vector(-10,0,0)))
-    hpts.append(hpts[-1].copy().translate(dpv.vector(0,-2,0)))
+    hpts.append(hpts[-1].copy().translate(dpv.vector(0,-3,0)))
     hpts.append(hpts[-1].copy().translate(dpv.vector(5,0,0)))
     hpts.append(hpts[-1].copy().translate(dpv.vector(0,-2,0)))
-    #hpts.append(hpts[-1].copy().translate(dpv.vector(5,-2,0)))
-    #hpts.append(hpts[-1].copy().translate(dpv.vector(5,0,0)))
-    #hpts = dpr.dice_edges(hpts,2)
-    #hpts.reverse()
-    plcxs = plc.add_points(*hpts)
+    hpts2 = [h.copy().translate_x(-12) for h in hpts]
+    pts = dpr.inflate([h.copy().translate_x(-6) for h in hpts],14)
 
-    for x in range(6):
-        y = x+1 if x < 5 else 0
-        plc.connect(plcxs[x],plcxs[y])
 
-    plc.polygon(
-        tuple([x for x in range(16)]),
-        tuple([x for x in range(16,22)]))
 
-    #hpts = dpv.translate_coords(dpr.corners(5,5),dpv.vector(10,0,0))
-    #hpts.reverse()
-    #plcxs = plc.add_points(*hpts)
-    #for x in range(4):
-    #    y = x+1 if x < 3 else 0
-    #    plc.connect(plcxs[x],plcxs[y])
 
-    #hpts = dpv.translate_coords(dpr.corners(5,3),dpv.vector(5,0,0))
-    #hpts.reverse()
-    #plcxs = plc.add_points(*hpts)
-    #for x in range(4):
-    #    y = x+1 if x < 3 else 0
-    #    plc.connect(plcxs[x],plcxs[y])
 
-    #plc.polygon(
-    #    tuple([x for x in range(16)]),
-    #    tuple([x for x in range(16,20)]),
-    #    tuple([x for x in range(20,24)]))
-
-    plc.plot()
-    plt.show()
+    plc = pwc.piecewise_linear_complex()
+    plc.polygon_frompoints(pts,hpts,hpts2)
     plc.triangulate_xy()
 
-    pdb.set_trace()
+
+
+
 
 #cube()
 #cone()

@@ -919,6 +919,22 @@ cdef float angle_between_c(vector v1, vector v2):
 cpdef float angle_between(vector v1, vector v2):
     return angle_between_c(v1,v2)
 
+cdef float signed_angle_between_xy_c(vector v1,vector v2):
+    cdef vector n1 = v1.copy().xy().normalize()
+    cdef vector n2 = v2.copy().xy().normalize()
+    cdef vector vn
+    cdef float n12dot = dot_c(n1,n2)
+    cdef float ang = 0.0
+    if   abs(n12dot - 1.0) < 0.000001:return ang
+    elif abs(n12dot + 1.0) < 0.000001:return np.pi
+    else:ang = np.arccos(dot_c(n1,n2))
+    vn = n1.cross(n2)
+    if vn.dot(zhat) < 0.0:ang *= -1.0
+    return ang                    
+
+cpdef float signed_angle_between_xy(vector v1,vector v2):
+    return signed_angle_between_xy_c(v1,v2)
+
 cdef float signed_angle_between_c(vector v1,vector v2,vector n):
     cdef vector n1 = v1.copy().normalize()
     cdef vector n2 = v2.copy().normalize()

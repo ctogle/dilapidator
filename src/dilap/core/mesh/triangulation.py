@@ -53,13 +53,18 @@ class triangulation:
 
         self.cover_points(plc)
         self.cover_edges(plc)
-        self.cover_polygons(plc)
+        
+        for cx in c0psx:
+            for tx in range(self.tricnt):
+                tri = self.triangles[tx]
+                if tri is None:continue
+                if cx in tri:self.delete_triangle(*tri)
 
-        #for cx in c0psx:
-        #    for tx in range(self.tricnt):
-        #        tri = self.triangles[tx]
-        #        if tri is None:continue
-        #        if cx in tri:self.delete_triangle(*tri)
+        ax = plc.plot_xy()
+        self.plot(ax)
+        plt.show()
+
+        self.cover_polygons(plc)
 
         ax = plc.plot_xy()
         self.plot(ax)
@@ -79,7 +84,40 @@ class triangulation:
             #plt.show()
 
     def cover_edges(self,plc):
-        print('should cover the plc edges!!!')
+
+        def locally_delaunay(eg):
+            v1,v2 = plc.points.get_points(*eg)
+            cc = dpv.vector((v1.x+v2.x)/2.0,(v1.y+v2.y)/2.0,(v1.z+v2.z)/2.0)
+            cr = dpv.distance(cc,v1)
+            for p in plc.points:
+                if p is v1 or p is v2:continue
+                if dpr.inside_circle(p,cc,cr,(dpv.zero(),dpv.zhat)):
+                    #ax = plc.plot_xy()
+                    #dtl.plot_circle_xy(cc,cr,ax)
+                    #dtl.plot_points_xy([p,v1,v2],ax)
+                    #plt.show()
+                    return False,cc
+            #ax = plc.plot_xy()
+            #dtl.plot_circle_xy(cc,cr,ax)
+            #dtl.plot_points_xy([v1,v2],ax)
+            #plt.show()
+            return True,None
+
+        unfinished = [e for e in plc.edges]
+        new = []
+        while unfinished:
+            unfin = unfinished.pop(0)
+            isld,newp = locally_delaunay(unfin)
+            if not isld:
+                ne1,ne2 = plc.split_edge(*unfin)
+                unfinished.append(ne1)
+                unfinished.append(ne2)
+                new.append(ne1)
+                new.append(ne2)
+                newp = plc.points.ps[ne1[1]]
+                nv = self.points.add_point(newp)
+                tloc = self.point_location(newp)
+                self.insert_vertex(nv,*self.triangles[tloc])
 
     def cover_polygons(self,plc):
         extras = []
@@ -91,58 +129,30 @@ class triangulation:
             extras.append(tdx)
             for p in plc.polygons:
                 eb,ibs = p
-                ebnd = self.points.get_points(*[plc.edges[x][0]+3 for x in eb])
+                ebnd = plc.points.get_points(*[plc.edges[x][0] for x in eb])
                 if dtl.concaves_intersect(ebnd,ptri):
                     extras.remove(tdx)
                     for ib in ibs:
-                        ibndxs = [plc.edges[x][0]+3 for x in ib]
-                        ibnd = self.points.get_points(*ibndxs)
-                        if dtl.concaves_intersect:
+                        ibndxs = [plc.edges[x][0] for x in ib]
+                        ibnd = plc.points.get_points(*ibndxs)
+                        if dtl.concaves_intersect(ibnd,ptri):
                             extras.append(tdx)
                             break
-
-                '''#
-                ebnd = self.points.get_points(*[plc.edges[x][0]+3 for x in eb])
-                if not dpv.separating_axis(ebnd,ptri):
-                    extras.remove(tdx)
-                    for ib in ibs:
-                        ibndxs = [plc.edges[x][0]+3 for x in ib]
-                        ibnd = self.points.get_points(*ibndxs)
-                        if not dpv.separating_axis(ibnd,ptri):
-                            extras.append(tdx)
-                '''#
         for x in extras:
             xtri = self.triangles[x]
             if xtri is None:continue
             self.delete_triangle(*xtri)
 
     def point_location(self,y):
-        #plc = self.plc
-        #ax = plc.plot_xy()
-
-        #tlocs = []
         for tdx in range(self.tricnt):
             tri = self.triangles[tdx]
             if tri is None:continue
             else:u,v,w = tri
             vu,vv,vw = self.points.get_points(u,v,w)
             inc = dtl.incircle(vu,vv,vw,y)
-            # should this just be checking overlap??
             #if dtl.incircle(vu,vv,vw,y) > 0:
             if dpv.inside(y,[vu,vv,vw]):
-                #print('point located',tdx)
-                #cc,cr = dpr.circumscribe_tri(vu,vv,vw,(dpv.zero(),dpv.zhat.copy()))
-                #self.plot(ax)
-                #dtl.plot_circle_xy(cc,cr,ax)
-                #dtl.plot_point_xy(y,ax,marker = 's')
-                #tlocs.append(tdx)
-
                 return tdx
-
-        #plt.show()
-
-        # find a ghost triangle instead
-        #return tlocs[0]
 
     # add a positively oriented ghost triangle u,v,g
     def add_ghost(self,u,v):

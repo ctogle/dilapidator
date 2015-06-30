@@ -8,12 +8,15 @@ import dilap.primitive.cube as dcu
 import dilap.primitive.terrain as dt
 
 import dilap.core.tmesh as dtm
+import dilap.core.mesh.piecewisecomplex as pwc
+import dilap.core.mesh.tools as dtl
 
 import dp_vector as dpv
 import dp_ray as dr
 import dp_bbox as dbb
 
 import random,pdb
+import matplotlib.pyplot as plt
 
 class landscape(dgc.context):
 
@@ -98,12 +101,9 @@ class landscape(dgc.context):
         deltas = [(0.0 + maxh*(dtbs[x]/mdtb)**3) 
             if dpv.inside(pts[x],convex) else -20.0 for x in range(len(dtbs))]
         for x in range(len(pts)):pts[x].translate_z(deltas[x])
-        #dpr.plot_points(pts,edges = False)
-
         for x in range(splits):tris = self.split(pts,wts,tris)
         m = dtm.meshme(pts,None,None,wts,[],tris)
         vbnd = [x for x in range(len(m.vs)) if len(m.vs[x].vring) < 6]
-
         #dpr.plot_points([m.vs[x].p for x in vbnd])
         for vbx in vbnd:
             m.vs[vbx].w.scale_u(0.0)
@@ -123,6 +123,15 @@ class landscape(dgc.context):
         mps = m.gpdata()
         mfs = m.intersect_aaabbb(hbb)
 
+        ax = dtl.plot_axes_xy()
+        cutrng = []
+        for hdx in range(len(self.holes)):
+            hole = self.holes[hdx]
+
+            dtl.plot_polygon_xy(hole,ax)
+        plt.show()
+
+        '''#
         cutrng = []
         for mfx in range(len(mfs)):
             mfps = m.gfpdat(mfs[mfx])
@@ -132,26 +141,28 @@ class landscape(dgc.context):
                 if isect:
                     if not mfx in cutrng:
                         cutrng.append(mfs[mfx])
+        '''#
 
         hbnd = m.cut_hole(cutrng)
         for h in hbnd:m.vs[h].w.scale_u(0.0)
 
-        bns = [dpv.zhat.copy() for x in flatholes]
-        bus = [dpv.zero2d() for x in flatholes]
-        bws = [dpv.one() for x in flatholes]
-        fvs = m.newvdata(flatholes,bns,bus,bws)
+        #bns = [dpv.zhat.copy() for x in flatholes]
+        #bus = [dpv.zero2d() for x in flatholes]
+        #bws = [dpv.one() for x in flatholes]
+        #fvs = m.newvdata(flatholes,bns,bus,bws)
 
-        dpr.plot_points([m.vs[h].p for h in hbnd],edges = False)
+        holecover = pwc.model_plc(points = [m.vs[h].p for h in hbnd])
+        #dpr.plot_points([m.vs[h].p for h in hbnd],edges = False)
 
-        for hx in hbnd:
-            m.vs[hx].p.z = 100
-            for hxx in m.vs[hx].vring:m.vs[hxx].p.z = 100
+        #for hx in hbnd:
+        #    m.vs[hx].p.z = 100
+        #    for hxx in m.vs[hx].vring:m.vs[hxx].p.z = 100
 
         #loops = m.looprank(hbnd)
         #dvs = loops[0][0] + fvs
-        dvs = hbnd[:]
+        #dvs = hbnd[:]
 
-        patch = m.delaunaymethod(dvs)
+        #patch = m.delaunaymethod(dvs)
         #flatpatch = m.flatten(patch,dpv.vector(0,0,100),dpv.zhat.copy())
 
         '''#
@@ -187,6 +198,7 @@ class landscape(dgc.context):
         '''#
 
         self.landmd = m.pelt()
+        self.landmd._consume(holecover)
         self.landbb = self.landmd._aaabbb()
         self._models_to_graph(self.landmd)
         return self

@@ -161,6 +161,8 @@ class mesh:
         self.es = [] # list of vertex indices forming edges
         self.fs = [] # list of vertex indices forming faces
 
+    # given a list of faces who overlap the hole, 
+    # remove those faces and return a list of bounding vertices
     def cut_hole(self,rng):
         bound = []
         for rx in rng:

@@ -7,6 +7,16 @@ import numpy
 
 import pdb
 
+###############################################################################
+
+def plot_axes_xy():
+    ax = plt.figure().add_subplot(111)
+    return ax
+
+def plot_axes():
+    ax = plt.figure().add_subplot(111,projection = '3d')
+    return ax
+
 def plot_point_xy(pt,ax,marker = 'o'):
     ax.plot([pt.x],[pt.y],marker = marker)
 
@@ -14,26 +24,27 @@ def plot_point(pt,ax,marker = 'o'):
     ax.plot([pt.x],[pt.y],zs = [pt.z],marker = marker)
 
 def plot_points_xy(points,ax = None,ms = None):
-    if ax is None:ax = plt.figure().add_subplot(111)
+    if ax is None:ax = plot_axes_xy()
     if ms is None:ms = ['o']*len(points)
     for pdx in range(len(points)):plot_point_xy(points[pdx],ax,ms[pdx])
     return ax
 
 def plot_points(points,ax = None,ms = None):
-    if ax is None:ax = plt.figure().add_subplot(111,projection = '3d')
+    if ax is None:ax = plot_axes()
     if ms is None:ms = ['o']*len(points)
     for pdx in range(len(points)):plot_point(points[pdx],ax,ms[pdx])  
     return ax
 
-def plot_edges_xy(points,ax = None):
-    if ax is None:ax = plt.figure().add_subplot(111)
+def plot_edges_xy(points,ax = None,mk = None):
+    if ax is None:ax = plot_axes_xy()
+    if mk is None:mk = '+'
     pts = [p.to_tuple() for p in points]
     xs,ys,zs = zip(*pts)
-    ax.plot(xs,ys,marker = '+')
+    ax.plot(xs,ys,marker = mk)
     return ax
 
 def plot_edges(points,ax = None):
-    if ax is None:ax = plt.figure().add_subplot(111,projection = '3d')
+    if ax is None:ax = plot_axes()
     pts = [p.to_tuple() for p in points]
     xs,ys,zs = zip(*pts)
     ax.plot(xs,ys,zs,marker = '+')
@@ -197,15 +208,25 @@ def concaves_intersect(p1,p2):
     i2 = dpv.center_of_mass(p2)
     if inconcave(i2,p1) or isegsectfound:ins = True
     else:ins = False
-
-    #print('INZZZZ',ins)
-    #if ins and False:
-    #    ax = plot_polygon_xy(p1)
-    #    plot_polygon_xy(p2,ax)
-    #    plt.show()
-
     return ins
 
+# given concave polygon p1, concave polygon p2
+# does p1 overlap the interior p2?
+# a polygon is a tuple of points
+def concaves_contains(p1,p2):
+    isegsectfound = False
+    for px in range(len(p1)):
+        if isegsectfound:break
+        e1 = (p1[px-1],p1[px])
+        for py in range(len(p2)):
+            e2 = (p2[py-1],p2[py])
+            if segments_intersect(e1,e2):
+                isegsectfound = True
+                break
+    i2 = dpv.center_of_mass(p2)
+    if inconcave(i2,p1) and not isegsectfound:ins = True
+    else:ins = False
+    return ins
 
 
 

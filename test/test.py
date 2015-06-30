@@ -105,7 +105,6 @@ def tetra():
 def triang():
 
     #pts = dpr.dice_edges(dpr.corners(50,10),2)
-    pts = dpr.corners(50,10)
     hpts = [dpv.vector(5,-2,0)]
     hpts.append(hpts[-1].copy().translate(dpv.vector(0,5,0)))
     hpts.append(hpts[-1].copy().translate(dpv.vector(-10,0,0)))
@@ -115,13 +114,34 @@ def triang():
     hpts2 = [h.copy().translate_x(-12) for h in hpts]
     pts = dpr.inflate([h.copy().translate_x(-6) for h in hpts],14)
 
+    #pts  = dpv.translate_coords(dpr.corners(50,10),dpv.vector(-30,-12,0))
+    pts2 = dpv.translate_coords(dpr.corners(30,10),dpv.vector(30,20,0))
+    pts3 = dpv.translate_coords(dpr.corners(20,10),dpv.vector(-30,-20,0))
 
+    points = []
+    edges = []
+    polygons = [(pts,(hpts,hpts2)),(pts2,()),(pts3,())]
+    #polygons = [(pts2,())]
+    #polygons = [(pts,(hpts,hpts2))]
+    #polygons = [(pts,()),(pts2,())]
+    polyhedra = []
 
-
-
+    '''#
     plc = pwc.piecewise_linear_complex()
-    plc.polygon_frompoints(pts,hpts,hpts2)
+    plc.add_points(*points)
+    plc.add_edges(*edges)
+    plc.add_polygons(*polygons)
+    plc.add_polyhedra(*polyhedra)
     plc.triangulate_xy()
+
+    ax = plc.plot_xy()
+    plt.show()
+
+    pelt = plc.covers['tri'].pelt()
+    '''#
+
+    pelt = pwc.model_plc(polygons = polygons)
+    dlc.build(pelt)
 
 
 

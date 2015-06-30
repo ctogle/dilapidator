@@ -17,6 +17,8 @@ class piecewise_linear_complex:
             if eg is None:continue
             veg = self.points.get_points(*eg)
             ax = dtl.plot_edges_xy(veg,ax)
+
+        for key in self.covers:self.covers[key].plot_xy(ax)
         return ax
 
     def plot(self,ax = None):
@@ -45,7 +47,7 @@ class piecewise_linear_complex:
     def add_points(self,*nps):
         pst = self.points.pcnt
         self.points.add_points(*nps)
-        return range(pst,self.points.pcnt)
+        return [x for x in range(pst,self.points.pcnt)]
 
     # u and v are indices of vertices; 
     # create a new edge which connects them
@@ -60,7 +62,7 @@ class piecewise_linear_complex:
         self.eg_lookup[ekey] = edex
         return edex
 
-    def add_edges(self,epts):
+    def add_edges(self,*epts):
         exs = []
         for x in range(len(epts)):
             exs.append(self.add_edge(epts[x-1],epts[x]))
@@ -111,14 +113,22 @@ class piecewise_linear_complex:
                 add_edge_lookup(pygn,ne2dex)
         return (u,w),(w,v)
 
+    def add_polygons(self,*polygons):
+        pxs = []
+        for px in range(len(polygons)):
+            polygon = polygons[px]
+            polyeb,polyibs = polygon
+            pxs.append(self.polygon_frompoints(polyeb,*polyibs))
+        return pxs
+
     def polygon_frompoints(self,ebnd,*ibnds):
         plcxs = self.add_points(*ebnd)
-        ebnddexes = self.add_edges(plcxs)
+        ebnddexes = self.add_edges(*plcxs)
         ebnddexes.append(self.add_edge(plcxs[-1],plcxs[0]))
         ibnddexes = []
         for ibnd in ibnds:
             plcxs = self.add_points(*ibnd)
-            hedgedexes = self.add_edges(plcxs)
+            hedgedexes = self.add_edges(*plcxs)
             hedgedexes.append(self.add_edge(plcxs[-1],plcxs[0]))
             ibnddexes.append(hedgedexes)
         return self.polygon_fromedges(ebnddexes,*ibnddexes)
@@ -139,6 +149,10 @@ class piecewise_linear_complex:
                 self.eg_poly_lookup[i].append(polygon)
         return pdex
 
+    def add_polyhedra(self,*polyhedra):
+        return
+        raise NotImplemented
+
     def tetrahedralize(self):
         tetra = dth.tetrahedralization(self)
         self.covers['tetra'] = tetra
@@ -146,6 +160,28 @@ class piecewise_linear_complex:
     def triangulate_xy(self):
         tri = dtg.triangulation(self)
         self.covers['tri'] = tri
+
+def model_plc(points = None,edges = None,polygons = None,polyhedra = None):
+    plc = piecewise_linear_complex()
+    if not points is None:plc.add_points(*points)
+    if not edges is None:plc.add_edges(*edges)
+    if not polygons is None:plc.add_polygons(*polygons)
+    if not polyhedra is None:plc.add_polyhedra(*polyhedra)
+    plc.triangulate_xy()
+
+    ax = plc.plot_xy()
+    plt.show()
+
+    pelt = plc.covers['tri'].pelt()
+    return pelt
+    
+
+
+
+
+
+
+
 
 
 

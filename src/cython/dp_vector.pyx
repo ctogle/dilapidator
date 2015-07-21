@@ -153,6 +153,11 @@ cdef class vector:
                 if self.z == other.z: return True
         return False
 
+    cpdef bint neighborhood(self,vector other,float epsilon):
+        cdef float d = distance_c(self,other)
+        if not d > epsilon:return 1
+        else:return 0
+
     cpdef bint near_xy(self,vector other):
         cdef float dx = (self.x-other.x)
         cdef float dy = (self.y-other.y)

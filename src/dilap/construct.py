@@ -108,8 +108,8 @@ def landscape(io = 'obj',dilaps = []):
     cx = dls.landscape(iotype = io,dilapidors = dilaps)
     return cx
 
-def lot(io = 'obj',dilaps = []):
-    cx = dlot.lot(iotype = io,dilapidors = dilaps)
+def lot(l = 20,w = 40,io = 'obj',dilaps = []):
+    cx = dlot.lot(l,w,iotype = io,dilapidors = dilaps)
     return cx
 
 def street(io = 'obj',dilaps = []):

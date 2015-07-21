@@ -2,6 +2,7 @@ import dilap.core.tools as dpr
 
 import dp_vector as dpv
 
+from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy
 
@@ -78,6 +79,12 @@ def plot_circle(c,r,ax = None,center = False):
     return ax
 
 ###############################################################################
+
+# if a is within c of b, return True
+# else return False
+def isnear(a,b,c = 0.0001):
+    if abs(a-b) < c:return True
+    else:return False
 
 # if a is within c of b, return b
 # else return a

@@ -293,7 +293,7 @@ class intersection(dmo.model):
         m = dcu.cube().translate_z(0.5).scale_x(20).scale_y(20).translate(self.p)
         self._consume(m)
 
-# use/modify *args/**kwargs to made a highway like road model
+# use/modify *args/**kwargs to make a highway like road model
 def highway(*args,**kwargs):
     largs = [
         {'direction':-1,'alignment':1},

@@ -1,5 +1,9 @@
 import dilap.core.tools as dpr
 import dilap.core.context as dgc
+import dilap.core.mesh.tools as dtl
+import dilap.generate.infrastructure as pif
+import dilap.generate.infrastructure.infragraph as piff
+import dilap.generate.region as drg
 import dilap.generate.landscape as dls
 import dilap.generate.city as dcy
 
@@ -10,8 +14,11 @@ import dilap.primitive.road as dr
 import dp_vector as dpv
 import dp_quaternion as dpq
 
+import matplotlib.pyplot as plt
+
 # a continent should be a top level context for dilap
 # it creates a full world (island), with a true boundary (ocean)
+# given a collection of regions, it provides the earth and sea
 class continent(dgc.context):
 
     def __init__(self,*args,**kwargs):
@@ -20,15 +27,26 @@ class continent(dgc.context):
         self.define()
 
     def define(self):
+        rggraph = piff.regiongraph(self.sealevel)
+        
+        print('im off the rails!!!')
+        quit()
+
+
+
         cityseed = dpv.vector(0,0,150)
         self.cityseeds = [cityseed]
         self.cityseeds.append(dpv.vector(250,250,100))
 
     def generate(self,worn = 0):
+
+
+
         cities = []
         tpts = []
         hpts = []
         rpts = []
+
         for cd in self.cityseeds:cities.append(dcy.city().generate(cd,worn))
         for cy in cities:
             self._consume(cy)

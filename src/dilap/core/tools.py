@@ -324,11 +324,18 @@ def offset_faces(faces,offset):
             fa[tfdx] += offset
     return faces
 
-#
+# keep the value val bounded by f and c by flooring
 def clamp(v,f,c):
     if v < f: return f
     elif v > c: return c
     else: return v
+
+# keep the value val bounded by f and c by wrapping around
+def clamp_periodic(val,f,c):
+    period = c - f
+    while val < f: val += period
+    while val > c: val -= period
+    else: return val
 
 def rad(deg):return PI*deg/180.0
 def deg(rad):return 180.0*rad/PI

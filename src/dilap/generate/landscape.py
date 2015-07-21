@@ -123,15 +123,13 @@ class landscape(dgc.context):
         mps = m.gpdata()
         mfs = m.intersect_aaabbb(hbb)
 
-        ax = dtl.plot_axes_xy()
-        cutrng = []
-        for hdx in range(len(self.holes)):
-            hole = self.holes[hdx]
+        #ax = dtl.plot_axes_xy()
+        #for hdx in range(len(self.holes)):
+        #    hole = self.holes[hdx]
 
-            dtl.plot_polygon_xy(hole,ax)
-        plt.show()
+        #    dtl.plot_polygon_xy(hole,ax)
+        #plt.show()
 
-        '''#
         cutrng = []
         for mfx in range(len(mfs)):
             mfps = m.gfpdat(mfs[mfx])
@@ -141,15 +139,19 @@ class landscape(dgc.context):
                 if isect:
                     if not mfx in cutrng:
                         cutrng.append(mfs[mfx])
-        '''#
 
         hbnd = m.cut_hole(cutrng)
-        for h in hbnd:m.vs[h].w.scale_u(0.0)
+        hvs = []
+        for h in hbnd:
+            m.vs[h].w.scale_u(0.0)
+            hvs.append(m.vs[h])
 
         #bns = [dpv.zhat.copy() for x in flatholes]
         #bus = [dpv.zero2d() for x in flatholes]
         #bws = [dpv.one() for x in flatholes]
         #fvs = m.newvdata(flatholes,bns,bus,bws)
+
+        pdb.set_trace()
 
         holecover = pwc.model_plc(points = [m.vs[h].p for h in hbnd])
         #dpr.plot_points([m.vs[h].p for h in hbnd],edges = False)
@@ -196,6 +198,8 @@ class landscape(dgc.context):
 
         flatpatch = m.flatten(patch,dpv.vector(0,0,50),dpv.zhat.copy())
         '''#
+
+        pdb.set_trace()
 
         self.landmd = m.pelt()
         self.landmd._consume(holecover)

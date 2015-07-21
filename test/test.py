@@ -161,7 +161,8 @@ def triang():
 #pls.test()
 #afmtest()
 #tetra()
-triang()
+#triang()
+cont()
 
 
 

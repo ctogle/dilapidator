@@ -27,6 +27,7 @@ cdef class vector:
     cdef public float x    
     cdef public float y
     cdef public float z
+    cpdef bint neighborhood(self,vector other,float epsilon)
     cpdef bint near_xy(self,vector other)
     cpdef bint near(self,vector other)
     cpdef int nearest(self,list others)

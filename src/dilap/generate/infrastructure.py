@@ -1,85 +1,93 @@
+import dilap.core.base as db
 import dilap.core.context as dgc
 import dilap.core.tools as dpr
 import dilap.core.tmesh as dtm
 import dilap.core.lsystem as dls
+import dilap.core.mesh.tools as dtl
 
 import dilap.primitive.cube as dcu
 import dilap.primitive.road as dr
 
+import dilap.generate.region as drg
+
 import dp_vector as dpv
 import dp_quaternion as dpq
 
-import pdb,numpy
+import pdb,numpy,math
+import matplotlib.pyplot as plt
 
-class rmesh(dls.lsystem):
+# a region should represent a part of a continent, 
+# connected to other regions by roads only!
+#
+# roads may only intersect the boundary of a region by covering
+# it perfectly, or by intersecting it at some angle
+# 
+# it has a possibly concave boundary 
+# a list of plugs, which are intersections on the boundary
+#   which are always connected to the regions road graph
+# a list of edges, which are pairs of plugs between which a road
+#   should be drawn which perfectly overlaps the boundary
+#
+class region(dgc.context):
 
-    def _realize(self,p,d):
-        self.edges = []
-        self.nodes = []
-        return dls.lsystem._realize(self,p,d)
+    def plot_xy(self,ax = None):
+        dtl.plot_polygon_xy(self.bound,ax,True)
+        return ax 
 
-    loadouts = []
-    loadouts.append(('FX',[
-        ('X','X/YF/'),
-        ('Y','\FX\Y')]))
-    loadouts.append(('A',[
-        ('F','F~[~FA]F'),
-        ('A','[--////FQA]-<F[>>\\\\FQA]>+F[-\>>QA\[X]][</++QA/[Y]]Q'),
-        ('X','F+Q'),('Y','F-Q')]))
+    def __init__(self,*args,**kwargs):
+        self._def('bound',None,**kwargs)
+        self._def('plugs',[],**kwargs)
+        self._def('edges',[],**kwargs)
+        dgc.context.__init__(self,*args,**kwargs)
 
-    #def __init__(self,*args,**kwargs):
-    #    self._def('nodes',[],**kwargs)
-    #    self._def('edges',[],**kwargs)
+        #self._define()
 
-    def __init__(self,ldx,*args,**kwargs):
-        axiom,rules = self.loadouts[ldx]
-        self._def('axiom',axiom,**kwargs)
-        self._def('rules',rules,**kwargs)
+    def _define(self):
 
-        self._def('seed',1,**kwargs) # seed used for random numbers
-        self._def('iterations',5,**kwargs) # number of iterations
+        pdb.set_trace()
 
-        self._def('angle',numpy.pi/2.0,**kwargs) # angle used for rotations
-        self._def('minangle',numpy.pi/12.0,**kwargs) # angle used for rotations
-        self._def('maxangle',numpy.pi*2.0,**kwargs) # angle used for rotations
+# an infragraph lays out roads within a region
+class infragraph(db.base):
 
-        self._def('branchdraw',self.draw_branch,**kwargs)
-        self._def('leafdraw',self.draw_leaf,**kwargs)
-        self._def('finaldraw',self.draw,**kwargs)
-        dls.lsystem.__init__(self,*args,**kwargs)
+    def __init__(self,sealevel,**kwargs):
+        self.sealevel = sealevel
 
-    def draw_branch(self,p,n):
-        self.edges.append((p.copy(),n.copy()))
-        dls.draw_branch(p,n)
+# a regiongraph lays out regions and how theyre connected
+class regiongraph(db.base):
 
-    def draw_leaf(self,p):
-        self.nodes.append((p.copy()))
-        dls.draw_leaf(p)
+    def __init__(self,sealevel,**kwargs):
+        self.sealevel = sealevel
 
-    def draw(self):
-        es,ls = self.edges,self.nodes
+        rbnds = self._define_region_boundaries()
+        self._define_region_interiors(rbnds)
+        
+    def _define_region_boundaries(self):
+        rpts1 = dpr.polygon(8)
+        rpts2 = dpr.polygon(8)
 
-        nps = []
-        nes = []
-        for ex in range(len(es)):
-            e1,e2 = es[ex]
-            e1x,e2x = None,None
-            for pdx in range(len(nps)):
-                if e1.near(nps[pdx]):e1x = pdx
-                if e2.near(nps[pdx]):e2x = pdx
-                if not e1x is None and not e2x is None:break
-            if e1x is None:
-                e1x = len(nps)
-                nps.append(e1)
-            if e2x is None:
-                e2x = len(nps)
-                nps.append(e2)
-            nes.append((e1x,e2x))
+        r = 250.0
+        scale = r/(0.5/math.tan(dpr.rad(22.5)))
+        dpv.scale_coords(rpts1,dpv.one().scale_u(scale))
+        dpv.scale_coords(rpts2,dpv.one().scale_u(scale))
+        dpv.translate_coords_x(rpts2,2.0*r)
 
-        m = dtm.meshme(nps,None,None,None,nes,[])
-        smod = m.skeleton()
-        self.model = smod
-        dls.draw()
+        rbnds = [rpts1,rpts2]
+        return rbnds
+
+    def _define_region_interiors(self,rbnds):
+        rpts1,rpts2 = rbnds
+        rsd1 = dpv.center_of_mass(rpts1)
+        rsd2 = dpv.center_of_mass(rpts2)
+
+        rg1 = region(bound = rpts1)
+        rg2 = region(bound = rpts2)
+
+        ax = dtl.plot_axes_xy()
+        rg1.plot_xy(ax)
+        rg2.plot_xy(ax)
+        plt.show()
+
+        pdb.set_trace()
 
 class infrastructure(dgc.context):
 
@@ -96,6 +104,9 @@ class infrastructure(dgc.context):
         return self.hpts
 
     def generate(self,seed,boundary,worn = 0):
+
+        rgraph = infragraph(seed,boundary)
+
         self.intersections = []
         self.roads = []
         rcs,ris = dr.circle(dr.highway)

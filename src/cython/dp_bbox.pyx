@@ -83,9 +83,9 @@ cdef class bbox:
         return self
 
     cpdef bint point_inside(self,dpv.vector point):
-        if not p_in_rng(point.x,self.x.x,self.x.y):return 0
-        if not p_in_rng(point.y,self.y.x,self.y.y):return 0
-        if not p_in_rng(point.z,self.z.x,self.z.y):return 0
+        if not p_in_rng_c(point.x,self.x.x,self.x.y):return 0
+        if not p_in_rng_c(point.y,self.y.x,self.y.y):return 0
+        if not p_in_rng_c(point.z,self.z.x,self.z.y):return 0
         return 1
 
     cpdef bint intersect_tri(self,list tri):
@@ -110,10 +110,13 @@ cpdef list intersect_tri_filter(bbox bb,list tris,list tpts):
             isected.append(tdx)
     return isected
 
-cdef bint p_in_rng(float p,float x,float y):
+cdef bint p_in_rng_c(float p,float x,float y):
     if p < x:return 0
     if p > y:return 0
     return 1
+
+cpdef bint p_in_rng(float p,float x,float y):
+    return p_in_rng_c(p,x,y)
 
 cdef bbox zero_c():
     cdef dpv.vector2d z = dpv.zero2d()
@@ -134,5 +137,8 @@ cdef bint overlap_c(dpv.vector2d rng1,dpv.vector2d rng2):
     if   rng1.y < rng2.x:return 0
     elif rng2.y < rng1.x:return 0
     else:return 1
+
+cpdef bint overlap(dpv.vector2d rng1,dpv.vector2d rng2):
+    return overlap_c(rng1,rng2)
 
 

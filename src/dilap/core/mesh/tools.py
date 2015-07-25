@@ -1,6 +1,7 @@
 import dilap.core.tools as dpr
 
 import dp_vector as dpv
+import dp_bbox as dpb
 
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -176,6 +177,41 @@ double Angle2D(double x1, double y1, double x2, double y2)
     return(dtheta);
 }
 '''#
+
+# given line segment s1, line segment s2
+# does s1 overlap the interior or s2?
+# a segment is a tuple of two points
+# return the point of intersection if there is one
+# otherwise return None
+#   note: currently assumes s1,s2 in xy-plane
+def segments_intersect_at(s1,s2):
+    p,q = s1[0],s2[0]
+    r = dpv.v1_v2(*s1)
+    s = dpv.v1_v2(*s2)
+    qmp = q-p
+    rcs = r.cross(s)
+    rcsmag = rcs.magnitude()
+    qmpcr = qmp.cross(r)
+    qmpcrmag = qmpcr.magnitude()
+    rmag2 = r.magnitude2()
+
+    if isnear(rcsmag,0) and isnear(qmpcrmag,0):
+        t0 = qmp.dot(r)/rmag2
+        t1 = t0 + s.dot(r)/rmag2
+        if s.dot(r) < 0.0:t0,t1 = t1,t0
+        if dpb.overlap(dpv.vector2d(0,1),dpv.vector2d(t0,t1)):
+            if t0 == 1 or t1 == 0:return None
+            t0pt = p + r.copy().scale_u(t0)
+            t1pt = p + r.copy().scale_u(t1)
+            print('colinear and overlapping!')
+            return t0pt,t1pt
+        else:return None
+    elif isnear(rcsmag,0) and not isnear(qmpcrmag,0):return None
+    elif not isnear(rcsmag,0) and not isnear(qmpcrmag,0):
+        u = qmpcr.z/rcs.z
+        t = qmp.cross(s).z/rcs.z
+        if (u == 0 or u == 1) and (t == 0 or t == 1):return None
+        if dpb.p_in_rng(u,0,1) and dpb.p_in_rng(t,0,1):return q + s.scale_u(u)
 
 # given line segment s1, line segment s2
 # does s1 overlap the interior or s2?

@@ -1,7 +1,8 @@
 import pstats,cProfile,os,time
 
-def profile_function(func_):
-    cProfile.runctx('func_()',globals(),locals(),'profile.prof')
+def profile_function(func_,*args,**kwargs):
+    cProfile.runctx('func_(*args,**kwargs)',
+        globals(),locals(),'profile.prof')
     s = pstats.Stats('profile.prof')
     s.strip_dirs().sort_stats('time').print_stats()
     os.remove('profile.prof')

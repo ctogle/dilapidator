@@ -1118,6 +1118,13 @@ cpdef lexicographic_order_xy(list pts):
         ocnt += 1
     return ordered
 
+# given an origin and a list of pts
+# return a list of the same pts ordered by distance to origin
+cpdef proximity_order_xy(vector origin, list pts):
+    cdef list pdists = [distance_xy_c(origin,p) for p in pts]
+    cdef list indices = [x for x in range(len(pdists))]
+    sindices,spdists = zip(*sorted(zip(indices,pdists)))
+    return sindices
 
 
 

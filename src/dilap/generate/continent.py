@@ -2,8 +2,8 @@ import dilap.core.tools as dpr
 import dilap.core.context as dgc
 import dilap.core.mesh.tools as dtl
 import dilap.generate.infrastructure as pif
-import dilap.generate.infrastructure.infragraph as piff
-import dilap.generate.region as drg
+import dilap.generate.infrastructure.graphregion as grg
+import dilap.generate.infrastructure.infragraph as ifg
 import dilap.generate.landscape as dls
 import dilap.generate.city as dcy
 
@@ -27,8 +27,22 @@ class continent(dgc.context):
         self.define()
 
     def define(self):
-        rggraph = piff.regiongraph(self.sealevel)
-        
+        g = ifg.graph()
+
+        contbnd = dpr.point_ring(250,8)
+        gregion = grg.region(contbnd,sealevel = self.sealevel)
+
+        nbhdbnd = dpr.point_ring(150,6)
+        nbhdregion = grg.neighborhood(nbhdbnd)
+        gregion._embed(nbhdregion)
+
+        gregion._graph(g)
+        g._update()
+
+        ax = g.plot()
+        #ax = gregion.plot()
+        plt.show()
+
         print('im off the rails!!!')
         quit()
 

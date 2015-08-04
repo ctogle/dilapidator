@@ -126,7 +126,6 @@ def triang():
     #polygons = [(pts,()),(pts2,())]
     polyhedra = []
 
-    '''#
     plc = pwc.piecewise_linear_complex()
     plc.add_points(*points)
     plc.add_edges(*edges)
@@ -138,11 +137,12 @@ def triang():
     plt.show()
 
     pelt = plc.covers['tri'].pelt()
-    '''#
 
+    '''#
     pelt = pwc.model_plc(polygons = polygons)
     dlc.build(pelt)
 
+    '''#
 
 
 

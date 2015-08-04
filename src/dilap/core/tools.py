@@ -260,7 +260,7 @@ def corners(l,w,p = None,phi = None):
     cs = [
         dpv.vector(-l2,-w2,0),dpv.vector( l2,-w2,0), 
         dpv.vector( l2, w2,0),dpv.vector(-l2, w2,0)]
-    if not phi is None:dpv.rotate_coords_z(cs,phi)
+    if not phi is None:dpv.rotate_z_coords(cs,phi)
     if not p is None:dpv.translate_coords(cs,p)
     return cs
 

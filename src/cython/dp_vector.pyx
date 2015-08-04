@@ -1101,6 +1101,20 @@ cdef list lowest_y_c(list pts):
             lox.append(x)
     return lox
 
+cdef list lowest_z_c(list pts):
+    cdef int pcnt = len(pts)
+    cdef int x
+    cdef list lox = [0]
+    cdef vector lo = pts[lox[0]]
+    for x in range(1,pcnt):
+        pt = pts[x]
+        if pt.z < lo.z:
+            lo = pt
+            lox = [x]
+        elif pt.z == lo.z:
+            lox.append(x)
+    return lox
+
 cpdef lexicographic_order_xy(list pts):
     cdef list proxy = pts[:]
     cdef int pcnt = len(pts)
@@ -1118,14 +1132,66 @@ cpdef lexicographic_order_xy(list pts):
         ocnt += 1
     return ordered
 
+cpdef lexicographic_order(list pts):
+    cdef list proxy = pts[:]
+    cdef int pcnt = len(pts)
+    cdef int nxt = 0
+    cdef int ocnt = 0
+    cdef list ordered = []
+    while ocnt < pcnt:
+        pxord = [pts[x] for x in lowest_x_c(proxy)]
+        if len(pxord) > 1:
+            pyord = [pts[x] for x in lowest_y_c(proxy)]
+            if len(pyord) > 1:
+                pzord = [pts[x] for x in lowest_z_c(proxy)]
+                nxt = pts.index(pzord[0])
+            else:nxt = pts.index(pyord[0])
+        else:nxt = pts.index(pxord[0])
+        nxt = pts.index(proxy.pop(nxt))
+        ordered.append(nxt)
+        ocnt += 1
+    return ordered
+
 # given an origin and a list of pts
 # return a list of the same pts ordered by distance to origin
 cpdef proximity_order_xy(vector origin, list pts):
     cdef list pdists = [distance_xy_c(origin,p) for p in pts]
     cdef list indices = [x for x in range(len(pdists))]
-    sindices,spdists = zip(*sorted(zip(indices,pdists)))
+    spdists,sindices = zip(*sorted(zip(pdists,indices)))
     return sindices
 
+cdef list lowest_projected_c(list pts,vector proj):
+    cdef int pcnt = len(pts)
+    cdef int x
+    cdef list lox = [0]
+    cdef float lo = pts[lox[0]].dot(proj)
+    for x in range(1,pcnt):
+        pt = pts[x].dot(proj)
+        if pt < lo:
+            lo = pt
+            lox = [x]
+        elif pt == lo:
+            lox.append(x)
+    return lox
+
+# given a list of points and two basis vectors (forming a plane)
+# compute the lexicographic order of the points projected onto the plane
+cpdef projected_order(list pts,vector b1,vector b2):
+    cdef list proxy = pts[:]
+    cdef int pcnt = len(pts)
+    cdef int nxt = 0
+    cdef int ocnt = 0
+    cdef list ordered = []
+    while ocnt < pcnt:
+        p1ord = [pts[x] for x in lowest_projected_c(proxy,b1)]
+        if len(p1ord) > 1:
+            p2ord = [pts[x] for x in lowest_projected_c(proxy,b2)]
+            nxt = pts.index(p2ord[0])
+        else:nxt = pts.index(p1ord[0])
+        nxt = pts.index(proxy.pop(nxt))
+        ordered.append(nxt)
+        ocnt += 1
+    return ordered
 
 
 

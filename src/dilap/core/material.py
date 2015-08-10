@@ -3,8 +3,11 @@ import dilap.core.tools as dbt
 
 import pdb
 
+__doc__ = '''A material class'''
+
 unused_material_id = 0
 class material(db.base):
+    '''A material class'''
 
     def _dpid(self):
         global unused_material_id

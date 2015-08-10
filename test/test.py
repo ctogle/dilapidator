@@ -6,8 +6,6 @@ import dilap.core.profiler as prf
 import dilap.core.lsystem as pls
 import dilap.core.tmesh as tms
 
-import dilap.core.ugrid as dgrid
-
 import dilap.core.mesh.piecewisecomplex as pwc
 
 import dp_vector as dpv

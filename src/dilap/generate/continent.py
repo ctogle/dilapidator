@@ -1,15 +1,13 @@
 import dilap.core.tools as dpr
 import dilap.core.context as dgc
 import dilap.core.mesh.tools as dtl
-import dilap.generate.infrastructure as pif
-import dilap.generate.infrastructure.graphregion as grg
-import dilap.generate.infrastructure.infragraph as ifg
+import dilap.infrastructure.graphregion as grg
+import dilap.infrastructure.infragraph as ifg
 import dilap.generate.landscape as dls
 import dilap.generate.city as dcy
 
 import dilap.generate.lot as dlt
 import dilap.primitive.cylinder as dcyl
-import dilap.primitive.road as dr
 
 import dp_vector as dpv
 import dp_quaternion as dpq
@@ -27,51 +25,62 @@ class continent(dgc.context):
         self.define()
 
     def define(self):
-        g = ifg.graph()
+        #g = ifg.graph()
+        #g = ifg.hairpin()
+        g = ifg.circle()
+        #g = ifg.ramp()
 
-        contbnd = dpr.point_ring(250,8)
-        gregion = grg.region(contbnd,sealevel = self.sealevel)
+        #contbnd = dpr.point_ring(250,8)
+        #gregion = grg.region(contbnd,sealevel = self.sealevel)
+        #nbhdbnd = dpr.point_ring(150,6)
+        #nbhdregion = grg.neighborhood(nbhdbnd)
+        #gregion._embed(nbhdregion)
+        #gregion._graph(g)
 
-        nbhdbnd = dpr.point_ring(150,6)
-        nbhdregion = grg.neighborhood(nbhdbnd)
-        gregion._embed(nbhdregion)
+        #contbnd = dpr.point_ring(250,8)
+        #opass = grg.overpass(contbnd)
+        #opass._graph(g)
 
-        gregion._graph(g)
         g._update()
+        self.igraph = g
+        #ax = g.plot()
+        #plt.show()
 
-        ax = g.plot()
-        #ax = gregion.plot()
-        plt.show()
-
-        print('im off the rails!!!')
-        quit()
-
-
+        #g.plot_regions()
 
         cityseed = dpv.vector(0,0,150)
         self.cityseeds = [cityseed]
-        self.cityseeds.append(dpv.vector(250,250,100))
+        #self.cityseeds.append(dpv.vector(250,250,100))
 
     def generate(self,worn = 0):
-
-
-
+        '''#
         cities = []
         tpts = []
         hpts = []
         rpts = []
 
-        for cd in self.cityseeds:cities.append(dcy.city().generate(cd,worn))
+        for cd in self.cityseeds:
+            cities.append(dcy.city().generate(cd,self.igraph,worn))
         for cy in cities:
             self._consume(cy)
             tpts.extend(cy._terrain_points())
             hpts.extend(cy._hole_points())
             rpts.extend(cy._region_points())
-
-        lscape = dls.landscape(controls = tpts,holes = hpts,regions = rpts)
-        self._consume(lscape.generate(worn))
+        '''#
+        
+        #lscape = dls.landscape(controls = tpts,holes = hpts,regions = rpts)
+        #lscape.generate(worn)
+        #self._consume(lscape.generate(worn))
+        tpelt = self.igraph.tplc.covers['tri'].pelt()
+        rpelt = self.igraph.rplc.covers['tri'].pelt()
+        tnode = self._node_wrap(tpelt)
+        rnode = self._node_wrap(rpelt)
+        self._nodes_to_graph(tnode,rnode)
+        #self._nodes_to_graph(tnode)
+        #self._nodes_to_graph(rnode)
 
         # add water models to scenegraph
+        '''#
         wl = lscape.landbb.x.y - lscape.landbb.x.x + 100.0
         ww = lscape.landbb.y.y - lscape.landbb.y.x + 100.0
         wr = max([wl,ww])
@@ -81,6 +90,7 @@ class continent(dgc.context):
         water.translate(lscape.landbb._center().xy())
         wnode = self._node_wrap(water)
         self._nodes_to_graph(wnode)
+        '''#
         return self
 
 

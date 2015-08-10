@@ -3,7 +3,11 @@ import dilap.core.base as db
 import dp_vector as dpv
 import dp_quaternion as dpq
 
+__doc__ = '''A transform class which supports hierarchy'''
+
 class tform(db.base):
+    '''tform represents a transform with 
+    position, rotation, scale, parent, and children'''
 
     def __str__(self,b = 0):
         strr  = '\t'*b + 'tform' + '\n'
@@ -23,6 +27,7 @@ class tform(db.base):
 
     # should return a tform to world space
     def true(self):
+        '''return a new tform representing this tform in world space'''
         np = self.pos.copy()
         nr = self.rot.copy()
         ns = self.scl.copy()

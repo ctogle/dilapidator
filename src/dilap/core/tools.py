@@ -12,6 +12,23 @@ PI = numpy.pi
 def flatten(unflat):
     return [item for sublist in unflat for item in sublist]
 
+# return a copy of seq without duplicates; preserves order
+def uniqfy(seq):
+    result = []
+    for item in seq:
+        if item in result:continue
+        result.append(item)
+    return result
+
+# is seq1 a cyclic permutation of seq2?
+def cyclic_permutation(seq1,seq2):
+    s1cnt,s2cnt = len(seq1),len(seq2)
+    if not s1cnt == s2cnt:return False
+    for pmdx in range(s1cnt):
+        perm = seq1[pmdx:] + seq1[:pmdx]
+        if perm == seq2:return True
+    return False
+
 def plot_points(pts,proj = '3d',edges = True,mark = 'o',postpone = False):
     xs = [v.x for v in pts]
     ys = [v.y for v in pts]
@@ -34,10 +51,14 @@ def combine(models):
             final._consume(m)
     return final
 
-def circumscribe_tri(p1,p2,p3,plane):
-    p1 = p1.project_plane(*plane)
-    p2 = p2.project_plane(*plane)
-    p3 = p3.project_plane(*plane)
+# given 3 points and a plane, determine the center and radius
+# of the circumcenter found in the plane plane by projecting p1,p2,p3
+# in the plane
+def circumscribe_tri(p1,p2,p3,plane = None):
+    if not plane is None:
+        p1 = p1.project_plane(*plane)
+        p2 = p2.project_plane(*plane)
+        p3 = p3.project_plane(*plane)
     e1 = p1 - p3
     e2 = p2 - p3
     th = dpv.angle_between(e1,e2)

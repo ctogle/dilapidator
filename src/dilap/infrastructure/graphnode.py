@@ -64,7 +64,7 @@ class node(db.base):
         iangles = itl.nudge(angles,ws,target = target)
         for tk,na in zip(tkeys,iangles):
             self.ring[tk] = na
-            spike = dpv.xhat.copy().rotate_z(dpr.rad(na)).scale_u(5)
+            spike = dpv.xhat.copy().rotate_z(dpr.rad(na)).scale_u(8)
             self.spikes[tk] = spike
 
     # update the actual positions of spikes based on targetring

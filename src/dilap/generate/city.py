@@ -1,11 +1,10 @@
 import dilap.core.context as dgc
 import dilap.core.tools as dpr
 import dilap.generate.landscape as dls
-#import dilap.generate.infrastructure as pif
+import dilap.generate.infrasystem as gif
 import dilap.generate.lot as dlt
 
 import dilap.primitive.cube as dcu
-import dilap.primitive.road as dr
 
 import dp_vector as dpv
 import dp_quaternion as dpq
@@ -21,7 +20,7 @@ class city(dgc.context):
     def _region_points(self):
         return self.rpts
 
-    def generate(self,seed,worn = 0):
+    def generate(self,seed,igraph,worn = 0):
         self._nodes_to_graph(self._node_wrap(
             dcu.cube().scale_u(10).translate_z(5).translate(seed)))
         self.tpts = [seed]
@@ -29,7 +28,7 @@ class city(dgc.context):
         self.rpts = dpr.point_ring(100*worn,6)
         dpv.translate_coords(self.rpts,seed)
 
-        rsys = pif.infrastructure().generate(seed,self.rpts,worn)
+        rsys = gif.infrastructure(igraph).generate(seed,self.rpts,worn)
         self._consume(rsys)
         self.tpts.extend(rsys._terrain_points())
         self.hpts.extend(rsys._hole_points())

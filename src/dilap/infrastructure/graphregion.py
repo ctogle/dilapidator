@@ -14,11 +14,6 @@ import pdb
 
 
 
-def graph_dec(graphfunc):
-    def graphdec(self,g):
-        print('decorated!',g)
-    return graphdec
-
 # a region is represents a selfcontained area that can be systematically
 # connected to other regions
 #
@@ -95,7 +90,6 @@ class region(db.base):
 
     # using the provided graph g, add nodes/edges to represent
     # this region and its plugs
-    @graph_dec
     def _graph(self,g):
         pkeys = self._plugkeys()
         for pk in pkeys:g._add_node(pk)

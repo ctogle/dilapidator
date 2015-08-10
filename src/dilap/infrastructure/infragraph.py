@@ -1,13 +1,15 @@
 import dilap.core.base as db
 
 import dilap.core.tools as dpr
-import dilap.core.mesh.tools as dtl
 import dilap.core.lsystem as dls
 
-import dilap.generate.infrastructure.graphnode as gnd
-import dilap.generate.infrastructure.graphedge as geg
-import dilap.generate.infrastructure.graphregion as grg
-import dilap.generate.infrastructure.infralsystem as ifl
+import dilap.mesh.tools as dtl
+import dilap.mesh.piecewisecomplex as pwc
+
+import dilap.infrastructure.graphnode as gnd
+import dilap.infrastructure.graphedge as geg
+import dilap.infrastructure.graphregion as grg
+import dilap.infrastructure.infralsystem as ifl
 
 import dp_vector as dpv
 
@@ -19,6 +21,11 @@ import pdb
 
 class graph(db.base):
     
+    def plot_regions(self,ax = None):
+        if ax is None:ax = dtl.plot_axes()
+
+        pdb.set_trace()
+
     def plot(self,ax = None):
         if ax is None:ax = dtl.plot_axes()
         for n in self.nodes:
@@ -70,6 +77,7 @@ class graph(db.base):
         for eg in self.edges:
             if not eg is None:
                 eg._place_road(self)
+        self._regions()
 
     def __init__(self,**kwargs):
         self.nodes = []
@@ -78,6 +86,150 @@ class graph(db.base):
         self.edges_lookup = {}
         self.nodecount = 0
         self.edgecount = 0
+
+    # given an edge e, direction 0 or 1, and cw or ccw
+    # return the forward path of e
+    def _loopwalk(self,e,d,w):
+        if d:inpath = [e.one.key(),e.two.key()]
+        else:inpath = [e.two.key(),e.one.key()]
+        while True:
+            ekey = (inpath[-2],inpath[-1])
+            e = self.edges[self.edges_lookup[ekey]]
+            nx = e._walk(inpath[-1],w)
+            if nx is None:return inpath
+            nxndkey = self.nodes[nx].key()
+            if nxndkey in inpath:return inpath
+            else:inpath.append(nxndkey)
+
+    # return a collection of points outlining all edge loops in the graph
+    def _edge_loops(self):
+        edgelloops = []
+        edgerloops = []
+        edgestodo = self.edges[:]
+        while edgestodo:
+            e = edgestodo.pop(0)
+            ewalkrcw  = self._loopwalk(e,1,1)
+            ewalkrccw = self._loopwalk(e,0,0)
+            ewalklccw = self._loopwalk(e,0,1)
+            ewalklcw  = self._loopwalk(e,1,0)
+
+            if set(ewalkrcw)  == set(ewalkrccw):
+                print('closed loop!',len(edgestodo))
+                rloop = tuple(ewalkrcw)
+            else:
+                print('unclosed loop!',len(edgestodo))
+                pdb.set_trace()
+
+            if set(ewalklccw) ==  set(ewalklcw):
+                print('closed loop!',len(edgestodo))
+                lloop = tuple(ewalklccw)
+            else:
+                print('unclosed loop!',len(edgestodo))
+                pdb.set_trace()
+
+            edgelloops.append(lloop)
+            edgerloops.append(rloop)
+        return edgelloops,edgerloops
+
+    # eloop is a list of node keys which are connected in a loop by edges
+    # side is either 0 (right) or 1 (left) relative to the first edge
+    # in the loop - other edges must be handled carefully
+    def _edge_loop_points(self,eloop,side):
+        elcnt = len(eloop)
+        looppts = []
+
+        ne = self.edges[self.edges_lookup[eloop[0],eloop[1]]]
+        if   side == 0:
+            looppts.extend(ne.rbpts)
+            lnkey = ne.two.key()
+        elif side == 1:
+            looppts.extend(ne.lbpts)
+            lnkey = ne.one.key()
+
+        for elx in range(2,elcnt+1):
+            elx1,elx2 = elx-1,elx if elx < elcnt else 0
+            ne = self.edges[self.edges_lookup[eloop[elx1],eloop[elx2]]]
+            if   ne.one.key() == lnkey:
+                if   side == 0:rbpts,lbpts = ne.rbpts,ne.lbpts
+                elif side == 1:rbpts,lbpts = ne.lbpts,ne.rbpts
+                lnkey = ne.two.key()
+            elif ne.two.key() == lnkey:
+                if   side == 0:rbpts,lbpts = ne.lbpts,ne.rbpts
+                elif side == 1:rbpts,lbpts = ne.rbpts,ne.lbpts
+                lnkey = ne.one.key()
+            if   side == 0:looppts.extend(rbpts)
+            elif side == 1:looppts.extend(lbpts)
+
+        return looppts
+
+    # return a collection of points outlining all nodes/edges in the graph
+    def _edge_loop_boundaries(self):
+        # a stem is a set of edges which are not part of a loop
+        # every step exists within some loop (possibly implicit exterior loop)
+        # a loop should be represented by a set of tuples which correspond 
+        # to the edges which comprise the loop
+        edgelloops,edgerloops = self._edge_loops()
+        bedgeloops = {}
+        for ex in range(len(edgelloops)):
+            lloop,rloop = edgelloops[ex],edgerloops[ex]
+
+            isperm = False
+            for rps in bedgeloops:
+                if dpr.cyclic_permutation(rloop,rps):isperm = True;break
+            if not isperm:bedgeloops[rloop] = self._edge_loop_points(rloop,0)
+
+            isperm = False
+            for lps in bedgeloops:
+                if dpr.cyclic_permutation(lloop,lps):isperm = True;break
+            if not isperm:bedgeloops[lloop] = self._edge_loop_points(lloop,1)
+        return bedgeloops
+
+    # calculate polygons representing regions to place terrain
+    def _regions(self):
+        rpts = []
+        for eg in self.edges:rpts.extend([x.copy() for x in eg.rpts])
+        convexbnd = dpr.pts_to_convex_xy(rpts)
+        convexbnd = dpr.inflate(convexbnd,100)
+
+        eloops = self._edge_loop_boundaries()
+        # rank the loops based on containment hierarchy to then 
+        # describe polygons with holes using the loops
+        '''#
+        ax = dtl.plot_axes_xy()
+        ax = self.plot_xy(ax)
+        for bedge in eloops:
+            ax = dtl.plot_edges_xy(eloops[bedge],ax)
+        plt.show()
+        '''#
+
+        eloopkeys = eloops.keys()
+        eloops1 = eloops[[x for x in eloopkeys][0]]
+        eloops2 = eloops[[x for x in eloopkeys][1]]
+
+        #polygons = [(convexbnd,(eloops1,)),(eloops1,(eloops2,)),(eloops2,())]
+        polygons = [(convexbnd,(eloops1,)),(eloops2,())]
+        #polygons = [(convexbnd,(eloops1,))]
+        #polygons = [(eloops2,())]
+        tplc = pwc.piecewise_linear_complex()
+        tplc.add_polygons(*polygons)
+        tplc.triangulate_xy()
+        self.tplc = tplc
+
+        rplc = pwc.piecewise_linear_complex()
+        polygons = [(eloops1,(eloops2,))]
+        #polygons = [(convexbnd,(eloops1,)),(eloops2,())]
+        #polygons = [(convexbnd,(eloops1,))]
+        #polygons = [(eloops2,())]
+        rplc.add_polygons(*polygons)
+        rplc.triangulate_xy()
+
+        self.tplc = tplc
+        self.rplc = rplc
+        ax = self.plot_xy()
+        ax = dtl.plot_polygon_xy(convexbnd,ax,True)
+        ax = self.tplc.plot_xy(ax)
+        ax = self.rplc.plot_xy(ax)
+        plt.show()
 
     # add a new node to the graph or existing node index
     # ndkey is a tuple(x,y,layer)
@@ -413,9 +565,21 @@ def ramp():
 def hairpin():
     g = graph()
 
-    g._add_edge((0,0,0),(100,25,1))
-    g._add_edge((100,25,1),(0,50,2))
-    g._add_edge((0,50,2),(100,75,3))
+    g._add_edge((0,0,0),(100,50,1))
+    g._add_edge((100,50,1),(0,100,2))
+    g._add_edge((0,100,2),(100,150,3))
+    #g._add_edge((0,0,0),(-50,100,1))
+    #g._add_edge((-50,100,2),(100,150,3))
+
+    return g
+
+def circle():
+    g = graph()
+
+    g._add_edge((0,0,0),(50,50,0))
+    g._add_edge((50,50,0),(0,100,0),interpolated = False)
+    g._add_edge((0,100,0),(-50,50,0))
+    g._add_edge((-50,50,0),(0,0,0),interpolated = False)
 
     return g
 

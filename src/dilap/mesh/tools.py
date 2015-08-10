@@ -37,12 +37,12 @@ def plot_points(points,ax = None,ms = None):
     for pdx in range(len(points)):plot_point(points[pdx],ax,ms[pdx])  
     return ax
 
-def plot_edges_xy(points,ax = None,mk = None):
+def plot_edges_xy(points,ax = None,mk = None,lw = 1.0):
     if ax is None:ax = plot_axes_xy()
     if mk is None:mk = '+'
     pts = [p.to_tuple() for p in points]
     xs,ys,zs = zip(*pts)
-    ax.plot(xs,ys,marker = mk)
+    ax.plot(xs,ys,marker = mk,lw = lw)
     return ax
 
 def plot_edges(points,ax = None):
@@ -156,6 +156,31 @@ def inconcave(pt,poly):
     if abs(angle) < numpy.pi:return False
     else:return True
 
+# given poly, a sequence of points, return the lengths of 
+# the edges of the polygon that poly describes
+def edge_lengths(*poly):
+    elengs = []
+    for x in range(len(poly)):
+        p1,p2 = poly[x-1],poly[x]
+        elengs.append(dpv.distance(p1,p2))
+    return elengs
+
+# given poly, a sequence of points, 
+# return the length of the shortest edge
+def shortest_edge_tri(*tri):
+    p1,p2,p3 = tri
+    e1 = dpv.distance(p1,p2)
+    e2 = dpv.distance(p2,p3)
+    e3 = dpv.distance(p3,p1)
+    return min((e1,e2,e3))
+
+# given poly, a sequence of points, 
+# return the length of the shortest edge
+def shortest_edge(*poly):
+    elengs = edge_lengths(*poly)
+    return min(elengs)
+
+
 '''#
 /*
  *    Return the angle between two vectors on a plane
@@ -216,20 +241,21 @@ def segments_intersect_at(s1,s2):
 # given line segment s1, line segment s2
 # does s1 overlap the interior or s2?
 # a segment is a tuple of two points
-def segments_intersect(s1,s2):
+def segments_intersect(s1,s2,err = 0.001):
     pi2 = numpy.pi/2.0
     n1 = dpv.v1_v2(*s1).rotate_z(pi2)
     proj1 = dpv.project_coords([s1[0],s1[1]],n1)
     proj2 = dpv.project_coords([s2[0],s2[1]],n1)
-    if proj1.x > proj2.x and proj1.x < proj2.y:
+    #if proj1.x > proj2.x and proj1.x < proj2.y:
+    if proj1.x - proj2.x > err and proj2.y - proj1.x > err:
         n2 = dpv.v1_v2(*s2).rotate_z(pi2)
         proj1 = dpv.project_coords([s1[0],s1[1]],n2)
         proj2 = dpv.project_coords([s2[0],s2[1]],n2)
-        if proj1.x < proj2.x and proj1.y > proj2.x:
-            #print('these intersect!!!!')
-            #ax = plot_edges_xy(s1)
-            #plot_edges_xy(s2,ax)
-            #plt.show()
+        #if proj1.x < proj2.x and proj1.y > proj2.x:
+        if proj2.x - proj1.x > err and proj1.y - proj2.x > err:
+            ax = plot_edges_xy(s1)
+            plot_edges_xy(s2,ax)
+            plt.show()
             return 1
     #if s1[0].near_xy(s2[0]) and s1[1].near_xy(s2[1]):return 1
     #elif s1[0].near_xy(s2[1]) and s1[1].near_xy(s2[0]):return 1

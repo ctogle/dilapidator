@@ -22,9 +22,6 @@ class lane(db.base):
         # direction can be -1,1 or 0
         self._def('direction',1,**kwargs)
 
-        # sequence is a an encoding of the topology
-        self._def('sequence','s',**kwargs)
-
     def _tolane(self,ptx):
         nsoffs = [self.road.lanes[lx].w for lx in self.lnstocenter]
         offdst = self.direction*((self.w/2.0)+sum(nsoffs))
@@ -99,7 +96,7 @@ class road(dmo.model):
         return dmo.model.translate(self,v)
 
     def calculate_tips(self,controls):
-        eleng = 3.0
+        eleng = 8.0
         start_tip = self.start.copy().translate(
                 self.tail.copy().scale_u(eleng))
         end_tip = self.end.copy().translate(
@@ -257,6 +254,40 @@ class road(dmo.model):
         for l in self.lanes:m._consume(l._geo())
         self._consume(m)
 
+# simple road is a true primitive:
+# given a set of interpolated points and other parameters
+# form a model that properly represents the road segment
+class simpleroad(dmo.model):
+
+    def __init__(self,vs,ts,ns,w,**kwargs):
+        dmo.model.__init__(self,**kwargs)
+        self.vs = vs
+        self.ts = ts
+        self.ns = ns
+        self.w = w
+
+        #self.calculate()
+        if not 'largs' in kwargs:
+            self.largs = [
+                {'direction':-1,'alignment':0},
+                {'direction': 1,'alignment':0},
+                {'direction': 1,'alignment':1},
+                    ]
+        else:self.largs = kwargs['largs']
+        self._lanes()
+
+    # create a collection of lane objects representing how this road
+    # should evolve (merges, shoulders, gutters, sidewalks, etc...)
+    def _lanes(self):
+        for larg in self.largs:larg['road'] = self
+        self.lanes = [lane(**larg) for larg in self.largs]
+
+    # use the lane objects to build a model
+    def _geo(self):
+        m = dmo.model()
+        for l in self.lanes:m._consume(l._geo())
+        self._consume(m)
+
 class intersection(dmo.model):
 
     def translate(self,v):
@@ -326,6 +357,49 @@ def circle(rtype,*args,**kwargs):
         r._geo()
         r._terrain_points()
         r._hole_points()
+    for i in isects:
+        i._geo()
+        i._terrain_points()
+        i._hole_points()
+    return roads,isects
+
+# given an infragraph, create roads and intersections representing it
+def graph_roads(igraph,*args,**kwargs):
+
+    tips = [
+        dpv.yhat.copy(),dpv.nxhat.copy(),
+        dpv.nyhat.copy(),dpv.xhat.copy()]
+    tips.append(tips[0])
+    roads,isects = [],[]
+
+    for eg in igraph.edges:
+        if eg is None:roads.append(None)
+        else:
+            '''#
+            tip  = eg.one.spikes[eg.two.index].copy().normalize().flip()
+            tail = eg.two.spikes[eg.one.index].copy().normalize()
+            st = eg.two.p.copy()
+            en = eg.one.p.copy()
+            rd = highway(st,en,tip,tail,**kwargs)
+            '''#
+            rd = simpleroad(eg.rpts,eg.rtangents,eg.rnormals,eg.width)
+            roads.append(rd)
+
+    for nd in igraph.nodes:
+        rds = []
+        for rx in range(len(roads)):
+            if roads[rx] is None:continue
+            eg = igraph.edges[rx]
+            if nd is eg.one or nd is eg.two:
+                rds.append(roads[rx])
+        if len(rds) == 2:continue
+        isect = intersection(nd.p,*rds)
+        isects.append(isect)
+
+    for r in roads:
+        r._geo()
+        #r._terrain_points()
+        #r._hole_points()
     for i in isects:
         i._geo()
         i._terrain_points()

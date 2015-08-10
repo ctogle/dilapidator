@@ -1,7 +1,7 @@
-import dilap.core.mesh.tools as dtl
-import dilap.core.mesh.pointset as dps
-import dilap.core.mesh.tetrahedralization as dth
-import dilap.core.mesh.triangulation as dtg
+import dilap.mesh.tools as dtl
+import dilap.mesh.pointset as dps
+import dilap.mesh.tetrahedralization as dth
+import dilap.mesh.triangulation as dtg
 
 import dp_vector as dpv
 
@@ -10,7 +10,20 @@ import pdb
 
 class piecewise_linear_complex:
 
+    def plot(self,ax = None):
+        if ax is None:ax = dtl.plot_axes()
+        for pdx in range(self.points.pcnt):
+            p = self.points.ps[pdx]
+            ax.plot([p.x],[p.y],[p.z],marker = '+')
+        for edx in range(len(self.edges)):
+            up,vp = self.points.get_points(*self.edges[edx])
+            ax.plot([up.x,vp.x],[up.y,vp.y],zs = [up.z,vp.z])
+
+        for key in self.covers:ax = self.covers[key].plot(ax)
+        return ax
+
     def plot_xy(self,ax = None):
+        if ax is None:ax = dtl.plot_axes_xy()
         ax = dtl.plot_points_xy(self.points.ps,ax)
         for edx in range(len(self.edges)):
             eg = self.edges[edx]
@@ -18,17 +31,7 @@ class piecewise_linear_complex:
             veg = self.points.get_points(*eg)
             ax = dtl.plot_edges_xy(veg,ax)
 
-        for key in self.covers:self.covers[key].plot_xy(ax)
-        return ax
-
-    def plot(self,ax = None):
-        ax = plt.figure().add_subplot(111,projection = '3d')
-        for pdx in range(self.points.pcnt):
-            p = self.points.ps[pdx]
-            ax.plot([p.x],[p.y],[p.z],marker = '+')
-        for edx in range(len(self.edges)):
-            up,vp = self.points.get_points(*self.edges[edx])
-            ax.plot([up.x,vp.x],[up.y,vp.y],zs = [up.z,vp.z])
+        for key in self.covers:ax = self.covers[key].plot_xy(ax)
         return ax
 
     def __init__(self):

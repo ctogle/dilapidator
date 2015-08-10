@@ -8,51 +8,7 @@ import dp_bbox as dbb
 
 import pdb
 
-###############################################################################
-### sgraph represents a scenegraph and contains references to all
-### top level nodes in the graph
-###############################################################################
-
-class sgraph(db.base):
-
-    def __str__(self):
-        strr = '\n' + self.__str__() + '\t'
-        strr += '\tscenegraph:\n'
-        if not self.nodes:strr += '\tEMPTY\n'
-        else:
-            strr += '\t\ttop-level-nodes:'
-            strr += ','.join([n.name for n in self.nodes])
-            strr += '\n'.join([n.__str__() for n in self.nodes])
-        return strr
-
-    def __init__(self,*args,**kwargs):
-        self._def('nodes',[],**kwargs)
-
-    def to_world(self):
-        print('untested to_world function...')
-        for nd in self.nodes:
-            for ch in nd.tform.children:
-                ch.owner._models_to_world()
-            nd._models_to_world()
-
-    def to_local(self):
-        print('untested to_local function...')
-        for nd in self.nodes:
-            for ch in nd.tform.children:
-                ch.owner._models_to_local()
-            nd._models_to_local()
-
-    def graph(self,iotype):
-        iotype.write_materials()
-        for nd in self.nodes:
-            if nd.consumption:nd._consume()
-            else:
-                for ch in nd.tform.children:
-                    ch.owner._realize(iotype)
-            nd._realize(iotype)
-
-###############################################################################
-###############################################################################
+__doc__ = '''Provide a basic scenegraph with node hierarchy'''
 
 ###############################################################################
 ### node is the basic scenegraph node of dilap
@@ -61,6 +17,8 @@ class sgraph(db.base):
 
 unused_dpnode_id = 0
 class node(db.base):
+    '''node is a class representing a node in the scenegraph.
+    It possesses a unique id, models, lod models, a tform, and a name.'''
 
     def _dpid(self):
         global unused_dpnode_id
@@ -76,7 +34,6 @@ class node(db.base):
         if hasattr(self,'tform'):return
         kweys = kwargs.keys()
         pos = kwargs['pos'] if 'pos' in kweys else dpv.zero()
-        #rot = kwargs['rot'] if 'rot' in kweys else dpv.zero()
         rot = kwargs['rot'] if 'rot' in kweys else dpq.zero()
         scl = kwargs['scl'] if 'scl' in kweys else dpv.one()
         tpar = kwargs['parent'] if 'parent' in kweys else None
@@ -126,38 +83,47 @@ class node(db.base):
         self._def('space','local',**kwargs)
 
     def translate(self,v):
+        '''translate the tform of this node by a vector v'''
         self.tform.pos.translate(v)
         return self
 
     def translate_x(self,dx):
+        '''translate the tform of this node in the x direction by dx'''
         self.tform.pos.translate_x(dx)
         return self
 
     def translate_y(self,dy):
+        '''translate the tform of this node in the y direction by dy'''
         self.tform.pos.translate_y(dy)
         return self
 
     def translate_z(self,dz):
+        '''translate the tform of this node in the z direction by dz'''
         self.tform.pos.translate_z(dz)
         return self
 
     def scale(self,s):
+        '''scale the tform of this node by a vector s'''
         self.tform.scl.scale(s)
         return self
 
     def scale_x(self,sx):
+        '''scale the tform of this node in the x direction by sx'''
         self.tform.scl.x *= sx
         return self
 
     def scale_y(self,sy):
+        '''scale the tform of this node in the y direction by sy'''
         self.tform.scl.y *= sy
         return self
 
     def scale_z(self,sz):
+        '''scale the tform of this node in the z direction by sz'''
         self.tform.scl.z *= sz
         return self
 
     def rotate(self,q):
+        '''rotate the tform of this node by quaternion q'''
         self.tform.rot.rotate(q)
         return self
 
@@ -348,5 +314,59 @@ class node(db.base):
         self._to_space('world')
         self._modelize(iotype)
         self._to_space('local')
+
+###############################################################################
+###############################################################################
+
+###############################################################################
+### sgraph represents a scenegraph and contains references to all
+### top level nodes in the graph
+###############################################################################
+
+class sgraph(db.base):
+    '''A scenegraph class which supports node hierarchy'''
+
+    def __str__(self):
+        strr = '\n' + self.__str__() + '\t'
+        strr += '\tscenegraph:\n'
+        if not self.nodes:strr += '\tEMPTY\n'
+        else:
+            strr += '\t\ttop-level-nodes:'
+            strr += ','.join([n.name for n in self.nodes])
+            strr += '\n'.join([n.__str__() for n in self.nodes])
+        return strr
+
+    def __init__(self,*args,**kwargs):
+        self._def('nodes',[],**kwargs)
+
+    def to_world(self):
+        '''Move all nodes in the hierarchy to world space'''
+        print('untested to_world function...')
+        for nd in self.nodes:
+            for ch in nd.tform.children:
+                ch.owner._models_to_world()
+            nd._models_to_world()
+
+    def to_local(self):
+        '''Move all nodes in the hierarchy to local space'''
+        print('untested to_local function...')
+        for nd in self.nodes:
+            for ch in nd.tform.children:
+                ch.owner._models_to_local()
+            nd._models_to_local()
+
+    def graph(self,iotype):
+        '''Realize the scenegraph given some io module "iotype"'''
+        iotype.write_materials()
+        for nd in self.nodes:
+            if nd.consumption:nd._consume()
+            else:
+                for ch in nd.tform.children:
+                    ch.owner._realize(iotype)
+            nd._realize(iotype)
+
+###############################################################################
+###############################################################################
+
 
 

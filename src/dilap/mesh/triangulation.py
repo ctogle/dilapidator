@@ -1,9 +1,9 @@
 import dilap.core.model as dmo
 import dilap.core.tools as dpr
 
-import dilap.core.mesh.pointset as dps
-import dilap.core.mesh.tools as dtl
-import dilap.core.mesh.pointset as dps
+import dilap.mesh.pointset as dps
+import dilap.mesh.tools as dtl
+import dilap.mesh.pointset as dps
 
 import dp_vector as dpv
 
@@ -12,13 +12,27 @@ import pdb
 
 class triangulation:
     
+    def plot(self,ax = None):
+        if ax is None:ax = dtl.plot_axes()
+        for tdx in range(self.tricnt):
+            tri = self.triangles[tdx]
+            if tri is None:continue
+            vtri = self.points.get_points(*tri)
+            dtl.plot_polygon(vtri,ax,center = True)
+        return ax
+
     def plot_xy(self,ax = None):
-        if ax is None:ax = plt.figure().add_subplot(111)
+        if ax is None:ax = dtl.plot_axes_xy()
         for tdx in range(self.tricnt):
             tri = self.triangles[tdx]
             if tri is None:continue
             vtri = self.points.get_points(*tri)
             dtl.plot_polygon_xy(vtri,ax,center = True)
+        for gdx in range(self.ghostcnt):
+            gst = self.ghosts[gdx]
+            if gst is None:continue
+            gpair = self.points.get_points(gst[0],gst[1])
+            dtl.plot_edges_xy(gpair,ax,lw = 5.0)
         return ax
 
     # add a positively oriented ghost triangle u,v,g
@@ -48,6 +62,8 @@ class triangulation:
         self.eg_tri_lookup[(u,v)] = None
         self.eg_tri_lookup[(v,w)] = None
         self.eg_tri_lookup[(w,u)] = None
+        # if the triangle being deleted touched a ghost
+        # the adjacent triangles must attach to ghosts?
 
     # return a vertex x such that uv
     # is a positively oriented edge
@@ -99,10 +115,11 @@ class triangulation:
         self.add_ghost(*ghost2)
         ghost3 = (c0psx[0],c0psx[2])
         self.add_ghost(*ghost3)
+        self.initial_cover_extras = c0psx
         
-        ax = self.plc.plot_xy()
-        self.plot_xy(ax)
-        plt.show()
+        #ax = self.plc.plot_xy()
+        #self.plot_xy(ax)
+        #plt.show()
 
     # generate tetrahedralization of the plc
     def cover(self,plc):
@@ -110,15 +127,36 @@ class triangulation:
         self.cover_points(plc)
         self.cover_edges(plc)
         self.cover_polygons(plc)
+        self.refine(plc)
 
     def cover_points(self,plc):
         for plcx in range(plc.points.pcnt):
             plcp = plc.points.ps[plcx].copy()
             self.point_location(plcp)
 
-        ax = self.plc.plot_xy()
-        self.plot_xy(ax)
-        plt.show()
+        #ax = self.plc.plot_xy()
+        #self.plot_xy(ax)
+        #plt.show()
+
+    # given v1,v2, the positions of the endpoints of an edge, 
+    # return True if p encroaches upon the edge
+    def encroaches_edge(self,v1,v2,p):
+        cc = dpv.midpoint(v1,v2)
+        cr = dpv.distance(cc,v1)
+        if p.near(v1) or p.near(v2):return False
+        if dpr.inside_circle(p,cc,cr,(dpv.zero(),dpv.zhat)):return True
+        else:return False
+
+    # given v1,v2, the positions of the endpoints of an edge, 
+    # return True if locally delaunay
+    def locally_delaunay_edge(self,v1,v2):
+        cc = dpv.midpoint(v1,v2)
+        cr = dpv.distance(cc,v1)
+        for p in self.points:
+            if p.near(v1) or p.near(v2):continue
+            if dpr.inside_circle(p,cc,cr,(dpv.zero(),dpv.zhat)):
+                return False
+        return True
 
     def cover_edges(self,plc):
 
@@ -126,8 +164,6 @@ class triangulation:
             ne1,ne2 = plc.split_edge(*eg)
             unfinished.append(ne1)
             unfinished.append(ne2)
-            new.append(ne1)
-            new.append(ne2)
             newp = plc.points.ps[ne1[1]]
             self.point_location(newp)
 
@@ -138,27 +174,15 @@ class triangulation:
             cc = dpv.midpoint(*self.points.get_points(*neg))
             return True
 
-        def locally_delaunay(eg):
-            v1,v2 = plc.points.get_points(*eg)
-            cc = dpv.midpoint(v1,v2)
-            cr = dpv.distance(cc,v1)
-            #for p in plc.points:
-            for p in self.points:
-                if p.near(v1) or p.near(v2):continue
-                if dpr.inside_circle(p,cc,cr,(dpv.zero(),dpv.zhat)):
-                    return False
-            return True
-
         unfinished = [e for e in plc.edges]
-        new = []
         while unfinished:
             unfin = unfinished.pop(0)
             isms = missing(unfin)
             if isms:split(unfin)
             else:
-                isld = locally_delaunay(unfin)
-                if not isld:
-                    split(unfin)
+                v1,v2 = plc.points.get_points(*unfin)
+                isld = self.locally_delaunay_edge(v1,v2)
+                if not isld:split(unfin)
 
     def cover_polygons(self,plc):
         extras = []
@@ -182,9 +206,61 @@ class triangulation:
         for x in extras:
             xtri = self.triangles[x]
             if xtri is None:continue
-            self.delete_triangle(*xtri)
+            x1,x2,x3 = xtri
+            self.delete_triangle(x1,x2,x3)
+            #if (x2,x1) in plc.edges:self.add_ghost(x1,x2)
+            #if (x3,x2) in plc.edges:self.add_ghost(x2,x3)
+            #if (x1,x3) in plc.edges:self.add_ghost(x3,x1)
+
+    def refine(self,plc,b = 2.0):
+        unfinished = [e for e in plc.edges]
+        while unfinished:
+            unfin = unfinished.pop(0)
+            if unfin is None:continue
+            v1,v2 = plc.points.get_points(*unfin)
+            isld = self.locally_delaunay_edge(v1,v2)
+            if not isld:
+                ne1,ne2 = plc.split_edge(*unfin)
+                unfinished.append(ne1)
+                unfinished.append(ne2)
+                newp = plc.points.ps[ne1[1]]
+                self.point_location(newp)
+
+        hmin = 5.0
+        unfinished = [t for t in self.triangles]
+        while unfinished:
+            unfin = unfinished.pop(0)
+            if unfin is None:continue
+            vs = self.points.get_points(*unfin)
+            tcp,tcr = dpr.circumscribe_tri(*vs)
+            if tcr/dtl.shortest_edge_tri(*vs) > b:
+                print('refinnnning skinny guy!',tcp,tcr)
+
+                # check if this point would encroach
+                # if it would, mark those segments to bisect
+                # else split triangles
+                dodig = True
+                for e in plc.edges:
+                    if e is None:continue
+                    v1,v2 = plc.points.get_points(*e)
+                    ench = self.encroaches_edge(v1,v2,tcp)
+                    if ench:
+                        dodig = False
+                        ne1,ne2 = plc.split_edge(*e)
+                        newp = plc.points.ps[ne1[1]]
+                        self.point_location(newp)
+                if dodig:
+                    ntxs = self.point_location(tcp)
+                    for ntx in ntxs:unfinished.append(self.triangles[ntx])
+
+                ax = self.plot_xy()
+                dtl.plot_circle_xy(tcp,tcr,ax,True)
+                plt.show()
+        
+        print('refined the mesh!')
 
     def point_location(self,y):
+        pretricnt = self.tricnt
         nv = self.points.add_point(y)
         for tdx in range(self.tricnt):
             tri = self.triangles[tdx]
@@ -193,7 +269,7 @@ class triangulation:
             vu,vv,vw = self.points.get_points(u,v,w)
             if dpv.inside(y,[vu,vv,vw]):
                 self.insert_vertex(nv,*self.triangles[tdx])
-                return
+                return [x for x in range(pretricnt,self.tricnt)]
         for gdx in range(self.ghostcnt):
             ghost = self.ghosts[gdx]
             if ghost is None:continue
@@ -201,6 +277,7 @@ class triangulation:
             vu,vv = self.points.get_points(u,v)
             if not dtl.orient2d(vu,vv,y) < 0:
                 self.insert_ghost_vertex(nv,u,v,w)
+        return [x for x in range(pretricnt,self.tricnt)]
 
     # u is the vertex to insert. vwx is a positively oriented triangle whose
     # circumcircle encloses u

@@ -151,7 +151,7 @@ class landscape(dgc.context):
         #bws = [dpv.one() for x in flatholes]
         #fvs = m.newvdata(flatholes,bns,bus,bws)
 
-        pdb.set_trace()
+        #pdb.set_trace()
 
         holecover = pwc.model_plc(points = [m.vs[h].p for h in hbnd])
         #dpr.plot_points([m.vs[h].p for h in hbnd],edges = False)
@@ -199,7 +199,7 @@ class landscape(dgc.context):
         flatpatch = m.flatten(patch,dpv.vector(0,0,50),dpv.zhat.copy())
         '''#
 
-        pdb.set_trace()
+        #pdb.set_trace()
 
         self.landmd = m.pelt()
         self.landmd._consume(holecover)

@@ -6,7 +6,7 @@ import dilap.core.profiler as prf
 import dilap.core.lsystem as pls
 import dilap.core.tmesh as tms
 
-import dilap.core.mesh.piecewisecomplex as pwc
+import dilap.mesh.piecewisecomplex as pwc
 
 import dp_vector as dpv
 
@@ -115,6 +115,8 @@ def triang():
     #pts  = dpv.translate_coords(dpr.corners(50,10),dpv.vector(-30,-12,0))
     pts2 = dpv.translate_coords(dpr.corners(30,10),dpv.vector(30,20,0))
     pts3 = dpv.translate_coords(dpr.corners(20,10),dpv.vector(-30,-20,0))
+
+    #pts2 = dpr.point_ring(100,16)
 
     points = []
     edges = []

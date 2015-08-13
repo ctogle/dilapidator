@@ -65,7 +65,7 @@ class edge(db.base):
 
     # use vector spline to add road points to plot!!
     def _place_road(self,graph):                       
-        rcnt = int(self.tangent.magnitude()/3.0)
+        rcnt = int(self.tangent.magnitude()/8.0)
         if self.interpolated:
             r1 = self.one.p.copy()
             r2 = self.one.p.copy().translate(self.one.spikes[self.two.index])
@@ -83,11 +83,14 @@ class edge(db.base):
             rnormal = rtangent.copy().rotate_z(dpr.rad(90)).normalize()
             self.rtangents.append(rtangent)
             self.rnormals.append(rnormal)
-            rwv = rnormal.copy().scale_u(self.width)
-            self.lbpts.append(rpts[rpx].copy().translate(rwv))
-            self.rbpts.append(rpts[rpx].copy().translate(rwv.flip()))
+            rwv = rnormal.copy().scale_u(self.width)             
+            self.lbpts.append(rpts[rpx-1].copy().translate(rwv))
+            self.rbpts.append(rpts[rpx-1].copy().translate(rwv.flip()))
         self.rtangents.append(self.rtangents[-1])
         self.rnormals.append(self.rnormals[-1])
+        rwv = self.rnormals[-1].copy().scale_u(self.width)
+        self.lbpts.append(rpts[-1].copy().translate(rwv))
+        self.rbpts.append(rpts[-1].copy().translate(rwv.flip()))
         self.lbpts.reverse()
 
     # given a wise (cw or ccw), return a node key from an edge

@@ -1,3 +1,5 @@
+import dilap.core.tools as dpr
+
 import dilap.mesh.tools as dtl
 import dilap.mesh.pointset as dps
 import dilap.mesh.tetrahedralization as dth
@@ -7,6 +9,9 @@ import dp_vector as dpv
 
 import matplotlib.pyplot as plt
 import pdb
+import math
+
+sqrt3 = math.sqrt(3)
 
 class piecewise_linear_complex:
 
@@ -30,7 +35,6 @@ class piecewise_linear_complex:
             if eg is None:continue
             veg = self.points.get_points(*eg)
             ax = dtl.plot_edges_xy(veg,ax)
-
         for key in self.covers:ax = self.covers[key].plot_xy(ax)
         return ax
 
@@ -82,7 +86,7 @@ class piecewise_linear_complex:
 
     # u,v likely form an existing edge;
     # replace this edge with two new edges
-    def split_edge(self,u,v):
+    def split_edge(self,u,v,newp = None):
 
         def replace_edge(loop,which,new1,new2):
             loop.pop(which)
@@ -94,7 +98,8 @@ class piecewise_linear_complex:
                 self.eg_poly_lookup[new] = []
             self.eg_poly_lookup[new].append(poly)
 
-        newp = dpv.midpoint(*self.points.get_points(u,v))
+        if newp is None:
+            newp = dpv.midpoint(*self.points.get_points(u,v))
         edex = self.delete_edge(u,v)
         w = self.points.add_point(newp)
         ne1dex = self.add_edge(u,w)
@@ -115,6 +120,22 @@ class piecewise_linear_complex:
                 add_edge_lookup(pygn,ne1dex)
                 add_edge_lookup(pygn,ne2dex)
         return (u,w),(w,v)
+
+    # is the edge formed by uv (or vu) a segment in the domain?
+    def segment(self,u,v):
+        pkey = (u,v)
+        if pkey in self.eg_lookup:
+            px = self.eg_lookup[pkey]
+            if not px is None:
+                if not self.edges[px] is None:
+                    return True
+        pkey = (v,u)
+        if pkey in self.eg_lookup:
+            px = self.eg_lookup[pkey]
+            if not px is None:
+                if not self.edges[px] is None:
+                    return True
+        return False
 
     def add_polygons(self,*polygons):
         pxs = []
@@ -152,9 +173,92 @@ class piecewise_linear_complex:
                 self.eg_poly_lookup[i].append(polygon)
         return pdex
 
+    # given a point p, return the index of a polygon 
+    # which contains it or None if none exists
+    def find_polygon(self,p):
+      for px in range(self.polygoncount):
+          poly = self.polygons[px]
+          if poly is None:continue
+          ebnd,ibnds = poly
+          ebnd = [self.edges[e][0] for e in ebnd]
+          ebnd = self.points.get_points(*ebnd)
+          if dpv.inside(p,ebnd):
+              isin = True
+              for ib in ibnds:
+                  ib = [self.edges[e][0] for e in ib]
+                  ib = self.points.get_points(*ib)
+                  if dpv.inside(p,ib):
+                      isin = False
+                      break
+              if isin:return px
+
     def add_polyhedra(self,*polyhedra):
         return
         raise NotImplemented
+
+    # return a dictionary of the length of 
+    # every edge currently in the mesh
+    def edge_lengths(self):
+        elengths = {}
+        for edx in range(self.edgecount):
+            e = self.edges[edx]
+            if e is None or e in elengths:continue
+            ep1,ep2 = self.points.get_points(*e)
+            d = dpv.distance(ep1,ep2)
+            elengths[e] = d
+            elengths[e[::-1]] = d
+        return elengths
+
+    # given v1,v2, the positions of the endpoints of an edge, 
+    # return True if locally delaunay
+    def locally_delaunay_edge(self,v1,v2):
+        cc = dpv.midpoint(v1,v2)
+        cr = dpv.distance(cc,v1)
+        for p in self.points:
+            if p.near(v1) or p.near(v2):continue
+            if dpr.inside_circle(p,cc,cr,(dpv.zero(),dpv.zhat)):
+                return False
+        return True
+
+    # force edges to be locally delaunay by splitting as needed
+    def subdivide_edges(self):
+        unfinished = [e for e in self.edges]
+        while unfinished:
+            unfin = unfinished.pop(0)
+            if unfin is None:continue
+            v1,v2 = self.points.get_points(*unfin)
+            if not self.locally_delaunay_edge(v1,v2):
+                ne1,ne2 = self.split_edge(*unfin)
+                unfinished.append(ne1)
+                unfinished.append(ne2)
+
+    # force edges to abide by chew1 precondition on edge lengths
+    def chew1_subdivide_edges(self):
+        elengs = self.edge_lengths()
+        hmin = min([elengs[x] for x in elengs])
+
+        print('hmin:',hmin)
+
+        unfinished = [e for e in self.edges]
+        while unfinished:
+            unfin = unfinished.pop(0)
+            if unfin is None:continue
+            ex1,ex2 = unfin
+            ep1,ep2 = self.points.get_points(ex1,ex2)
+
+            eleng = elengs[unfin]
+            m = 1
+            while eleng/m > sqrt3*hmin:m += 1
+            divpts = dpr.point_line(ep1,ep2,m)[1:-1]
+
+            curr = ex1
+            for dpt in divpts:
+                ne1,ne2 = self.split_edge(curr,ex2,dpt)
+                curr = self.points.find_point(dpt)
+
+        elengs = self.edge_lengths()
+        hmin = min([elengs[x] for x in elengs])
+        self.hmin = hmin
 
     def tetrahedralize(self):
         tetra = dth.tetrahedralization(self)

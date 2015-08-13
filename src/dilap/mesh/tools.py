@@ -13,6 +13,7 @@ import pdb
 
 def plot_axes_xy():
     ax = plt.figure().add_subplot(111)
+    ax.set_aspect('equal')
     return ax
 
 def plot_axes():
@@ -52,17 +53,17 @@ def plot_edges(points,ax = None):
     ax.plot(xs,ys,zs,marker = '+')
     return ax
 
-def plot_polygon_xy(points,ax = None,center = False):
+def plot_polygon_xy(points,ax = None,center = False,lw = 1.0):
     epts = points[:]
     epts.append(points[0])
-    ax = plot_edges_xy(epts,ax)
+    ax = plot_edges_xy(epts,ax,lw = lw)
     if center:plot_point_xy(dpv.center_of_mass(points),ax,marker = 's')
     return ax
 
-def plot_polygon(points,ax = None,center = False):
+def plot_polygon(points,ax = None,center = False,lw = 1.0):
     epts = points[:]
     epts.append(points[0])
-    ax = plot_edges(epts,ax)
+    ax = plot_edges(epts,ax,lw = lw)
     if center:plot_point(dpv.center_of_mass(points),ax,marker = 's')
     return ax
 
@@ -83,13 +84,13 @@ def plot_circle(c,r,ax = None,center = False):
 
 # if a is within c of b, return True
 # else return False
-def isnear(a,b,c = 0.0001):
+def isnear(a,b,c = 0.000001):
     if abs(a-b) < c:return True
     else:return False
 
 # if a is within c of b, return b
 # else return a
-def near(a,b,c = 0.0000000000001):
+def near(a,b,c = 0.000001):
     if abs(a-b) < c:return b
     else:return a
 
@@ -246,16 +247,14 @@ def segments_intersect(s1,s2,err = 0.001):
     n1 = dpv.v1_v2(*s1).rotate_z(pi2)
     proj1 = dpv.project_coords([s1[0],s1[1]],n1)
     proj2 = dpv.project_coords([s2[0],s2[1]],n1)
-    #if proj1.x > proj2.x and proj1.x < proj2.y:
     if proj1.x - proj2.x > err and proj2.y - proj1.x > err:
         n2 = dpv.v1_v2(*s2).rotate_z(pi2)
         proj1 = dpv.project_coords([s1[0],s1[1]],n2)
         proj2 = dpv.project_coords([s2[0],s2[1]],n2)
-        #if proj1.x < proj2.x and proj1.y > proj2.x:
         if proj2.x - proj1.x > err and proj1.y - proj2.x > err:
-            ax = plot_edges_xy(s1)
-            plot_edges_xy(s2,ax)
-            plt.show()
+            #ax = plot_edges_xy(s1)
+            #plot_edges_xy(s2,ax)
+            #plt.show()
             return 1
     #if s1[0].near_xy(s2[0]) and s1[1].near_xy(s2[1]):return 1
     #elif s1[0].near_xy(s2[1]) and s1[1].near_xy(s2[0]):return 1

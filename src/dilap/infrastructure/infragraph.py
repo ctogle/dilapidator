@@ -190,7 +190,6 @@ class graph(db.base):
         for eg in self.edges:rpts.extend([x.copy() for x in eg.rpts])
         convexbnd = dpr.pts_to_convex_xy(rpts)
         convexbnd = dpr.inflate(convexbnd,100)
-
         eloops = self._edge_loop_boundaries()
         # rank the loops based on containment hierarchy to then 
         # describe polygons with holes using the loops
@@ -206,20 +205,25 @@ class graph(db.base):
         eloops1 = eloops[[x for x in eloopkeys][0]]
         eloops2 = eloops[[x for x in eloopkeys][1]]
 
+        eloops3 = [p.copy() for p in eloops2]
+        dpv.translate_coords_x(eloops3,200)
         #polygons = [(convexbnd,(eloops1,)),(eloops1,(eloops2,)),(eloops2,())]
-        polygons = [(convexbnd,(eloops1,)),(eloops2,())]
         #polygons = [(convexbnd,(eloops1,))]
         #polygons = [(eloops2,())]
+
+        print('amen')
+
+        tpolygons = [(convexbnd,(eloops1,)),(eloops3,())]
+        #tpolygons = [(convexbnd,(eloops1,))]
         tplc = pwc.piecewise_linear_complex()
-        tplc.add_polygons(*polygons)
+        tplc.add_polygons(*tpolygons)
         tplc.triangulate_xy()
         self.tplc = tplc
 
-        rplc = pwc.piecewise_linear_complex()
+        print('amen2')
+
         polygons = [(eloops1,(eloops2,))]
-        #polygons = [(convexbnd,(eloops1,)),(eloops2,())]
-        #polygons = [(convexbnd,(eloops1,))]
-        #polygons = [(eloops2,())]
+        rplc = pwc.piecewise_linear_complex()
         rplc.add_polygons(*polygons)
         rplc.triangulate_xy()
 
@@ -227,8 +231,10 @@ class graph(db.base):
         self.rplc = rplc
         ax = self.plot_xy()
         ax = dtl.plot_polygon_xy(convexbnd,ax,True)
-        ax = self.tplc.plot_xy(ax)
-        ax = self.rplc.plot_xy(ax)
+        ax = dtl.plot_polygon_xy(eloops2,ax,True)
+        ax = dtl.plot_polygon_xy(eloops1,ax,True)
+        #ax = self.tplc.plot_xy(ax)
+        #ax = self.rplc.plot_xy(ax)
         plt.show()
 
     # add a new node to the graph or existing node index
@@ -577,9 +583,11 @@ def circle():
     g = graph()
 
     g._add_edge((0,0,0),(50,50,0))
-    g._add_edge((50,50,0),(0,100,0),interpolated = False)
+    #g._add_edge((50,50,0),(0,100,0),interpolated = False)
+    g._add_edge((50,50,0),(0,100,0))
     g._add_edge((0,100,0),(-50,50,0))
-    g._add_edge((-50,50,0),(0,0,0),interpolated = False)
+    #g._add_edge((-50,50,0),(0,0,0),interpolated = False)
+    g._add_edge((-50,50,0),(0,0,0))
 
     return g
 

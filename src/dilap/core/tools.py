@@ -74,6 +74,14 @@ def inside_circle(pt,center,radius,plane):
     ins = not dpv.distance(pt,center) > radius
     return ins
 
+def inside_circle_xy(pt,center,radius):
+    dzero = dpv.zero()
+    dzhat = dpv.zhat
+    pt = pt.project_plane(dzero,dzhat)
+    center = center.project_plane(dzero,dzhat)
+    ins = not dpv.distance(pt,center) > radius
+    return ins
+
 # return a polygon of radius 1 with n sides
 # similar to point_ring
 def polygon(n):

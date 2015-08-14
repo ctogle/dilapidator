@@ -1,7 +1,6 @@
 import dilap.core.base as db
-
-import dp_vector as dpv
-import dp_quaternion as dpq
+import dilap.core.vector as dpv
+import dilap.core.quaternion as dpq
 
 __doc__ = '''A transform class which supports hierarchy'''
 

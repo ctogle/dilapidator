@@ -1,11 +1,11 @@
 import dilap.core.tools as dpr
-
+import dilap.core.vector as dpv
+import dilap.core.model as dmo
 import dilap.mesh.tools as dtl
 import dilap.mesh.pointset as dps
 import dilap.mesh.tetrahedralization as dth
 import dilap.mesh.triangulation as dtg
-
-import dp_vector as dpv
+import dilap.mesh.triangulate as dtg2
 
 import matplotlib.pyplot as plt
 import pdb
@@ -16,15 +16,13 @@ sqrt3 = math.sqrt(3)
 class piecewise_linear_complex:
 
     def plot(self,ax = None):
-        if ax is None:ax = dtl.plot_axes()
-        for pdx in range(self.points.pcnt):
-            p = self.points.ps[pdx]
-            ax.plot([p.x],[p.y],[p.z],marker = '+')
+        ax = dtl.plot_points(self.points.ps,ax)
         for edx in range(len(self.edges)):
-            up,vp = self.points.get_points(*self.edges[edx])
-            ax.plot([up.x,vp.x],[up.y,vp.y],zs = [up.z,vp.z])
-
-        for key in self.covers:ax = self.covers[key].plot(ax)
+            e = self.edges[edx]
+            if e is None:continue
+            dtl.plot_edges(self.points.get_points(*e),ax)
+        for smp in self.simplices:dtl.plot_polygon(list(smp),ax)
+        for gst in self.ghostbnds:dtl.plot_edges(gst,ax,lw = 5.0)
         return ax
 
     def plot_xy(self,ax = None):
@@ -35,7 +33,8 @@ class piecewise_linear_complex:
             if eg is None:continue
             veg = self.points.get_points(*eg)
             ax = dtl.plot_edges_xy(veg,ax)
-        for key in self.covers:ax = self.covers[key].plot_xy(ax)
+        for smp in self.simplices:dtl.plot_polygon_xy(list(smp),ax)
+        for gst in self.ghostbnds:dtl.plot_edges_xy(gst,ax,lw = 5.0)
         return ax
 
     def __init__(self):
@@ -107,12 +106,12 @@ class piecewise_linear_complex:
         if edex in self.eg_poly_lookup:
             poly = self.eg_poly_lookup[edex]
             for pygn in poly:
-                eb = pygn[0]
+                eb,ibs = pygn
                 if edex in eb:
                     epdex = eb.index(edex)
                     replace_edge(eb,epdex,ne1dex,ne2dex)
                 else:
-                    for ib in pygn[1]:
+                    for ib in ibs:
                         if edex in ib:
                             ipdex = ib.index(edex)
                             replace_edge(ib,ipdex,ne1dex,ne2dex)
@@ -148,12 +147,10 @@ class piecewise_linear_complex:
     def polygon_frompoints(self,ebnd,*ibnds):
         plcxs = self.add_points(*ebnd)
         ebnddexes = self.add_edges(*plcxs)
-        ebnddexes.append(self.add_edge(plcxs[-1],plcxs[0]))
         ibnddexes = []
         for ibnd in ibnds:
             plcxs = self.add_points(*ibnd)
             hedgedexes = self.add_edges(*plcxs)
-            hedgedexes.append(self.add_edge(plcxs[-1],plcxs[0]))
             ibnddexes.append(hedgedexes)
         return self.polygon_fromedges(ebnddexes,*ibnddexes)
 
@@ -176,21 +173,21 @@ class piecewise_linear_complex:
     # given a point p, return the index of a polygon 
     # which contains it or None if none exists
     def find_polygon(self,p):
-      for px in range(self.polygoncount):
-          poly = self.polygons[px]
-          if poly is None:continue
-          ebnd,ibnds = poly
-          ebnd = [self.edges[e][0] for e in ebnd]
-          ebnd = self.points.get_points(*ebnd)
-          if dpv.inside(p,ebnd):
-              isin = True
-              for ib in ibnds:
-                  ib = [self.edges[e][0] for e in ib]
-                  ib = self.points.get_points(*ib)
-                  if dpv.inside(p,ib):
-                      isin = False
-                      break
-              if isin:return px
+        for px in range(self.polygoncount):
+            poly = self.polygons[px]
+            if poly is None:continue
+            ebnd,ibnds = poly
+            ebnd = [self.edges[e][0] for e in ebnd]
+            ebnd = self.points.get_points(*ebnd)
+            if dpv.inside(p,ebnd):
+                isin = True
+                for ib in ibnds:
+                    ib = [self.edges[e][0] for e in ib]
+                    ib = self.points.get_points(*ib)
+                    if dpv.inside(p,ib):
+                        isin = False
+                        break
+                if isin:return px
 
     def add_polyhedra(self,*polyhedra):
         return
@@ -232,6 +229,33 @@ class piecewise_linear_complex:
                 unfinished.append(ne1)
                 unfinished.append(ne2)
 
+    def chew1_subdivide_polygon(self,px):
+        elengs = self.edge_lengths()
+
+        poly = self.polygons[px]
+        polyes = poly[0][:]
+        for ib in poly[1]:polyes += ib[:]
+
+        es,erng = self.edges,range(self.edgecount)
+        unfinished = [es[x] for x in erng if x in polyes]
+        hmin = min([elengs[x] for x in elengs if x in unfinished])
+        print('hmin:',hmin)
+
+        while unfinished:
+            unfin = unfinished.pop(0)
+            if unfin is None:continue
+            ex1,ex2 = unfin
+            ep1,ep2 = self.points.get_points(ex1,ex2)
+            eleng = elengs[unfin]
+            m = 1
+            while eleng/m > sqrt3*hmin:m += 1
+            divpts = dpr.point_line(ep1,ep2,m)[1:-1]
+            curr = ex1
+            for dpt in divpts:
+                ne1,ne2 = self.split_edge(curr,ex2,dpt)
+                curr = self.points.find_point(dpt)
+        return hmin
+
     # force edges to abide by chew1 precondition on edge lengths
     def chew1_subdivide_edges(self):
         elengs = self.edge_lengths()
@@ -245,24 +269,70 @@ class piecewise_linear_complex:
             if unfin is None:continue
             ex1,ex2 = unfin
             ep1,ep2 = self.points.get_points(ex1,ex2)
-
             eleng = elengs[unfin]
             m = 1
             while eleng/m > sqrt3*hmin:m += 1
             divpts = dpr.point_line(ep1,ep2,m)[1:-1]
-
             curr = ex1
             for dpt in divpts:
                 ne1,ne2 = self.split_edge(curr,ex2,dpt)
                 curr = self.points.find_point(dpt)
-
         elengs = self.edge_lengths()
         hmin = min([elengs[x] for x in elengs])
-        self.hmin = hmin
+        return hmin
 
     def tetrahedralize(self):
         tetra = dth.tetrahedralization(self)
         self.covers['tetra'] = tetra
+
+# BEGIN HERE
+# MUST TRIANGULATE POLYGONS ONE BY ONE, 
+# PERMITTING NON XY TRI.TION AS WELL!!
+
+    # given the index of an edge, return vectors for its endpoints
+    # or return None if the edge is missing
+    def get_edge_points(self,ex):
+        edge = self.edges[ex]
+        if edge is None:return
+        return self.points.get_points(*edge)
+
+    # given a loop of edge indices, return a loop of vectors
+    # which represent that edgeloop
+    def get_edgeloop_points(self,eloop):
+        ps,es = self.points.ps,self.edges
+        ploop = tuple((ps[es[elx][0]] for elx in eloop))
+        return ploop
+
+    # given the index of a polygon, return its representation
+    # using a set of vectors, or None if the polygon is missing
+    def get_polygon_points(self,px):
+        poly = self.polygons[px]
+        if poly is None:return
+        eb,ibs = poly
+        ebps  = self.get_edgeloop_points(eb)
+        ibsps = tuple((self.get_edgeloop_points(ib) for ib in ibs))
+        return (ebps,ibsps)
+
+    # iterate over each polygon, adding simplices which properly cover
+    # a simplex is a tuple of indices pointing to self.points
+    def triangulate(self):
+        self.subdivide_edges()
+        smps,bnds = [],[]
+        for x in range(self.polygoncount):
+            hmin = self.chew1_subdivide_polygon(x)
+            polypts = self.get_polygon_points(x)
+            #polysmp = dtg2.triangulate(*polypts,hmin = hmin)
+            polysmp,polybnd = dtg2.triangulate(*polypts,hmin = hmin)
+            smps.extend(polysmp)
+            bnds.extend(polybnd)
+        self.simplices = smps
+        self.ghostbnds = bnds
+
+    def pelt(self):
+        s = dmo.model()
+        for smp in self.simplices:
+            s._triangle(*smp)
+        return s
 
     def triangulate_xy(self):
         tri = dtg.triangulation(self)

@@ -1,7 +1,6 @@
 import dilap.core.tools as dpr
-
-import dp_vector as dpv
-import dp_bbox as dpb
+import dilap.core.vector as dpv
+import dilap.core.bbox as dpb
 
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -46,11 +45,11 @@ def plot_edges_xy(points,ax = None,mk = None,lw = 1.0):
     ax.plot(xs,ys,marker = mk,lw = lw)
     return ax
 
-def plot_edges(points,ax = None):
+def plot_edges(points,ax = None,lw = 1.0):
     if ax is None:ax = plot_axes()
     pts = [p.to_tuple() for p in points]
     xs,ys,zs = zip(*pts)
-    ax.plot(xs,ys,zs,marker = '+')
+    ax.plot(xs,ys,zs,marker = '+',lw = lw)
     return ax
 
 def plot_polygon_xy(points,ax = None,center = False,lw = 1.0):

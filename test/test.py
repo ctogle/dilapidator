@@ -1,14 +1,13 @@
+import dilap.core.vector as dpv
 import dilap.construct as dlc
 import dilap.destruct as dld
 import dilap.core.tools as dpr
 import dilap.core.profiler as prf
 
 import dilap.core.lsystem as pls
-import dilap.core.tmesh as tms
+#import dilap.core.tmesh as tms
 
 import dilap.mesh.piecewisecomplex as pwc
-
-import dp_vector as dpv
 
 import matplotlib.pyplot as plt
 import pdb
@@ -131,12 +130,14 @@ def triang():
     plc.add_edges(*edges)
     plc.add_polygons(*polygons)
     plc.add_polyhedra(*polyhedra)
-    plc.triangulate_xy()
+    #plc.triangulate_xy()
+    plc.triangulate()
 
-    ax = plc.plot_xy()
+    #ax = plc.plot_xy()
+    ax = plc.plot()
     plt.show()
 
-    pelt = plc.covers['tri'].pelt()
+    #pelt = plc.covers['tri'].pelt()
 
     '''#
     pelt = pwc.model_plc(polygons = polygons)

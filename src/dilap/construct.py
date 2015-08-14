@@ -1,6 +1,8 @@
+import dilap.core.vector as dpv
 import dilap.core.uinfo as di
 import dilap.core.sgraph as dsg
 import dilap.core.model as dm
+import dilap.core.context as dgc
 import dilap.io.io as dio
 import dilap.primitive.cube as dcu
 import dilap.primitive.cone as dco
@@ -9,13 +11,10 @@ import dilap.primitive.wall as dw
 import dilap.primitive.floor as df
 import dilap.primitive.pipe as dp
 import dilap.primitive.road as dr
-import dilap.generate.context as dgc
 import dilap.generate.landscape as dls
 import dilap.generate.lot as dlot
-import dilap.generate.street as dstr
+#import dilap.generate.street as dstr
 import dilap.generate.continent as dct
-
-import dp_vector as dpv
 
 import pdb
 
@@ -112,9 +111,9 @@ def lot(l = 20,w = 40,io = 'obj',dilaps = []):
     cx = dlot.lot(l,w,iotype = io,dilapidors = dilaps)
     return cx
 
-def street(io = 'obj',dilaps = []):
-    cx = dstr.street(iotype = io,dilapidors = dilaps)
-    return cx
+#def street(io = 'obj',dilaps = []):
+#    cx = dstr.street(iotype = io,dilapidors = dilaps)
+#    return cx
 
 def continent(io = 'obj',dilaps = []):
     cx = dct.continent(iotype = io,dilapidors = dilaps)
@@ -145,7 +144,7 @@ contextualizer = {
     'context':context,
     'landscape':landscape,
     'lot':lot,
-    'street':street,
+    #'street':street,
     'continent':continent,
 }
 

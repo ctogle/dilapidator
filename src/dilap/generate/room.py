@@ -1,4 +1,5 @@
 import dilap.core.base as db
+import dilap.core.vector as dpv
 import dilap.core.tools as dpr
 import dilap.core.sgraph as dsg
 import dilap.core.context as dgc
@@ -8,8 +9,6 @@ import dilap.primitive.cone as dco
 import dilap.primitive.cylinder as dcyl
 import dilap.primitive.wall as dw
 import dilap.primitive.floor as df     
-
-import dp_vector as dpv
 
 # replacing the functionality of floor_sector from make_places
 class room(dgc.context):

@@ -1,10 +1,9 @@
 import dilap.core.base as db
+import dilap.core.vector as dpv
 import dilap.core.tools as dpr
 import dilap.core.sgraph as dsg
 import dilap.core.context as dgc
 import dilap.primitive.cube as dcu
-
-import dp_vector as dpv
 
 import random as rm
 

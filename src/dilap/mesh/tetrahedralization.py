@@ -1,7 +1,6 @@
-import dilap.core.mesh.tools as dtl
-import dilap.core.mesh.pointset as dps
-
-import dp_vector as dpv
+import dilap.core.vector as dpv
+import dilap.mesh.tools as dtl
+import dilap.mesh.pointset as dps
                       
 import matplotlib.pyplot as plt
 import pdb

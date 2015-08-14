@@ -1,10 +1,9 @@
 import dilap.core.base as db
 import dilap.core.tools as dpr
 import dilap.core.model as dmo
+import dilap.core.vector as dpv
 import dilap.primitive.door as pd
 import dilap.primitive.window as pw
-
-import dp_vector as dpv
 
 import pdb
 

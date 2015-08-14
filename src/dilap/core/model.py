@@ -1,10 +1,9 @@
 import dilap.core.base as db
 import dilap.core.tools as dpr
-
-import dp_vector as dpv
-import dp_quaternion as dpq
-import dp_bbox as dbb
-import dp_ray as dr
+import dilap.core.vector as dpv
+import dilap.core.quaternion as dpq
+import dilap.core.bbox as dbb
+import dilap.core.ray as dr
 
 import numpy,pdb
 

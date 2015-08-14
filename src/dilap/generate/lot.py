@@ -1,8 +1,7 @@
+import dilap.core.vector as dpv
+import dilap.core.quaternion as dpq
 import dilap.core.context as dgc
 import dilap.generate.house as dlh
-
-import dp_vector as dpv
-import dp_quaternion as dpq
 
 class lot(dgc.context):
 

@@ -1,11 +1,10 @@
+import dilap.core.vector as dpv
 import dilap.core.model as dmo
 import dilap.core.tools as dpr
 
 import dilap.mesh.pointset as dps
 import dilap.mesh.tools as dtl
 import dilap.mesh.pointset as dps
-
-import dp_vector as dpv
 
 import matplotlib.pyplot as plt
 import math
@@ -72,17 +71,12 @@ class triangulation:
         ekey = (u,v)
         if ekey in self.eg_tri_lookup:
             tri = self.eg_tri_lookup[(u,v)]
-            #if tri is None:return
-            if tri is None:pass
-            else:
+            if not tri is None:
                 triv = [x for x in self.triangles[tri] if not x in ekey][0]
                 return triv
         if ekey in self.eg_ghost_lookup:
             tri = self.eg_ghost_lookup[(u,v)]
-            #if tri is None:return
-            if tri is None:pass
-            else:return self.ghosts[tri][2]
-        #else:return
+            if not tri is None:return self.ghosts[tri][2]
 
     # return vertices v,w such that uvw
     # is a positively oriented triangle
@@ -126,14 +120,14 @@ class triangulation:
 
     # generate tetrahedralization of the plc
     def cover(self,plc):
-        plc.chew1_subdivide_edges()
+        hmin = plc.chew1_subdivide_edges()
         plc.subdivide_edges()
         self.initial_cover(plc)
         self.cover_points(plc)
         #self.cover_edges(plc)
         self.cover_polygons(plc)
         self.cover_edges(plc)
-        self.chew1_refine(plc,self.plc.hmin)
+        self.chew1_refine(plc,hmin)
         #self.ruppert_refine(plc)
 
     def cover_points(self,plc):

@@ -1,4 +1,5 @@
 import dilap.core.base as db
+import dilap.core.vector as dpv
 import dilap.core.tools as dpr
 import dilap.core.sgraph as dsg
 import dilap.core.context as dgc
@@ -10,8 +11,6 @@ import dilap.primitive.wall as dw
 import dilap.primitive.floor as df
 import dilap.primitive.road as dr
 import dilap.generate.floorplan as dfp
-
-import dp_vector as dpv
 
 import random
 

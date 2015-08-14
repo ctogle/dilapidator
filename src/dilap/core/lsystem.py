@@ -1,11 +1,10 @@
 import dilap.core.base as db
+import dilap.core.vector as dpv
+import dilap.core.quaternion as dpq
 import dilap.core.tools as dpr
 import dilap.core.model as dmo
 
-import dilap.core.tmesh as dtm
-
-import dp_vector as dpv
-import dp_quaternion as dpq
+#import dilap.core.tmesh as dtm
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D

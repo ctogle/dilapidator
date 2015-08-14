@@ -1,9 +1,7 @@
 import dilap.core.base as db
-
+import dilap.core.vector as dpv
 import dilap.core.tools as dpr
 import dilap.core.lsystem as dls
-
-import dp_vector as dpv
 
 import matplotlib.pyplot as plt
 import random as rm

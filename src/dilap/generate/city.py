@@ -1,13 +1,11 @@
-import dilap.core.context as dgc
+import dilap.core.vector as dpv
+import dilap.core.quaternion as dpq
 import dilap.core.tools as dpr
+import dilap.core.context as dgc
 import dilap.generate.landscape as dls
 import dilap.generate.infrasystem as gif
 import dilap.generate.lot as dlt
-
 import dilap.primitive.cube as dcu
-
-import dp_vector as dpv
-import dp_quaternion as dpq
 
 class city(dgc.context):
 

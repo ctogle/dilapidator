@@ -1,8 +1,7 @@
+import dilap.core.vector as dpv
 import dilap.core.tools as dpr
-import dilap.core.mesh.tools as dtl
 import dilap.core.lsystem as dls
-
-import dp_vector as dpv
+import dilap.mesh.tools as dtl
 
 import matplotlib.pyplot as plt
 import random as rm

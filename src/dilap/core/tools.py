@@ -1,8 +1,7 @@
 import dilap.core.base as db
-
-import dp_vector as dpv
-import dp_quaternion as dpq
-import dp_ray as dr
+import dilap.core.vector as dpv
+import dilap.core.quaternion as dpq
+import dilap.core.ray as dr
 
 import math,numpy,os,appdirs,pdb
 import matplotlib.pyplot as plt

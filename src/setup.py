@@ -1,19 +1,18 @@
 from distutils.core import setup
+from distutils.extension import Extension
 from Cython.Build import cythonize
+from Cython.Distutils import build_ext
 
 import os,numpy,appdirs
 
-from distutils.extension import Extension
-from Cython.Distutils import build_ext
-
-#from setuptools import setup,Extension
-
 core_modules = []
 ext_modules = [
-    Extension('dp_vector',['cython/dp_vector.c']), 
-    Extension('dp_quaternion',['cython/dp_quaternion.c']), 
-    Extension('dp_ray',['cython/dp_ray.c']), 
-    Extension('dp_bbox',['cython/dp_bbox.c']), 
+    Extension('dilap.core.vector'     ,['dilap/core/vector.pyx']), 
+    Extension('dilap.core.quaternion' ,['dilap/core/quaternion.pyx']), 
+    Extension('dilap.core.bbox'       ,['dilap/core/bbox.pyx']), 
+    Extension('dilap.core.ray'        ,['dilap/core/ray.pyx']), 
+    Extension('dilap.core.pointset'   ,['dilap/core/pointset.pyx']), 
+    Extension('dilap.mesh.triangulate',['dilap/mesh/triangulate.pyx']), 
             ]
 
 resourcesdir = os.path.join(appdirs.user_data_dir(),'dilap_resources')
@@ -48,9 +47,10 @@ setup(
     packages = pkgs, 
     py_modules = core_modules, 
     ext_modules = ext_modules, 
+    cmdclass = {'build_ext': build_ext},
     include_dirs = [numpy.get_include()], 
     data_files=[(resourcesdir,resourcefils)], 
-    )
+)
 
 
 

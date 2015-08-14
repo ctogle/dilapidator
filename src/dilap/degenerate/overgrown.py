@@ -1,12 +1,11 @@
-import dilap.core.dilapidor as dd
+import dilap.core.vector as dpv
+import dilap.core.ray as dr
 import dilap.core.model as dmo
+import dilap.core.dilapidor as dd
 import dilap.primitive.cylinder as dcyl
 import dilap.primitive.cone as dco
 import dilap.primitive.vine as dv
 import dilap.primitive.grass as dg
-
-import dp_vector as dpv
-import dp_ray as dr
 
 import pdb,numpy,random
 

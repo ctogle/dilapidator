@@ -1,12 +1,11 @@
 import dilap.core.base as db
+import dilap.core.vector as dpv
 import dilap.core.model as dmo
 import dilap.core.tools as dpr
 import dilap.core.context as dgc
 import dilap.primitive.cube as dcu
 import dilap.primitive.stairs as ds
 import dilap.primitive.wall as dw
-
-import dp_vector as dpv
 
 class shaft(dgc.context):
 

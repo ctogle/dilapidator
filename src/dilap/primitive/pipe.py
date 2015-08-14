@@ -1,10 +1,8 @@
 import dilap.core.model as dmo
 import dilap.core.tools as dpr
-
+import dilap.core.vector as dpv
+import dilap.core.quaternion as dq
 import dilap.primitive.cube as dcu
-
-import dp_vector as dpv
-import dp_quaternion as dq
 
 import pdb,random,numpy
 

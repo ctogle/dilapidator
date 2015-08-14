@@ -1,7 +1,6 @@
 import dilap.core.model as dmo
 import dilap.core.tools as dpr
-
-import dp_vector as dpv
+import dilap.core.vector as dpv
 
 import pdb,numpy,random
 

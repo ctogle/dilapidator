@@ -1,4 +1,6 @@
 import dilap.core.base as db
+import dilap.core.vector as dpv
+import dilap.core.bbox as dbb
 import dilap.core.tools as dpr
 import dilap.core.sgraph as dsg
 import dilap.core.context as dgc
@@ -11,9 +13,6 @@ import dilap.primitive.floor as df
 import dilap.generate.room as dgr
 import dilap.generate.shaft as dsh
 import dilap.generate.roof as drf
-
-import dp_vector as dpv
-import dp_bbox as dbb
 
 import random as rm
 

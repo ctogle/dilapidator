@@ -1,6 +1,8 @@
+import dilap.core.vector as dpv
+import dilap.core.quaternion as dpq
 import dilap.core.tools as dpr
 import dilap.core.context as dgc
-import dilap.core.mesh.tools as dtl
+import dilap.mesh.tools as dtl
 import dilap.infrastructure.graphregion as grg
 import dilap.infrastructure.infragraph as ifg
 import dilap.generate.landscape as dls
@@ -8,9 +10,6 @@ import dilap.generate.city as dcy
 
 import dilap.generate.lot as dlt
 import dilap.primitive.cylinder as dcyl
-
-import dp_vector as dpv
-import dp_quaternion as dpq
 
 import matplotlib.pyplot as plt
 
@@ -71,8 +70,10 @@ class continent(dgc.context):
         #lscape = dls.landscape(controls = tpts,holes = hpts,regions = rpts)
         #lscape.generate(worn)
         #self._consume(lscape.generate(worn))
-        tpelt = self.igraph.tplc.covers['tri'].pelt()
-        rpelt = self.igraph.rplc.covers['tri'].pelt()
+        #tpelt = self.igraph.tplc.covers['tri'].pelt()
+        #rpelt = self.igraph.rplc.covers['tri'].pelt()
+        tpelt = self.igraph.tplc.pelt()
+        rpelt = self.igraph.rplc.pelt()
         tnode = self._node_wrap(tpelt)
         rnode = self._node_wrap(rpelt)
         self._nodes_to_graph(tnode,rnode)

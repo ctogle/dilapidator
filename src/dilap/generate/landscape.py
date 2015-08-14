@@ -1,19 +1,18 @@
 import dilap.core.base as db
+import dilap.core.vector as dpv
+import dilap.core.ray as dr
+import dilap.core.bbox as dbb
 import dilap.core.tools as dpr
 import dilap.core.sgraph as dsg
 import dilap.core.context as dgc
-import dilap.core.mesh as dms
+#import dilap.core.mesh as dms
 import dilap.io.io as dio
 import dilap.primitive.cube as dcu
 import dilap.primitive.terrain as dt
 
-import dilap.core.tmesh as dtm
-import dilap.core.mesh.piecewisecomplex as pwc
-import dilap.core.mesh.tools as dtl
-
-import dp_vector as dpv
-import dp_ray as dr
-import dp_bbox as dbb
+#import dilap.core.tmesh as dtm
+import dilap.mesh.piecewisecomplex as pwc
+import dilap.mesh.tools as dtl
 
 import random,pdb
 import matplotlib.pyplot as plt

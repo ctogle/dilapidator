@@ -61,9 +61,17 @@ cdef class vector:
     cpdef vector linterpolate(self,vector other,float delta)
     cpdef vector in_basis(self,vector b1,vector b2,vector b3)
 
+cdef vector xhat
+cdef vector yhat
+cdef vector zhat
+cdef vector nxhat
+cdef vector nyhat
+cdef vector nzhat
+
 cdef int find_closest_xy_c(vector one, list bunch, int bcnt, float close_enough)
 cdef float distance_xy_c(vector v1, vector v2)
 cdef float distance_c(vector v1, vector v2)
+cdef float distance_to_edge_c(vector pt, vector e1, vector e2, vector nm)
 cdef float dot_c(vector v1, vector v2)
 cdef void translate_coords_x_c(list coords, float tv)
 cdef void translate_coords_y_c(list coords, float tv)
@@ -73,11 +81,14 @@ cdef void scale_coords_c(list coords, vector t)
 cdef void rotate_x_coords_c(list coords, float ang)
 cdef void rotate_y_coords_c(list coords, float ang)
 cdef void rotate_z_coords_c(list coords, float ang)
-cdef float angle_from_xaxis_xy_c(vector v)
-cdef float angle_from_xaxis_c(vector v)
-cdef float angle_between_xy_c(vector v1, vector v2)
-cdef float angle_between_c(vector v1, vector v2)
-cdef float signed_angle_between_c(vector v1, vector v2, vector n)
+cdef list edge_normals_xy_c(list verts)
+cdef float distance_to_border_xy_c(vector pt,list border)
+#cdef float angle_from_xaxis_xy_c(vector v)
+#cdef float angle_from_xaxis_c(vector v)
+#cdef float angle_between_xy_c(vector v1, vector v2)
+#cdef float angle_between_c(vector v1, vector v2)
+#cdef float signed_angle_between_c(vector v1, vector v2, vector n)
+#cdef float signed_angle_between_xy_c(vector v1, vector v2)
 
 cdef vector2d flip2d_c(vector2d f)
 

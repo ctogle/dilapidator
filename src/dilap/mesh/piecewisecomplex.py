@@ -50,6 +50,9 @@ class piecewise_linear_complex:
         self.eg_lookup = {}
         self.eg_poly_lookup = {}
 
+        self.simplices = []
+        self.ghostbnds = []
+
     def add_points(self,*nps):
         pst = self.points.pcnt
         self.points.add_points(*nps)
@@ -78,9 +81,11 @@ class piecewise_linear_complex:
     # set all data to do with this edge to None
     # return the index of the deleted edge
     def delete_edge(self,u,v):
-        edex = self.eg_lookup[(u,v)]
+        ekey = (u,v)
+        if not ekey in self.eg_lookup:return
+        edex = self.eg_lookup[ekey]
         self.edges[edex] = None
-        self.eg_lookup[(u,v)] = None
+        self.eg_lookup[ekey] = None
         return edex
 
     # u,v likely form an existing edge;
@@ -208,12 +213,18 @@ class piecewise_linear_complex:
 
     # given v1,v2, the positions of the endpoints of an edge, 
     # return True if locally delaunay
-    def locally_delaunay_edge(self,v1,v2):
+    #def locally_delaunay_edge(self,v1,v2):
+    def locally_delaunay_edge(self,u,v):
+        #
+        # take all the polygons containing u,v...
+        # does every polygon need to ensure unique edges?!?!
+        #
+        v1,v2 = self.points.get_points(u,v)
         cc = dpv.midpoint(v1,v2)
         cr = dpv.distance(cc,v1)
         for p in self.points:
             if p.near(v1) or p.near(v2):continue
-            if dpr.inside_circle(p,cc,cr,(dpv.zero(),dpv.zhat)):
+            if dpr.inside_circle(p,cc,cr):
                 return False
         return True
 
@@ -223,8 +234,7 @@ class piecewise_linear_complex:
         while unfinished:
             unfin = unfinished.pop(0)
             if unfin is None:continue
-            v1,v2 = self.points.get_points(*unfin)
-            if not self.locally_delaunay_edge(v1,v2):
+            if not self.locally_delaunay_edge(*unfin):
                 ne1,ne2 = self.split_edge(*unfin)
                 unfinished.append(ne1)
                 unfinished.append(ne2)
@@ -253,7 +263,7 @@ class piecewise_linear_complex:
             curr = ex1
             for dpt in divpts:
                 ne1,ne2 = self.split_edge(curr,ex2,dpt)
-                curr = self.points.find_point(dpt)
+                curr = ne1[1]
         return hmin
 
     # force edges to abide by chew1 precondition on edge lengths
@@ -276,7 +286,7 @@ class piecewise_linear_complex:
             curr = ex1
             for dpt in divpts:
                 ne1,ne2 = self.split_edge(curr,ex2,dpt)
-                curr = self.points.find_point(dpt)
+                curr = ne1[1]
         elengs = self.edge_lengths()
         hmin = min([elengs[x] for x in elengs])
         return hmin
@@ -321,7 +331,6 @@ class piecewise_linear_complex:
         for x in range(self.polygoncount):
             hmin = self.chew1_subdivide_polygon(x)
             polypts = self.get_polygon_points(x)
-            #polysmp = dtg2.triangulate(*polypts,hmin = hmin)
             polysmp,polybnd = dtg2.triangulate(*polypts,hmin = hmin)
             smps.extend(polysmp)
             bnds.extend(polybnd)

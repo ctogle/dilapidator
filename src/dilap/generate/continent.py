@@ -70,15 +70,18 @@ class continent(dgc.context):
         #lscape = dls.landscape(controls = tpts,holes = hpts,regions = rpts)
         #lscape.generate(worn)
         #self._consume(lscape.generate(worn))
-        #tpelt = self.igraph.tplc.covers['tri'].pelt()
-        #rpelt = self.igraph.rplc.covers['tri'].pelt()
-        tpelt = self.igraph.tplc.pelt()
-        rpelt = self.igraph.rplc.pelt()
-        tnode = self._node_wrap(tpelt)
-        rnode = self._node_wrap(rpelt)
-        self._nodes_to_graph(tnode,rnode)
+
+        #tpelt = self.igraph.tplc.pelt()
+        #rpelt = self.igraph.rplc.pelt()
+        #tnode = self._node_wrap(tpelt)
+        #rnode = self._node_wrap(rpelt)
+        #self._nodes_to_graph(tnode,rnode)
         #self._nodes_to_graph(tnode)
         #self._nodes_to_graph(rnode)
+
+        opelt = dtl.box().pelt()
+        onode = self._node_wrap(opelt)
+        self._nodes_to_graph(onode)
 
         # add water models to scenegraph
         '''#

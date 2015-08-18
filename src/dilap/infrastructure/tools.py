@@ -8,15 +8,15 @@ import random as rm
 import pdb
 
 def adist(a1,a2):
-    da = dpr.clamp_periodic(a1-a2,0,360)
+    da = dpr.clamp_periodic(a1-a2,0.0,360.0)
     return da if da < 180 else 360 - da
 
 def signedadist(a1,a2):
     return a1-a2 if a1 > a2 else a2-a1
 
 def apply_err(x,e,m):
-    xpe = dpr.clamp_periodic(x+e,0,360)
-    xme = dpr.clamp_periodic(x-e,0,360)
+    xpe = dpr.clamp_periodic(x+e,0.0,360.0)
+    xme = dpr.clamp_periodic(x-e,0.0,360.0)
     da1,da2 = adist(xpe,m),adist(xme,m)
     if da1 > da2:return xpe
     else:return xme

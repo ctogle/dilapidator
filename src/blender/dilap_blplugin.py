@@ -105,7 +105,7 @@ class dilap_purge(bpy.types.Operator):
 # create material from texture image
 def material_image(name,texture):
     mat = bpy.data.materials.new(name)
-    imgpath = dpr.resource_path(texture)
+    imgpath = db.resource_path(texture)
     tex = bpy.data.textures.new(name,type = 'IMAGE')
     tex.image = bpy.data.images.load(imgpath)
     tex.use_alpha = True

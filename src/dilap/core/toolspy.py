@@ -352,6 +352,7 @@ def offset_faces(faces,offset):
             fa[tfdx] += offset
     return faces
 
+'''#
 # keep the value val bounded by f and c by flooring
 def clamp(v,f,c):
     if v < f: return f
@@ -375,5 +376,6 @@ def resource_path(res = None):
     if res is None:rpath = res_path[:]
     else:rpath = os.path.join(res_path,res)
     return rpath
+'''#
 
 

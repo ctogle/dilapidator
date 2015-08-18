@@ -1,4 +1,3 @@
-#imports
 # cython: profile=True
 #cimport cython
 cimport dilap.core.quaternion as dpq
@@ -501,9 +500,11 @@ cpdef vector2d project_coords(list coords, vector axis):
     return project_coords_c(coords,axis)
 
 cdef float distance_to_edge_c(vector pt,vector e1,vector e2,vector nm):
-    eproj = project_coords_c([e1,e2],nm)
-    pproj = project_coords_c([pt],nm)
-    return abs(eproj.x - pproj.x)
+    cdef float eproj11 = e1.dot(nm)
+    cdef float eproj12 = e2.dot(nm)
+    cdef float pproj   = pt.dot(nm)
+    cdef vector2d eproj = vector2d(min(eproj11,eproj12),max(eproj11,eproj12))
+    return abs(eproj.x - pproj)
 
 cpdef float distance_to_edge(vector pt,vector e1,vector e2,vector nm):
     return distance_to_edge_c(pt,e1,e2,nm)
@@ -886,129 +887,18 @@ cdef int find_closest_xy_c(vector one,list bunch,int bcnt,float close_enough):
 cpdef int find_closest_xy(vector one,list bunch,int bcnt,float close_enough):
     return find_closest_xy_c(one,bunch,bcnt,close_enough)
 
-cdef float angle_from_xaxis_xy_c(vector v):
-    cdef float oldz = v.z
-    cdef float angle = angle_from_xaxis_c(v)
-    v.z = oldz
-    return angle
-
-cpdef float angle_from_xaxis_xy(vector v):
-    return angle_from_xaxis_xy_c(v)
-
-#cdef xhat = vector(1,0,0)
-#cdef yhat = vector(0,1,0)
-#cdef zhat = vector(0,0,1)
+cdef xhat = vector(1,0,0)
+cdef yhat = vector(0,1,0)
+cdef zhat = vector(0,0,1)
+cdef nxhat = vector(-1,0,0)
+cdef nyhat = vector(0,-1,0)
+cdef nzhat = vector(0,0,-1)
 xhat  = vector( 1, 0, 0)
 yhat  = vector( 0, 1, 0)
 zhat  = vector( 0, 0, 1)
 nxhat = vector(-1, 0, 0)
 nyhat = vector( 0,-1, 0)
 nzhat = vector( 0, 0,-1)
-
-cdef float angle_between_xy_c(vector v1, vector v2):
-    cdef float alpha1 = angle_from_xaxis_xy_c(v1)
-    cdef float alpha2 = angle_from_xaxis_xy_c(v2)
-    #if alpha2 - alpha1 > np.pi/2.0:
-    #    print 'arpha', v1, v2, alpha1, alpha2
-    return alpha2 - alpha1
-
-cpdef float angle_between_xy(vector v1, vector v2):
-    return angle_between_xy_c(v1,v2)
-
-cdef float angle_between_c(vector v1, vector v2):
-    cdef vector n1 = v1.copy().normalize()
-    cdef vector n2 = v2.copy().normalize()
-    cdef float ang = np.arccos(dot_c(n1,n2))
-    return ang
-
-cpdef float angle_between(vector v1, vector v2):
-    return angle_between_c(v1,v2)
-
-cdef float signed_angle_between_xy_c(vector v1,vector v2):
-    cdef vector n1 = v1.copy().xy().normalize()
-    cdef vector n2 = v2.copy().xy().normalize()
-    cdef vector vn
-    cdef float n12dot = dot_c(n1,n2)
-    cdef float ang = 0.0
-    if   abs(n12dot - 1.0) < 0.000001:return ang
-    elif abs(n12dot + 1.0) < 0.000001:return np.pi
-    else:ang = np.arccos(dot_c(n1,n2))
-    vn = n1.cross(n2)
-    if vn.dot(zhat) < 0.0:ang *= -1.0
-    return ang                    
-
-cpdef float signed_angle_between_xy(vector v1,vector v2):
-    return signed_angle_between_xy_c(v1,v2)
-
-cdef float signed_angle_between_c(vector v1,vector v2,vector n):
-    cdef vector n1 = v1.copy().normalize()
-    cdef vector n2 = v2.copy().normalize()
-    cdef float ang = np.arccos(dot_c(n1,n2))
-    cdef vector vn = n1.cross(n2)
-    if vn.dot(n) < 0.0:ang *= -1.0
-    return ang                    
-
-cpdef float signed_angle_between(vector v1,vector v2,vector n):
-    return signed_angle_between_c(v1,v2,n)
-
-cdef float angle_from_xaxis_c(vector v):
-    cdef vector nv = v.copy().normalize()
-    cdef float xproj = dot_c(nv,xhat)
-    cdef float yproj = dot_c(nv,yhat)
-    cdef float ang
-    #if xproj == 2.0/np.pi or xproj == 2.0/(3.0*np.pi):
-    #    ang = np.arccos(yproj)
-    #    if xproj < 0.0: ang = 2.0*np.pi - ang
-    #else:
-    #    ang = np.arccos(xproj)
-    #    if yproj < 0.0: ang = 2.0*np.pi - ang
-    ang = np.arccos(xproj)
-    if yproj < 0.0: ang = 2.0*np.pi - ang
-    return ang
-
-cpdef float angle_from_xaxis(vector v):
-    return angle_from_xaxis_c(v)
-
-cpdef bint test_afxa():
-    cdef vector v1 = vector(10,0,0)
-    cdef vector v2 = vector(10,10,0)
-    cdef vector v3 = vector(10,10,10)
-    cdef vector v4 = vector(-10,10,0)
-    cdef vector v5 = vector(-10,0,0)
-    cdef vector v6 = vector(-10,-10,0)
-    cdef vector v7 = vector(0,-10,0)
-    cdef vector v8 = vector(10,-10,0)
-    t1 = str(angle_from_xaxis_c(v1))
-    t2 = str(angle_from_xaxis_c(v2))
-    t3 = str(angle_from_xaxis_c(v3))
-    t4 = str(angle_from_xaxis_c(v4))
-    t5 = str(angle_from_xaxis_c(v5))
-    t6 = str(angle_from_xaxis_c(v6))
-    t7 = str(angle_from_xaxis_c(v7))
-    t8 = str(angle_from_xaxis_c(v8))
-    print 'ANGLETEST'
-    print '\t'.join([t1,t2,t3,t4,t5,t6,t7,t8])
-
-# consider xy project of polygon corners and xy projection of pt
-# return 0 is pt is outside of polygon in this projection
-cpdef bint inside(vector pt, list corners):
-    poly = [(c.x,c.y) for c in corners]
-    x,y = pt.x,pt.y
-    n = len(poly)
-    ins = False
-
-    p1x,p1y = poly[0]
-    for i in range(n+1):
-        p2x,p2y = poly[i % n]
-        if y > min(p1y,p2y):
-            if y <= max(p1y,p2y):
-                if x <= max(p1x,p2x):
-                    if p1y != p2y:
-                        xints = (y-p1y)*(p2x-p1x)/(p2y-p1y)+p1x
-                    if p1x == p2x or x <= xints:
-                        ins = not ins
-        p1x,p1y = p2x,p2y
-    return ins
 
 cdef list line_normals_c(list verts):
     cdef list norms = []

@@ -7,10 +7,11 @@ import os,numpy,appdirs
 
 core_modules = []
 ext_modules = [
-    Extension('dilap.core.vector'     ,['dilap/core/vector.pyx']), 
-    Extension('dilap.core.quaternion' ,['dilap/core/quaternion.pyx']), 
+    Extension('dilap.core.vector'     ,['dilap/core/vector.pyx','dilap/core/vector.pxd']), 
+    Extension('dilap.core.quaternion' ,['dilap/core/quaternion.pyx','dilap/core/quaternion.pxd']), 
     Extension('dilap.core.bbox'       ,['dilap/core/bbox.pyx']), 
     Extension('dilap.core.ray'        ,['dilap/core/ray.pyx']), 
+    Extension('dilap.core.tools'      ,['dilap/core/tools.pyx','dilap/core/tools.pxd']), 
     Extension('dilap.core.pointset'   ,['dilap/core/pointset.pyx']), 
     Extension('dilap.mesh.triangulate',['dilap/mesh/triangulate.pyx']), 
             ]

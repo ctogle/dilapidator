@@ -2,6 +2,7 @@ import dilap.core.vector as dpv
 import dilap.construct as dlc
 import dilap.destruct as dld
 import dilap.core.tools as dpr
+import dilap.mesh.tools as dtl
 import dilap.core.profiler as prf
 
 import dilap.core.lsystem as pls
@@ -80,7 +81,7 @@ def afmtest():
     dlc.build(tms.afmtest())
 
 def tetra():
-    pts = dpr.dice_edges(dpr.corners(5,5),1)
+    pts = dpr.dice_edges(dpr.square(5,5),1)
     pts.extend([d.copy().translate_z(10) for d in pts])
 
     plc = pwc.piecewise_linear_complex()
@@ -101,7 +102,7 @@ def tetra():
 
 def triang():
 
-    #pts = dpr.dice_edges(dpr.corners(50,10),2)
+    #pts = dpr.dice_edges(dpr.square(50,10),2)
     hpts = [dpv.vector(5,-2,0)]
     hpts.append(hpts[-1].copy().translate(dpv.vector(0,5,0)))
     hpts.append(hpts[-1].copy().translate(dpv.vector(-10,0,0)))
@@ -111,9 +112,9 @@ def triang():
     hpts2 = [h.copy().translate_x(-12) for h in hpts]
     pts = dpr.inflate([h.copy().translate_x(-6) for h in hpts],14)
 
-    #pts  = dpv.translate_coords(dpr.corners(50,10),dpv.vector(-30,-12,0))
-    pts2 = dpv.translate_coords(dpr.corners(30,10),dpv.vector(30,20,0))
-    pts3 = dpv.translate_coords(dpr.corners(20,10),dpv.vector(-30,-20,0))
+    #pts  = dpv.translate_coords(dpr.square(50,10),dpv.vector(-30,-12,0))
+    pts2 = dpv.translate_coords(dpr.square(30,10),dpv.vector(30,20,0))
+    pts3 = dpv.translate_coords(dpr.square(20,10),dpv.vector(-30,-20,0))
 
     #pts2 = dpr.point_ring(100,16)
 
@@ -145,6 +146,64 @@ def triang():
 
     '''#
 
+def intriangle_test():
+
+    def show(ins):
+        print('inside:',ins)
+        ax = dtl.plot_axes_xy()
+        ax = dtl.plot_polygon_xy([t1,t2,t3],ax)
+        ax = dtl.plot_point_xy(pt,ax)
+        plt.show()
+
+    t1 = dpv.vector(0,0,0)
+    t2 = dpv.vector(1,0,0)
+    t3 = dpv.vector(0,1,0)
+
+    pt = dpv.vector(0,0,0)
+    ins = dpr.intriangle(pt,t1,t2,t3)
+    if not ins == True:show(ins)
+
+    pt = dpv.vector(1,0,0)
+    ins = dpr.intriangle(pt,t1,t2,t3)
+    if not ins == True:show(ins)
+
+    pt = dpv.vector(0,1,0)
+    ins = dpr.intriangle(pt,t1,t2,t3)
+    if not ins == True:show(ins)
+
+    pt = dpv.vector(0.5,0.5,0)
+    ins = dpr.intriangle(pt,t1,t2,t3)
+    if not ins == True:show(ins)
+
+    pt = dpv.vector(0.5,0,0)
+    ins = dpr.intriangle(pt,t1,t2,t3)
+    if not ins == True:show(ins)
+
+    pt = dpv.vector(0,0.5,0)
+    ins = dpr.intriangle(pt,t1,t2,t3)
+    if not ins == True:show(ins)
+
+    pt = dpv.vector(0.75,0.25,0)
+    ins = dpr.intriangle(pt,t1,t2,t3)
+    if not ins == True:show(ins)
+
+    pt = dpv.vector(1,1,0)
+    ins = dpr.intriangle(pt,t1,t2,t3)
+    if not ins == False:show(ins)
+
+    pt = dpv.vector(-22.847272872924805, -22.847267150878906, 0.0)
+    t1 = dpv.vector(-21.464466094970703, -28.53553009033203, 0.0)
+    t2 = dpv.vector(-17.15900993347168, -24.230073928833008, 0.0)
+    t3 = dpv.vector(-24.230077743530273, -17.159006118774414, 0.0)
+
+    ins = dpr.intriangle(pt,t1,t2,t3)
+    #ins = dpr.inside(pt,[t1,t2,t3])
+    #ins = dpv.distance_to_border_xy(pt,[t1,t2,t3])
+    if not ins == True:show(ins)
+
+    print('barrry',dpr.barycentric(pt,t1,t2,t3))
+    pdb.set_trace()
+
 
 
 
@@ -164,6 +223,7 @@ def triang():
 #tetra()
 #triang()
 cont()
+#intriangle_test()
 
 
 

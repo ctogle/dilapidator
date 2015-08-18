@@ -223,7 +223,7 @@ cpdef quaternion zero():
 
 # given an angle a and axis v, produce a unit quaternion 
 # representing a rotation by a around v
-cpdef quaternion q_from_av(float a, dpv.vector v):
+cdef quaternion q_from_av_c(float a,dpv.vector v):
     cdef float a2 = a/2.0
     cdef float w = cos(a2)
     cdef float sa = sin(a2)
@@ -235,11 +235,23 @@ cpdef quaternion q_from_av(float a, dpv.vector v):
 
 # given two unit vectors u1,u2, produce a unit quaternion
 # representing a rotation from u1 to u2
-cpdef quaternion q_from_uu(dpv.vector u1, dpv.vector u2):
+cdef quaternion q_from_uu_c(dpv.vector u1,dpv.vector u2):
     cdef dpv.vector axis = u1.cross(u2)
     cdef float a = np.arccos(u1.dot(u2))
     cdef quaternion q = q_from_av(a,axis.normalize())
     return q
+
+# given an angle a and axis v, produce a unit quaternion 
+# representing a rotation by a around v
+cpdef quaternion q_from_av(float a, dpv.vector v):
+    '''provide a quaternion to rotate about a vector by an angle'''
+    return q_from_av_c(a,v)
+
+# given two unit vectors u1,u2, produce a unit quaternion
+# representing a rotation from u1 to u2
+cpdef quaternion q_from_uu(dpv.vector u1, dpv.vector u2):
+    '''provide a quaternion to rotate one unit vector onto another'''
+    return q_from_uu_c(u1,u2)
 
 def quu_test():
     u1 = dpv.vector(1,1,0).normalize()

@@ -49,6 +49,14 @@ class node(db.base):
         self.ring = {}
         self.spikes = {}
 
+    def _node_radius(self,graph):
+        rwidths = []
+        for oi in self.targetring:
+            skey,okey = self.key(),graph.nodes[oi].key()
+            eg = graph.edges[graph._find_edge(skey,okey)]
+            rwidths.append(eg.width)
+        return max(rwidths)+1
+
     def _spikes_nudge(self,graph,target):
         ws = []
         angles = []
@@ -58,10 +66,13 @@ class node(db.base):
             edx = graph.edges_lookup[ekey]
             ws.append(1.0 if graph.edges[edx].interpolated else 0.0)
             angles.append(self.targetring[tk])
+
         iangles = itl.nudge(angles,ws,target = target)
+        nr = self._node_radius(graph)
         for tk,na in zip(tkeys,iangles):
             self.ring[tk] = na
-            spike = dpv.xhat.copy().rotate_z(dpr.rad(na)).scale_u(8)
+            #spike = dpv.xhat.copy().rotate_z(dpr.rad(na)).scale_u(8)
+            spike = dpv.vector(1,0,0).rotate_z(dpr.rad(na)).scale_u(nr)
             self.spikes[tk] = spike
 
     # update the actual positions of spikes based on targetring

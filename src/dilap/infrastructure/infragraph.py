@@ -186,9 +186,11 @@ class graph(db.base):
     def _regions(self):
         rpts = []
         for eg in self.edges:rpts.extend([x.copy() for x in eg.rpts])
+
         convexbnd = dpr.pts_to_convex_xy(rpts)
         convexbnd = dpr.inflate(convexbnd,100)
         eloops = self._edge_loop_boundaries()
+
         # rank the loops based on containment hierarchy to then 
         # describe polygons with holes using the loops
         '''#
@@ -202,6 +204,13 @@ class graph(db.base):
         eloopkeys = eloops.keys()
         eloops1 = eloops[[x for x in eloopkeys][0]]
         eloops2 = eloops[[x for x in eloopkeys][1]]
+
+        print('rpts',len(rpts))
+        ax = dtl.plot_axes_xy()
+        dtl.plot_edges_xy(convexbnd,ax)
+        dtl.plot_edges_xy(eloops1,ax)
+        dtl.plot_edges_xy(eloops2,ax)
+        plt.show()
 
         eloops3 = [p.copy() for p in eloops2]
         #dpv.translate_coords_x(eloops3,200)
@@ -218,26 +227,31 @@ class graph(db.base):
         tplc = pwc.piecewise_linear_complex()
         tplc.add_polygons(*tpolygons)
         #tplc.triangulate_xy()
-        tplc.triangulate()
+        #tplc.triangulate()
         self.tplc = tplc
 
+        #another = dtl.icosphere()
+        #another = dtl.box(10,20,50)
         print('amen2')
 
         rpolygons = [(eloops1,(eloops2,))]
         #rpolygons = [(eloops1,())]
+        #rpolygons = [(eloops2,())]
         rplc = pwc.piecewise_linear_complex()
         rplc.add_polygons(*rpolygons)
-        rplc.triangulate()
-        #rplc.triangulate_xy()
+        #rplc.triangulate()
 
         self.tplc = tplc
         self.rplc = rplc
-        ax = self.plot_xy()
+        #self.rplc = another
+        ax = dtl.plot_axes_xy()
+        #ax = self.plot()
         ax = dtl.plot_polygon_xy(convexbnd,ax,True)
         ax = dtl.plot_polygon_xy(eloops2,ax,True)
         ax = dtl.plot_polygon_xy(eloops1,ax,True)
         ax = self.tplc.plot_xy(ax)
         ax = self.rplc.plot_xy(ax)
+        #ax = another.plot_xy(ax)
         plt.show()
 
     # add a new node to the graph or existing node index
@@ -585,11 +599,13 @@ def hairpin():
 def circle():
     g = graph()
 
-    g._add_edge((0,0,0),(50,50,0))
+    g._add_edge((0,0,0),(50,50,0),interpolated = False)
+    #g._add_edge((0,0,0),(50,50,0))
     g._add_edge((50,50,0),(0,100,0),interpolated = False)
     #g._add_edge((50,50,0),(0,100,0))
-    g._add_edge((0,100,0),(-50,50,0))
-    g._add_edge((-50,50,0),(0,0,0),interpolated = False)
+    g._add_edge((0,100,0),(-50,50,0),interpolated = True)
+    #g._add_edge((0,100,0),(-50,50,0))
+    g._add_edge((-50,50,0),(0,0,0),interpolated = True)
     #g._add_edge((-50,50,0),(0,0,0))
 
     return g
@@ -597,15 +613,15 @@ def circle():
 def opass():
     g = graph()
 
-    bnd = dpr.corners(100,100)
+    bnd = dpr.square(100,100)
     oprgn1 = grg.overpass(bnd)
     oprgn1._graph(g)
 
-    bnd = dpr.corners(100,100,dpv.vector(500,0,0),dpr.rad(75))
+    bnd = dpr.square(100,100,dpv.vector(500,0,0),dpr.rad(75))
     oprgn2 = grg.overpass(bnd)
     oprgn2._graph(g)
 
-    bnd = dpr.corners(100,100,dpv.vector(250,200,0),dpr.rad(35))
+    bnd = dpr.square(100,100,dpv.vector(250,200,0),dpr.rad(35))
     oprgn3 = grg.overpass(bnd)
     oprgn3._graph(g)
 

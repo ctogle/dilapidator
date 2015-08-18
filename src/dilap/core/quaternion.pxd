@@ -51,6 +51,8 @@ cdef class quaternion:
 #cdef float angle_between_c(vector v1, vector v2)
 
 cdef quaternion zero_c()
+cdef quaternion q_from_av_c(float a,dpv.vector v)
+cdef quaternion q_from_uu_c(dpv.vector u1,dpv.vector u2)
 # THIS IS INCOMLETE
 
 

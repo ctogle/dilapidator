@@ -1,10 +1,13 @@
 import dilap.core.tools as dpr
 import dilap.core.vector as dpv
+import dilap.core.quaternion as dpq
 import dilap.core.bbox as dpb
+import dilap.core.profiler as dprf
+import dilap.mesh.triangulate as dtg
 
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-import numpy
+import math,numpy
 
 import pdb
 
@@ -15,15 +18,20 @@ def plot_axes_xy():
     ax.set_aspect('equal')
     return ax
 
-def plot_axes():
+def plot_axes(x = 5):
     ax = plt.figure().add_subplot(111,projection = '3d')
+    ax.set_xlim([-x,x])
+    ax.set_ylim([-x,x])
+    ax.set_zlim([-(9.0/16.0)*x,(9.0/16.0)*x])
     return ax
 
 def plot_point_xy(pt,ax,marker = 'o'):
     ax.plot([pt.x],[pt.y],marker = marker)
+    return ax
 
 def plot_point(pt,ax,marker = 'o'):
     ax.plot([pt.x],[pt.y],zs = [pt.z],marker = marker)
+    return ax
 
 def plot_points_xy(points,ax = None,ms = None):
     if ax is None:ax = plot_axes_xy()
@@ -81,6 +89,7 @@ def plot_circle(c,r,ax = None,center = False):
 
 ###############################################################################
 
+'''#
 # if a is within c of b, return True
 # else return False
 def isnear(a,b,c = 0.000001):
@@ -155,6 +164,7 @@ def inconcave(pt,poly):
         angle += dpv.signed_angle_between_xy(e1,e2)
     if abs(angle) < numpy.pi:return False
     else:return True
+'''#
 
 # given poly, a sequence of points, return the lengths of 
 # the edges of the polygon that poly describes
@@ -238,6 +248,7 @@ def segments_intersect_at(s1,s2):
         if (u == 0 or u == 1) and (t == 0 or t == 1):return None
         if dpb.p_in_rng(u,0,1) and dpb.p_in_rng(t,0,1):return q + s.scale_u(u)
 
+'''#
 # given line segment s1, line segment s2
 # does s1 overlap the interior or s2?
 # a segment is a tuple of two points
@@ -269,7 +280,7 @@ def concaves_intersect(p1,p2):
         e1 = (p1[px-1],p1[px])
         for py in range(len(p2)):
             e2 = (p2[py-1],p2[py])
-            if segments_intersect(e1,e2):
+            if dpr.segments_intersect(e1,e2):
                 isegsectfound = True
                 break
     i2 = dpv.center_of_mass(p2)
@@ -284,19 +295,156 @@ def concaves_contains(p1,p2):
     isegsectfound = False
     for px in range(len(p1)):
         if isegsectfound:break
-        e1 = (p1[px-1],p1[px])
+        #e1 = (p1[px-1],p1[px])
         for py in range(len(p2)):
-            e2 = (p2[py-1],p2[py])
-            if segments_intersect(e1,e2):
+            #e2 = (p2[py-1],p2[py])
+            #if dpr.segments_intersect(e1,e2):
+            if dpr.segments_intersect(p1[px-1],p1[px],p2[py-1],p2[py]):
                 isegsectfound = True
                 break
     i2 = dpv.center_of_mass(p2)
     if inconcave(i2,p1) and not isegsectfound:ins = True
     else:ins = False
     return ins
+'''#
 
+# generate a plc for an icosphere with faces split n times
+def icosphere(r = 1,n = 1):
+    import dilap.mesh.piecewisecomplex as pwc
+    plc = pwc.piecewise_linear_complex()
 
+    # create 12 vertices of a icosahedron
+    t = (1.0+math.sqrt(5.0))/2.0
+    pts = []
+    pts.append(dpv.vector(-1, t, 0))
+    pts.append(dpv.vector( 1, t, 0))
+    pts.append(dpv.vector(-1,-t, 0))
+    pts.append(dpv.vector( 1,-t, 0))
+    pts.append(dpv.vector( 0,-1, t))
+    pts.append(dpv.vector( 0, 1, t))
+    pts.append(dpv.vector( 0,-1,-t))
+    pts.append(dpv.vector( 0, 1,-t))
+    pts.append(dpv.vector( t, 0,-1))
+    pts.append(dpv.vector( t, 0, 1))
+    pts.append(dpv.vector(-t, 0,-1))
+    pts.append(dpv.vector(-t, 0, 1))
+    dpv.translate_coords(pts,dpv.center_of_mass(pts).flip())
 
+    triangles = []
+    # 5 faces around point 0
+    triangles.append((0,11,5))
+    triangles.append((0,5,1))
+    triangles.append((0,1,7))
+    triangles.append((0,7,10))
+    triangles.append((0,10,11))
+    # 5 adjacent faces
+    triangles.append((1,5,9))
+    triangles.append((5,11,4))
+    triangles.append((11,10,2))
+    triangles.append((10,7,6))
+    triangles.append((7,1,8))
+    # 5 faces around point 3
+    triangles.append((3,9,4))
+    triangles.append((3,4,2))
+    triangles.append((3,2,6))
+    triangles.append((3,6,8))
+    triangles.append((3,8,9))
+    # 5 adjacent faces
+    triangles.append((4,9,5))
+    triangles.append((2,4,11))
+    triangles.append((6,2,10))
+    triangles.append((8,6,7))
+    triangles.append((9,8,1))
+
+    def esplit(lk,u,v):
+        k = (u,v)
+        if not k in lk:
+            pts.append(dpv.midpoint(pts[u],pts[v]))
+            lk[k] = len(pts)-1
+        return lk[k]
+    def tsplit(lk,u,v,w):
+        m1 = esplit(lk,u,v)
+        m2 = esplit(lk,v,w)
+        m3 = esplit(lk,w,u)
+        return (m1,m3,u),(m2,m1,v),(m3,m2,w),(m1,m2,m3)
+    def split(itris):
+        otris = []
+        nwpts = {}
+        for t in itris:otris.extend(tsplit(nwpts,*t))
+        return otris
+    for nx in range(n):triangles = split(triangles)
+    for p in pts:p.normalize().scale_u(r)
+
+    polygons = tuple((tuple(pts[x].copy() for x in t),()) for t in triangles)
+    plc.add_polygons(*polygons)
+
+    '''#
+    for nx in range(1):
+        for egx in range(plc.edgecount):
+            eg = plc.edges[egx]
+            if eg is None:continue
+            plc.split_edge(*eg)
+    '''#
+
+    #dprf.profile_function(plc.triangulate)
+    plc.simplices = [(pts[u],pts[v],pts[w]) for u,v,w in triangles]
+    plc.ghostbnds = []
+    ax = plc.plot()
+    plt.show()
+    return plc
+
+# generate a plc for a triangulated cube
+def box(l = 1,w = 1,h = 2):
+    import dilap.mesh.piecewisecomplex as pwc
+    plc = pwc.piecewise_linear_complex()
+
+    pts = []
+    pts.append(dpv.vector( 0, 0, 0))
+    pts.append(dpv.vector( l, 0, 0))
+    pts.append(dpv.vector( l, w, 0))
+    pts.append(dpv.vector( 0, w, 0))
+    pts.append(dpv.vector( 0, 0, h))
+    pts.append(dpv.vector( l, 0, h))
+    pts.append(dpv.vector( l, w, h))
+    pts.append(dpv.vector( 0, w, h))
+    dpv.translate_coords(pts,dpv.vector(-0.5*l,-0.5*w,0.0))
+
+    polygons = ((3,2,1,0),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7))
+    polygons = tuple((tuple(pts[x].copy() for x in p),()) for p in polygons)
+    plc.add_polygons(*polygons)
+    dprf.profile_function(plc.triangulate)
+    ax = plc.plot()
+    plt.show()
+    return plc
+
+# profile the test function
+def profile_triangulation():
+    import dilap.mesh.piecewisecomplex as pwc
+
+    ps1 = tuple(dpr.point_ring(100,32))
+    ps2 = tuple(dpr.point_ring(20,8))
+    ps3 = tuple(dpr.point_ring(100,64))
+    ps4 = tuple([p.copy() for p in ps2])
+    q = dpq.q_from_av(numpy.pi/2.0,dpv.xhat)
+    for p in ps1:p.rotate(q)
+    for p in ps2:p.rotate(q)
+    dpv.translate_coords(list(ps1),dpv.vector(0,100,0))
+    dpv.translate_coords(list(ps2),dpv.vector(0,100,0))
+    dpv.translate_coords(list(ps3),dpv.vector(0,0,-100))
+    dpv.translate_coords(list(ps4),dpv.vector(0,0,-100))
+
+    polygons = ((ps1,(ps2,)),(ps3,()))
+    #polygons = ((ps3,(ps4,)),)
+    #polygons = ((ps3,()),)
+
+    plc = pwc.piecewise_linear_complex()
+    plc.add_polygons(*polygons)
+    
+    dprf.profile_function(plc.triangulate)
+    #dprf.profile_function(plc.triangulate_xy)
+
+    ax = plc.plot()
+    plt.show()
 
 
 

@@ -1,20 +1,27 @@
-import dilap.core.tools as dpr
-import dilap.mesh.tools as dtl
-
+#imports
+# cython: profile=True
+#cimport cython
+cimport dilap.core.tools as dpr
 cimport dilap.core.pointset as dps
-import dilap.core.pointset as dps
 cimport dilap.core.vector as dpv
-import dilap.core.vector as dpv
+cimport dilap.core.quaternion as dpq
 
-import math
-#stuff = 'hi'
+import math,numpy
 
 cdef class triangulation:
 
+    # if triangle uvw is skinny
+    # return the center of its circumcircle otherwise return None
+    cpdef skinny_triangle(self,int u,int v,int w,float h):
+        v1,v2,v3 = self.points.get_points(u,v,w)
+        tcp,tcr = dpr.circumscribe_tri_c(v1,v2,v3)
+        if tcr/h > 1.0:return tcp 
+
     # given the index of a point, return the index of a ghost
-    # whose real edge intersects the point, or None
-    def point_on_boundary(self,u):
+    # whose real edge intersects the point, or -1
+    cdef int point_on_boundary(self,int u):
         up = self.points.ps[u]
+        #cdef int gdx
         for gdx in range(self.ghostcnt):
             gst = self.ghosts[gdx]
             if gst is None:continue
@@ -23,15 +30,29 @@ cdef class triangulation:
             dy = g2.y - g1.y
             dv = math.sqrt(dx**2 + dy**2)
             norm = dpv.vector(dy/dv,-dx/dv,0)
-            nrmd = dpv.distance_to_edge(up,g1,g2,norm)
-            if dtl.isnear(nrmd,0):
-                linkd = dpv.distance(up,g1)+dpv.distance(up,g2)
-                if dtl.isnear(linkd,dpv.distance(g1,g2)):
+            nrmd = dpr.distance_to_edge_c(up,g1,g2,norm)
+            if dpr.isnear_c(nrmd,0):
+                linkd = dpv.distance_c(up,g1)+dpv.distance_c(up,g2)
+                if dpr.isnear_c(linkd,dpv.distance_c(g1,g2)):
                     return gdx
+        return -1
+
+    # given the indices of the endpoints of an edge, 
+    # return 1 if locally delaunay, 0 otherwise
+    cdef bint locally_delaunay(self,int u,int v):
+        o1 = self.adjacent(u,v)
+        o2 = self.adjacent(v,u)
+        if o1 == -1 or o2 == -1:return 1
+        if o1 == -2 or o2 == -2:return 1
+        up,vp,op1,op2 = self.points.get_points(u,v,o1,o2)
+        if dpr.segments_intersect_c(up,vp,op1,op2):
+            if dpr.incircle_c(up,vp,op1,op2) > 0:return 0
+            if dpr.incircle_c(vp,up,op2,op1) > 0:return 0
+        return 1
 
     # return a vertex x such that uv
     # is a positively oriented edge
-    def adjacent(self,u,v):
+    cdef int adjacent(self,int u,int v):
         ekey = (u,v)
         if ekey in self.eg_tri_lookup:
             tri = self.eg_tri_lookup[(u,v)]
@@ -39,28 +60,12 @@ cdef class triangulation:
                 triv = [x for x in self.triangles[tri] if not x in ekey][0]
                 return triv
         if ekey in self.eg_ghost_lookup:
-            tri = self.eg_ghost_lookup[(u,v)]
-            if not tri is None:return self.ghosts[tri][2]
+            tri = self.eg_ghost_lookup[ekey]
+            if not tri is None:return -2
+        return -1
 
-    cdef bint locally_delaunay(self,int u,int v):
-        o1 = self.adjacent(u,v)
-        o2 = self.adjacent(v,u)
-        if o1 is None or o2 is None:return 1
-        if o1 == 'g' or o2 == 'g':return 1
-        up,vp,op1,op2 = self.points.get_points(u,v,o1,o2)
-        if dtl.segments_intersect((up,vp),(op1,op2)):
-            if dtl.incircle(up,vp,op1,op2) > 0:return 0
-            if dtl.incircle(vp,up,op2,op1) > 0:return 0
-        return 1
-
-    # if triangle uvw is skinny
-    # return the center of its circumcircle otherwise return None
-    def skinny_triangle(self,u,v,w,h):
-        vs = self.points.get_points(u,v,w)
-        tcp,tcr = dpr.circumscribe_tri(*vs)
-        if tcr/h > 1.0:return tcp 
-
-    def __cinit__(self):
+    def __cinit__(self,dpv.vector p0,dpv.vector pn):
+        self.p0,self.pn = p0,pn
         self.points = dps.pointset()
         self.triangles = []
         self.tricnt = 0
@@ -73,20 +78,38 @@ cdef class triangulation:
     # remove those triangles and replace with the alternative two that are
     # bounded by the same 4 vertices
     cdef tuple flip_edge(self,int u,int v):
-        print('flipping an edge')
+        #print('flipping an edge')
         o1 = self.adjacent(u,v)
         o2 = self.adjacent(v,u)
         vs = self.points.get_points(u,v,o1,o2)
-        tcp1,tcr1 = dpr.circumscribe_tri(vs[0],vs[1],vs[2])
-        tcp2,tcr2 = dpr.circumscribe_tri(vs[1],vs[0],vs[3])
-        if tcp1.near(tcp2) and dtl.isnear(tcr1,tcr2):
-            print('4way!',tcp1,tcp2,tcr1,tcr2,u,v,o1,o2)
-            return ()
+        tcp1,tcr1 = dpr.circumscribe_tri_c(vs[0],vs[1],vs[2])
+        tcp2,tcr2 = dpr.circumscribe_tri_c(vs[1],vs[0],vs[3])
+        #if tcp1.near(tcp2) and dpr.isnear_c(tcr1,tcr2):
+        #    print('4way!',tcp1,tcp2,tcr1,tcr2,u,v,o1,o2)
+        #    #return ()
         self.delete_triangle(u,v,o1)
         self.delete_triangle(v,u,o2)
         self.add_triangle(o1,o2,v)
         self.add_triangle(o2,o1,u)
         return (o2,v),(v,o1),(o1,u),(u,o2)
+
+    # u is the vertex to insert. vwx is a positively oriented triangle whose
+    # circumcircle encloses u
+    cdef void insert_vertex(self,int u,int v,int w,int x):
+        self.delete_triangle(v,w,x)
+        self.dig_cavity(u,v,w)
+        self.dig_cavity(u,w,x)
+        self.dig_cavity(u,x,v)
+
+    # u is the vertex to insert. vwg is a positively oriented ghost triangle whose
+    # circumcircle encloses u
+    cdef void insert_ghost_vertex(self,int u,int v,int w,int x):
+        if not x == -2:raise ValueError
+        self.delete_ghost(v,w)
+        self.add_ghost(v,u)
+        self.add_ghost(u,w)
+        onb = self.point_on_boundary(u)
+        if not onb == -1:self.add_triangle(u,v,w)
 
     # add a positively oriented triangle u,v,w
     cdef void add_triangle(self,int u,int v,int w):
@@ -106,7 +129,7 @@ cdef class triangulation:
 
     # add a positively oriented ghost triangle u,v,g
     cdef void add_ghost(self,int u,int v):
-        self.ghosts.append((u,v,'g'))
+        self.ghosts.append((u,v,-2))
         self.eg_ghost_lookup[(u,v)] = self.ghostcnt
         self.ghostcnt += 1
 
@@ -120,63 +143,25 @@ cdef class triangulation:
     cdef void dig_cavity(self,int u,int v,int w):
         # find triangle wvx opposite the facet vw from u
         x = self.adjacent(w,v)
-        if x is None:return
-        elif x == 'g':self.add_triangle(u,v,w)
+        if x == -1:return
+        elif x == -2:self.add_triangle(u,v,w)
         else:
             vu,vv,vw,vx = self.points.get_points(u,v,w,x)
             # uvw is not delaunay, dig the adjacent two triangles
-            if dtl.incircle(vu,vv,vw,vx) > 0:
+            if dpr.incircle_c(vu,vv,vw,vx) > 0:
                 self.delete_triangle(w,v,x)
                 self.dig_cavity(u,v,x)
                 self.dig_cavity(u,x,w)
             # w,v is a facet of the cavity and uvw is delaunay
             else:self.add_triangle(u,v,w)
 
-    # u is the vertex to insert. vwx is a positively oriented triangle whose
-    # circumcircle encloses u
-    cdef void insert_vertex(self,int u,int v,int w,int x):
-        self.delete_triangle(v,w,x)
-        self.dig_cavity(u,v,w)
-        self.dig_cavity(u,w,x)
-        self.dig_cavity(u,x,v)
-
-    # u is the vertex to insert. vwg is a positively oriented ghost triangle whose
-    # circumcircle encloses u
-    cdef void insert_ghost_vertex(self,int u,int v,int w,str x):
-        if not x == 'g':raise ValueError
-        self.delete_ghost(v,w)
-        self.add_ghost(v,u)
-        self.add_ghost(u,w)
-        onb = self.point_on_boundary(u)
-        if onb is None:self.add_triangle(u,v,w)
-
-    # delete all ghosts and add new ghosts according to where they
-    # should be after covering the plc edges
-    cdef void ghost_border(self,list edges):
-        for gst in self.ghosts:
-            if gst is None:continue
-            g1,g2,g = gst
-            self.delete_ghost(g1,g2)
-        for plce in edges:
-            if plce is None:continue
-            plce1,plce2 = plce
-            e1,e2 = self.points.find_points(plce1,plce2)
-
-            if e1 is None or e2 is None:
-                print('ggggunit',e1,e2,plce)
-                print('im off the rails',edges,plce)
-                raise ValueError
-
-            eadj = self.adjacent(e1,e2)
-            if eadj is None:self.add_ghost(e1,e2)
-            eadj = self.adjacent(e2,e1)
-            if eadj is None:self.add_ghost(e2,e1)
-
 # initialize a triangulation data structure 
 # based on a list of vectors bnd
 cdef void initialize(triangulation data,list bnd):
+    b1,b2,b3 = bnd[0],bnd[1],bnd[2]
+    bnorm,btang = dpr.normal_c(b1,b2,b3),dpr.tangent_c(b1,b2,b3)
     convexcom = dpv.com(bnd)
-    convexrad = max([dpv.distance(cx,convexcom) for cx in bnd])+1000
+    convexrad = max([dpv.distance_c(cx,convexcom) for cx in bnd])+1000
     c01delta = dpv.vector(-1,-1,0).normalize().scale_u(convexrad)
     c02delta = dpv.vector( 1,-1,0).normalize().scale_u(convexrad)
     c03delta = dpv.vector( 0, 1,0).normalize().scale_u(convexrad)
@@ -191,12 +176,13 @@ cdef void initialize(triangulation data,list bnd):
 
 # insert the vertex y into the triangulation data structure
 # return a list of indices pointing to newly created triangles 
+#cdef list point_location(triangulation data,dpv.vector y):
 cdef list point_location(triangulation data,dpv.vector y):
     pretricnt = data.tricnt
     if data.points.find_point(y):return []
     nv = data.points.add_point(y)
     onb = data.point_on_boundary(nv)
-    if onb:
+    if not onb == -1:
         v,w,x = data.ghosts[onb]
         data.delete_ghost(v,w)
         data.add_ghost(v,nv)
@@ -212,7 +198,7 @@ cdef list point_location(triangulation data,dpv.vector y):
         if tri is None:continue
         else:u,v,w = tri
         vu,vv,vw = data.points.get_points(u,v,w)
-        if dpv.inside(y,[vu,vv,vw]):
+        if dpr.intriangle_c(y,vu,vv,vw):
             data.insert_vertex(nv,u,v,w)
             return [x for x in range(pretricnt,data.tricnt)]
 
@@ -221,7 +207,7 @@ cdef list point_location(triangulation data,dpv.vector y):
         if ghost is None:continue
         else:u,v,w = ghost
         vu,vv = data.points.get_points(u,v)
-        if not dtl.orient2d(vu,vv,y) < 0:
+        if not dpr.orient2d_c(vu,vv,y) < 0:
             data.insert_ghost_vertex(nv,u,v,w)
             return [x for x in range(pretricnt,data.tricnt)]
 
@@ -233,12 +219,12 @@ cdef void cover_polygon(triangulation data,tuple ebnd,tuple ibnds):
         tri = data.triangles[tdx]
         if tri is None:continue
         else:u,v,w = tri
-        ptri = data.points.get_points(u,v,w)
+        ptri = tuple(data.points.get_points(u,v,w))
         extras.append(tdx)
-        if dtl.concaves_contains(ebnd,ptri):
+        if dpr.concaves_contains_c(ebnd,ptri):
             extras.remove(tdx)
             for ibnd in ibnds:
-                if dtl.concaves_contains(ibnd,ptri):
+                if dpr.concaves_contains_c(ibnd,ptri):
                     extras.append(tdx)
                     break
     for x in extras:
@@ -246,6 +232,22 @@ cdef void cover_polygon(triangulation data,tuple ebnd,tuple ibnds):
         if xtri is None:continue
         x1,x2,x3 = xtri
         data.delete_triangle(x1,x2,x3)
+
+# delete all ghosts and add new ghosts according to where they
+# should be after covering the plc edges
+cdef void ghost_border(triangulation data,list edges):
+    for gst in data.ghosts:
+        if gst is None:continue
+        g1,g2,g = gst
+        data.delete_ghost(g1,g2)
+    for plce in edges:
+        if plce is None:continue
+        plce1,plce2 = plce
+        e1,e2 = data.points.find_points(plce1,plce2)
+        eadj = data.adjacent(e1,e2)
+        if eadj == -1:data.add_ghost(e1,e2)
+        eadj = data.adjacent(e2,e1)
+        if eadj == -1:data.add_ghost(e2,e1)
 
 # apply the flip algorithm until all edges are locally delaunay
 cdef void constrain_delaunay(triangulation data):
@@ -260,6 +262,7 @@ cdef void constrain_delaunay(triangulation data):
             nedges = data.flip_edge(u,v)
             unfinished.extend(nedges)
 
+# perform chews first refinement algorithm on a triangulation
 cdef void refine_chews_first(triangulation data,float h):
     unfinished = [t for t in data.triangles]
     while unfinished:
@@ -270,35 +273,95 @@ cdef void refine_chews_first(triangulation data,float h):
         tcp = data.skinny_triangle(ufx1,ufx2,ufx3,h)
         if not tcp is None:
             ntxs = point_location(data,tcp)
-            for ntx in ntxs:
-                unfinished.append(data.triangles[ntx])
+            for ntx in ntxs:unfinished.append(data.triangles[ntx])
+
+# given triangulation data, construct a dictionary encoding vertex 1-rings
+cdef dict vertex_rings(triangulation data):
+    vrings = {}
+
+    raise NotImplemented
+
+    #return vrings
+
+# perform laplacian smoothing on interior points of a triangulation
+cdef void smooth_laplacian(triangulation data,dict vrings):
+    # make a dict encoding the first vertex ring of each vertex
+    # as usual move each vertex towards the com of its neighbors
+
+    # iterate over the edges, updating the ring lookup
+
+    raise NotImplemented
+
+# plot the triangles currently found in a triangulation
+cdef void plot_triangulation(triangulation data,ax = None):
+    import dilap.mesh.tools as dtl
+    import matplotlib.pyplot as plt
+    if ax is None:ax = dtl.plot_axes_xy()
+    for t in data.triangles:
+        if t is None:continue
+        else:t1,t2,t3 = t
+        tps = data.points.get_points(t1,t2,t3)
+        ax = dtl.plot_polygon_xy(tps,ax,center = True)
+    plt.show()
 
 # given poly, a tuple containing vectors representing a polygon
 # provide a list of simplices which triangulates the polygon
 # poly contains an exterior bound and da tuple of interior bounds
 # bounds are ordered loops of points with no duplicates
 # bounds are possibly concave; interior bounds represent holes
-def triangulate(ebnd,ibnds,hmin = None):
-    data = triangulation()
+cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin):
+    p0 = ebnd[0].copy()
+    pn = dpr.polygon_normal_c(ebnd)
+    if pn.near(dpv.nzhat):prot = dpq.q_from_av_c(numpy.pi,dpv.xhat)
+    elif not pn.near(dpv.zhat):prot = dpq.q_from_uu_c(pn,dpv.zhat)
+    else:prot = dpq.zero_c()
+    print('prot',prot.__str__(),pn.__str__())
+    #move points to xy plane, move back post triangulation
+    for ep in ebnd:ep.rotate(prot)
+    for ib in ibnds:
+        for ip in ib:ip.rotate(prot)
+    '''#
+    lift = ebnd[0].z
+    for ep in ebnd:ep.z = 0
+    for ib in ibnds:
+        for ip in ib:ip.z = 0
+    '''#
+
+    data = triangulation(p0,pn)
     initialize(data,list(ebnd))
     plcedges = []
     for px in range(len(ebnd)):
-        point_location(data,ebnd[px-1].copy())
-        plcedges.append((ebnd[px-1],ebnd[px]))
+        p1,p2 = ebnd[px-1],ebnd[px]
+        point_location(data,p1.copy())
+        plcedges.append((p1,p2))
     for ib in ibnds:
         for px in range(len(ib)):
-            point_location(data,ib[px-1].copy())
-            plcedges.append((ib[px-1],ib[px]))
+            p1,p2 = ib[px-1],ib[px]
+            point_location(data,p1.copy())
+            plcedges.append((p1,p2))
     cover_polygon(data,ebnd,ibnds)
-    data.ghost_border(plcedges)
+    ghost_border(data,plcedges)              
     constrain_delaunay(data)
     refine_chews_first(data,hmin)
+
+    #smooth_laplacian(data,vertex_rings(data))
+
+    '''#
+    for ep in ebnd:ep.z = lift
+    for ib in ibnds:
+        for ip in ib:ip.z = lift
+    '''#
+    prot.flip()
+    for p in data.points.ps:p.rotate(prot)
+    for ep in ebnd:ep.rotate(prot)
+    for ib in ibnds:
+        for ip in ib:ip.rotate(prot)
 
     smps = []
     for tx in range(data.tricnt):
         tri = data.triangles[tx]
         if tri is None:continue
-        smp = tuple((data.points.ps[px] for px in tri))
+        smp = tuple([data.points.ps[px] for px in tri])
         smps.append(smp)
     gsts = []
     for gdx in range(data.ghostcnt):
@@ -307,6 +370,15 @@ def triangulate(ebnd,ibnds,hmin = None):
         gpair = data.points.get_points(gst[0],gst[1])
         gsts.append(gpair)
     return smps,gsts
+
+# given poly, a tuple containing vectors representing a polygon
+# provide a list of simplices which triangulates the polygon
+# poly contains an exterior bound and da tuple of interior bounds
+# bounds are ordered loops of points with no duplicates
+# bounds are possibly concave; interior bounds represent holes
+cpdef tuple triangulate(tuple ebnd,tuple ibnds,float hmin):
+    return triangulate_c(ebnd,ibnds,hmin)
+
 
 
 

@@ -39,7 +39,7 @@ class edge(db.base):
 
     def _directions(self):
         self.tangent = dpv.v1_v2(self.one.p,self.two.p)
-        ndir = dpr.deg(dpv.angle_from_xaxis_xy(self.tangent))
+        ndir = dpr.deg(dpr.angle_from_xaxis_xy(self.tangent))
         ndirf = ndir+180 if ndir < 180 else ndir - 180
         return ndir,ndirf
 
@@ -63,13 +63,12 @@ class edge(db.base):
     # use vector spline to add road points to plot!!
     def _place_road(self,graph):                       
         rcnt = int(self.tangent.magnitude()/8.0)
-        if self.interpolated:
-            r1 = self.one.p.copy()
-            r2 = self.one.p.copy().translate(self.one.spikes[self.two.index])
-            r3 = self.two.p.copy().translate(self.two.spikes[self.one.index])
-            r4 = self.two.p.copy()
-            rpts = dpv.vector_spline(r1,r2,r3,r4,rcnt)
-        else:rpts = dpr.point_line(self.one.p,self.two.p,rcnt)
+        spk1 = self.one.p.copy().translate(self.one.spikes[self.two.index])
+        spk2 = spk1.copy().translate(self.one.spikes[self.two.index])
+        spk4 = self.two.p.copy().translate(self.two.spikes[self.one.index])
+        spk3 = spk4.copy().translate(self.two.spikes[self.one.index])
+        if self.interpolated:rpts = dpv.vector_spline(spk1,spk2,spk3,spk4,rcnt)
+        else:rpts = dpr.point_line(spk1,spk4,rcnt)
         self.rpts = rpts
         self.rtangents = []
         self.rnormals = []
@@ -80,12 +79,12 @@ class edge(db.base):
             rnormal = rtangent.copy().rotate_z(dpr.rad(90)).normalize()
             self.rtangents.append(rtangent)
             self.rnormals.append(rnormal)
-            rwv = rnormal.copy().scale_u(self.width)             
+            rwv = rnormal.copy().scale_u(self.width/2.0)             
             self.lbpts.append(rpts[rpx-1].copy().translate(rwv))
             self.rbpts.append(rpts[rpx-1].copy().translate(rwv.flip()))
         self.rtangents.append(self.rtangents[-1])
         self.rnormals.append(self.rnormals[-1])
-        rwv = self.rnormals[-1].copy().scale_u(self.width)
+        rwv = self.rnormals[-1].copy().scale_u(self.width/2.0)
         self.lbpts.append(rpts[-1].copy().translate(rwv))
         self.rbpts.append(rpts[-1].copy().translate(rwv.flip()))
         self.lbpts.reverse()

@@ -21,11 +21,11 @@ cdef class triangulation:
     # whose real edge intersects the point, or -1
     cdef int point_on_boundary(self,int u):
         up = self.points.ps[u]
-        #cdef int gdx
         for gdx in range(self.ghostcnt):
             gst = self.ghosts[gdx]
             if gst is None:continue
             g1,g2 = self.points.get_points(gst[0],gst[1])
+            if g1.near(up) or g2.near(up):return gdx
             dx = g2.x - g1.x
             dy = g2.y - g1.y
             dv = math.sqrt(dx**2 + dy**2)
@@ -254,10 +254,6 @@ cdef void constrain_delaunay(triangulation data):
     unfinished = [e for e in data.eg_tri_lookup]
     while unfinished:
         u,v = unfinished.pop(0)
-
-        #plcu,plcv = self.plc.points.find_points(*self.points.get_points(u,v))
-        #if self.plc.segment(plcu,plcv):return True
-
         if not data.locally_delaunay(u,v):
             nedges = data.flip_edge(u,v)
             unfinished.extend(nedges)
@@ -278,31 +274,41 @@ cdef void refine_chews_first(triangulation data,float h):
 # given triangulation data, construct a dictionary encoding vertex 1-rings
 cdef dict vertex_rings(triangulation data):
     vrings = {}
-
-    raise NotImplemented
-
-    #return vrings
+    for x in range(data.points.pcnt):
+        vrings[x] = []
+        for egl in data.eg_tri_lookup:
+            if egl is None:continue
+            if data.eg_tri_lookup[egl] is None:continue
+            if not x in egl:continue
+            u,v = egl
+            if   x == u and not v in vrings[x]:vrings[x].append(v)
+            elif x == v and not u in vrings[x]:vrings[x].append(u)
+    return vrings
 
 # perform laplacian smoothing on interior points of a triangulation
-cdef void smooth_laplacian(triangulation data,dict vrings):
-    # make a dict encoding the first vertex ring of each vertex
-    # as usual move each vertex towards the com of its neighbors
-
-    # iterate over the edges, updating the ring lookup
-
-    raise NotImplemented
+cdef void smooth_laplacian(triangulation data,dict vrings,int smooths,float d):
+    for s in range(smooths):
+        dels = {}
+        for x in range(data.points.pcnt):
+            ghost = data.point_on_boundary(x)
+            ring = vrings[x]
+            if ghost == -1 and ring:
+                rcom = dpv.com([data.points.ps[j] for j in ring])
+                rdel = dpv.v1_v2_c(data.points.ps[x],rcom).scale_u(d)
+            else:rdel = dpv.zero_c()
+            dels[x] = rdel
+        for x in range(data.points.pcnt):
+            data.points.ps[x].translate(dels[x])
 
 # plot the triangles currently found in a triangulation
 cdef void plot_triangulation(triangulation data,ax = None):
     import dilap.mesh.tools as dtl
-    import matplotlib.pyplot as plt
     if ax is None:ax = dtl.plot_axes_xy()
     for t in data.triangles:
         if t is None:continue
         else:t1,t2,t3 = t
         tps = data.points.get_points(t1,t2,t3)
         ax = dtl.plot_polygon_xy(tps,ax,center = True)
-    plt.show()
 
 # given poly, a tuple containing vectors representing a polygon
 # provide a list of simplices which triangulates the polygon
@@ -320,12 +326,6 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin):
     for ep in ebnd:ep.rotate(prot)
     for ib in ibnds:
         for ip in ib:ip.rotate(prot)
-    '''#
-    lift = ebnd[0].z
-    for ep in ebnd:ep.z = 0
-    for ib in ibnds:
-        for ip in ib:ip.z = 0
-    '''#
 
     data = triangulation(p0,pn)
     initialize(data,list(ebnd))
@@ -343,14 +343,8 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin):
     ghost_border(data,plcedges)              
     constrain_delaunay(data)
     refine_chews_first(data,hmin)
+    smooth_laplacian(data,vertex_rings(data),100,0.5)
 
-    #smooth_laplacian(data,vertex_rings(data))
-
-    '''#
-    for ep in ebnd:ep.z = lift
-    for ib in ibnds:
-        for ip in ib:ip.z = lift
-    '''#
     prot.flip()
     for p in data.points.ps:p.rotate(prot)
     for ep in ebnd:ep.rotate(prot)

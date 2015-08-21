@@ -30,6 +30,9 @@ class edge(db.base):
         dtl.plot_edges_xy(self.rpts,ax)
         return ax
 
+    def key(self):
+        return (self.one.key(),self.two.key())
+
     def __init__(self,node1,node2,**kwargs):
         self._def('index',None,**kwargs)
         self._def('interpolated',True,**kwargs)
@@ -101,11 +104,37 @@ class edge(db.base):
         if tncnt == 0:return None
         elif tncnt == 1:return turns[0]
         else:
+            fa = dpr.rad(share.targetring[unshare.index])
+            tangles = [dpr.rad(share.targetring[x]) for x in turns]
+            adists = [dpr.clamp_periodic(fa-ta,0,dpr.twoPI) for ta in tangles]
+            turns = list(list(zip(*sorted(zip(adists,turns))))[1])
+            if not wise == 0:turns.reverse()
+
+            '''#
+            e1d = dpv.x().rotate_z(fa)
+            e1 = [share.p.copy(),share.p.copy().translate(e1d)]
+            oes = []
+            tps = []
+            for tn in turns:
+                t = dpr.rad(share.targetring[tn])
+                oed = dpv.x().rotate_z(t)
+                oe  = [share.p.copy(),share.p.copy().translate(oed)]
+                oes.append(oe)
+                tps.append(oe[1])
+            ax = dtl.plot_axes_xy()
+            ax = dtl.plot_edges_xy(e1,ax,lw = 5)
+            for oe in oes:
+                ax = dtl.plot_edges_xy(oe,ax)
+            ax = dtl.plot_points_xy(tps,ax,number = True)
+            plt.show()
+            '''#
+
             print('turnnns',turns)
-            pdb.set_trace()
+            return turns[0]
+            #pdb.set_trace()
             
 
-
+      
 
 
 

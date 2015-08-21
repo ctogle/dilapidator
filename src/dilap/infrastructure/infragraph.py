@@ -87,16 +87,35 @@ class graph(db.base):
 
     # given an edge e, direction 0 or 1, and cw or ccw
     # return the forward path of e
-    def _loopwalk(self,e,d,w):
-        if d:inpath = [e.one.key(),e.two.key()]
-        else:inpath = [e.two.key(),e.one.key()]
+    def _loopwalk(self,ie,d,w):
+        def complete(inp):
+            i1,i2 = inp[0],inp[1]
+            cnt = len(inp)
+            for x in range(1,cnt-1):
+                if inp[x] == i1:
+                    if inp[x+1] == i2:
+                        return inp[:x+1]
+
+        if d:inpath = [ie.one.key(),ie.two.key()]
+        else:inpath = [ie.two.key(),ie.one.key()]
         while True:
             ekey = (inpath[-2],inpath[-1])
             e = self.edges[self.edges_lookup[ekey]]
             nx = e._walk(inpath[-1],w)
-            if nx is None:return inpath
+            if nx is None:
+                inpath.append(inpath[-2])
+                nx = e._walk(inpath[-3],w)
             nxndkey = self.nodes[nx].key()
-            if nxndkey in inpath:return inpath
+            #if ie.two.key() == (0.0,100.0,0.0):
+            #    print('going',nxndkey,inpath)
+            #    pdb.set_trace()
+            res = complete(inpath)
+            if not res is None:return res
+
+            #if inpath[-1] == inpath[0] and nxndkey == inpath[1]:return inpath
+            #if inpath.count(ie.one.key()) > 1 and nxndkey == inpath[1]:
+            #if inpath.count(ie.one.key()) > 1 and inpath.count(ie.two.key()) > 1:
+            #    return inpath
             else:inpath.append(nxndkey)
 
     # return a collection of points outlining all edge loops in the graph
@@ -117,6 +136,7 @@ class graph(db.base):
             else:
                 print('unclosed loop!',len(edgestodo))
                 pdb.set_trace()
+                rloop = tuple(ewalkrccw[::-1][:-1]+ewalkrcw[1:])
 
             if set(ewalklccw) ==  set(ewalklcw):
                 print('closed loop!',len(edgestodo))
@@ -124,9 +144,14 @@ class graph(db.base):
             else:
                 print('unclosed loop!',len(edgestodo))
                 pdb.set_trace()
+                lloop = tuple(ewalklccw[::-1][:-1]+ewalklcw[1:])
 
-            edgelloops.append(lloop)
-            edgerloops.append(rloop)
+            rlloop = lloop[::-1]
+            if not dpr.cyclic_permutation(rlloop,rloop):
+                edgelloops.append(lloop)
+                edgerloops.append(rloop)
+        
+        #pdb.set_trace()
         return edgelloops,edgerloops
 
     # eloop is a list of node keys which are connected in a loop by edges
@@ -135,7 +160,6 @@ class graph(db.base):
     def _edge_loop_points(self,eloop,side):
         elcnt = len(eloop)
         looppts = []
-
         ne = self.edges[self.edges_lookup[eloop[0],eloop[1]]]
         if   side == 0:
             looppts.extend(ne.rbpts)
@@ -143,43 +167,147 @@ class graph(db.base):
         elif side == 1:
             looppts.extend(ne.lbpts)
             lnkey = ne.one.key()
-
+        le = ne
         for elx in range(2,elcnt+1):
             elx1,elx2 = elx-1,elx if elx < elcnt else 0
-            ne = self.edges[self.edges_lookup[eloop[elx1],eloop[elx2]]]
-            if   ne.one.key() == lnkey:
-                if   side == 0:rbpts,lbpts = ne.rbpts,ne.lbpts
-                elif side == 1:rbpts,lbpts = ne.lbpts,ne.rbpts
-                lnkey = ne.two.key()
-            elif ne.two.key() == lnkey:
-                if   side == 0:rbpts,lbpts = ne.lbpts,ne.rbpts
-                elif side == 1:rbpts,lbpts = ne.rbpts,ne.lbpts
-                lnkey = ne.one.key()
-            if   side == 0:looppts.extend(rbpts)
-            elif side == 1:looppts.extend(lbpts)
-
+            nekey = (eloop[elx1],eloop[elx2])
+            if nekey[0] == nekey[1]:return looppts
+            ne = self.edges[self.edges_lookup[nekey]]
+            nelooppts = self._find_road_points(looppts[-1],le,ne)
+            looppts.extend(nelooppts)
+            le = ne
         return looppts
+
+    # given the last and next edge, and the last point in a loop
+    # properly return the set of road points which connects
+    def _find_road_points(self,tip,le,ne):
+        # create the shortest line segment from el1 to el2
+        def tiptail(el1,el2):
+            d1 = dpv.distance(el1[ 0],el2[ 0])
+            d2 = dpv.distance(el1[ 0],el2[-1])
+            d3 = dpv.distance(el1[-1],el2[ 0])
+            d4 = dpv.distance(el1[-1],el2[-1])
+            md = min(d1,d2,d3,d4)
+            if   md == d1:return el1[ 0],el2[ 0]
+            elif md == d2:return el1[ 0],el2[-1]
+            elif md == d3:return el1[-1],el2[ 0]
+            elif md == d4:return el1[-1],el2[-1]
+        def closer(p,r,l):
+            if dpv.distance(p,r) < dpv.distance(p,l):return r
+            else:return l
+
+        ax = dtl.plot_axes_xy()
+        ax = dtl.plot_point_xy(tip,ax)
+        ax = dtl.plot_edges_xy(le.rpts,ax)
+        ax = dtl.plot_edges_xy(ne.rpts,ax)
+        s1,s2 = tiptail(le.rpts,ne.rpts)
+        ax = dtl.plot_edges_xy([s1,s2],ax,lw = 5.0)
+        ax = dtl.plot_edges_xy([tip,closer(tip,ne.rbpts[0],ne.rbpts[-1])],ax)
+        ax = dtl.plot_edges_xy([tip,closer(tip,ne.lbpts[0],ne.lbpts[-1])],ax)
+
+        plt.show()
+
+        '''#
+        this function is verrrrry sloppy.... rewrite it....
+        '''#
+        def same_side(lp):
+            lp0d = dpv.distance(lp[ 0],tip)
+            lp1d = dpv.distance(lp[-1],tip)
+            lpt = lp[0] if lp0d < lp1d else lp[-1]
+            s1,s2 = tiptail(le.rpts,ne.rpts)
+            segsect = dpr.segments_intersect(s1,s2,lpt,tip)
+            if not segsect:return lpt
+        def connect_end(lp,lpt):
+            if lpt.near(lp[0]):return lp[:]
+            else:return lp[::-1]
+
+        if le is ne:
+            if tip in ne.rbpts:return connect_end(ne.lbpts,tip)
+            else:return connect_end(ne.rbpts,tip)
+        else:
+            lrpt = same_side(ne.rbpts)
+            llpt = same_side(ne.lbpts)
+            if lrpt is None and llpt is None:
+                lsd = dpv.distance(tip,ne.lbpts[ 0])
+                led = dpv.distance(tip,ne.lbpts[-1])
+                rsd = dpv.distance(tip,ne.rbpts[ 0])
+                red = dpv.distance(tip,ne.rbpts[-1])
+                sxs = dpr.order_ascending([lsd,led,rsd,red]) 
+                nelooppts = None
+                for sx in sxs:
+                    if   sx == 0 and not tip in ne.lbpts:nelooppts = ne.lbpts[:]
+                    elif sx == 1 and not tip in ne.lbpts:nelooppts = ne.lbpts[:-1]
+                    elif sx == 2 and not tip in ne.rbpts:nelooppts = ne.rbpts[:]
+                    elif sx == 3 and not tip in ne.rbpts:nelooppts = ne.rbpts[:-1]
+                    if not nelooppts is None:break
+                return nelooppts
+            if not lrpt is None:return connect_end(ne.rbpts,lrpt)
+            else:return connect_end(ne.lbpts,llpt)
 
     # return a collection of points outlining all nodes/edges in the graph
     def _edge_loop_boundaries(self):
-        # a stem is a set of edges which are not part of a loop
-        # every step exists within some loop (possibly implicit exterior loop)
-        # a loop should be represented by a set of tuples which correspond 
-        # to the edges which comprise the loop
         edgelloops,edgerloops = self._edge_loops()
-        bedgeloops = {}
+        rperms = {}
+        lperms = {}
         for ex in range(len(edgelloops)):
             lloop,rloop = edgelloops[ex],edgerloops[ex]
-
+            rkey = rloop[:-1]
             isperm = False
-            for rps in bedgeloops:
-                if dpr.cyclic_permutation(rloop,rps):isperm = True;break
-            if not isperm:bedgeloops[rloop] = self._edge_loop_points(rloop,0)
-
+            for rps in rperms:
+                if dpr.cyclic_permutation(rkey,rps):isperm = True;break
+            if not isperm:
+                print('found rperm',rloop)
+                rperms[rkey] = self._edge_loop_points(rloop,0) 
+            lkey = lloop[:-1]
             isperm = False
-            for lps in bedgeloops:
-                if dpr.cyclic_permutation(lloop,lps):isperm = True;break
-            if not isperm:bedgeloops[lloop] = self._edge_loop_points(lloop,1)
+            for lps in lperms:
+                if dpr.cyclic_permutation(lkey,lps):isperm = True;break
+            if not isperm:
+                print('found lperm',lloop)
+                lperms[lkey] = self._edge_loop_points(lloop,1) 
+
+        # each loop has the potential to form a loop of points
+        # either on the left or right side of the loop
+        for el in lperms:
+            ax = dtl.plot_axes_xy()
+            elp = [v for v in lperms[el]]
+            ax = dtl.plot_points_xy(elp,ax,number = True)
+            ax = self.plot_xy(ax)
+            plt.show()
+        print('thats the lperms')
+        for el in rperms:
+            ax = dtl.plot_axes_xy()
+            elp = [v for v in rperms[el]]
+            ax = dtl.plot_points_xy(elp,ax,number = True)
+            ax = self.plot_xy(ax)
+            plt.show()
+
+        pdb.set_trace()
+        return self._rank_edge_loops(rperms,lperms)
+
+    # determine how the loops are arranged based on containment
+    # so that they can be properly triangulated
+    def _rank_edge_loops(self,rloops,lloops):
+        bedgeloops = {}
+
+        ax = dtl.plot_axes_xy()
+        ax = self.plot_xy(ax)
+        for bedge in rloops:
+            ax = dtl.plot_edges_xy(rloops[bedge],ax)
+        for bedge in lloops:
+            ax = dtl.plot_edges_xy(lloops[bedge],ax)
+        plt.show()
+
+        for rkey in rloops:
+            isperm = False
+            for bkey in bedgeloops:
+                if dpr.cyclic_permutation(rkey,bkey):isperm = True;break
+            if not isperm:bedgeloops[rkey] = rloops[rkey]
+        for lkey in lloops:
+            isperm = False
+            for bkey in bedgeloops:
+                if dpr.cyclic_permutation(lkey,bkey):isperm = True;break
+            if not isperm:bedgeloops[lkey] = lloops[lkey]
         return bedgeloops
 
     # calculate polygons representing regions to place terrain
@@ -191,15 +319,8 @@ class graph(db.base):
         convexbnd = dpr.inflate(convexbnd,100)
         eloops = self._edge_loop_boundaries()
 
-        # rank the loops based on containment hierarchy to then 
-        # describe polygons with holes using the loops
-        '''#
-        ax = dtl.plot_axes_xy()
-        ax = self.plot_xy(ax)
-        for bedge in eloops:
-            ax = dtl.plot_edges_xy(eloops[bedge],ax)
-        plt.show()
-        '''#
+        print('amennnnn')
+        pdb.set_trace()
 
         eloopkeys = eloops.keys()
         eloops1 = eloops[[x for x in eloopkeys][0]]
@@ -588,9 +709,9 @@ def ramp():
 def hairpin():
     g = graph()
 
-    g._add_edge((0,0,0),(100,50,1))
-    g._add_edge((100,50,1),(0,100,2))
-    g._add_edge((0,100,2),(100,150,3))
+    g._add_edge((0,0,0),(100,50,0))
+    g._add_edge((100,50,0),(0,100,0))
+    g._add_edge((0,100,0),(100,150,0))
     #g._add_edge((0,0,0),(-50,100,1))
     #g._add_edge((-50,100,2),(100,150,3))
 
@@ -607,6 +728,18 @@ def circle():
     #g._add_edge((0,100,0),(-50,50,0))
     g._add_edge((-50,50,0),(0,0,0),interpolated = True)
     #g._add_edge((-50,50,0),(0,0,0))
+
+    return g
+
+def newcastle():
+    g = graph()
+
+    l,w = 200,200
+    g._add_edge((0,0,0),(l*0.5,w*0.5,0),interpolated = True)
+    g._add_edge((l*0.5,w*0.5,0),(0,w,0),interpolated = True)
+    g._add_edge((0,w,0),(-l*0.5,l*0.5,0),interpolated = True)
+    g._add_edge((-l*0.5,w*0.5,0),(0,0,0),interpolated = True)
+    g._add_edge((0,0,0),(0,w*0.5,0),interpolated = True)
 
     return g
 

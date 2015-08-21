@@ -134,8 +134,8 @@ def triang():
     #plc.triangulate_xy()
     plc.triangulate()
 
-    #ax = plc.plot_xy()
-    ax = plc.plot()
+    ax = plc.plot_xy()
+    #ax = plc.plot()
     plt.show()
 
     #pelt = plc.covers['tri'].pelt()
@@ -221,8 +221,8 @@ def intriangle_test():
 #pls.test()
 #afmtest()
 #tetra()
-#triang()
-cont()
+triang()
+#cont()
 #intriangle_test()
 
 

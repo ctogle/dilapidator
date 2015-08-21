@@ -893,7 +893,10 @@ cdef zhat = vector(0,0,1)
 cdef nxhat = vector(-1,0,0)
 cdef nyhat = vector(0,-1,0)
 cdef nzhat = vector(0,0,-1)
-xhat  = vector( 1, 0, 0)
+
+cpdef vector x():
+    return xhat.copy()
+#xhat  = vector( 1, 0, 0)
 yhat  = vector( 0, 1, 0)
 zhat  = vector( 0, 0, 1)
 nxhat = vector(-1, 0, 0)

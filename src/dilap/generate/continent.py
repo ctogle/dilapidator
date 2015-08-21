@@ -26,7 +26,8 @@ class continent(dgc.context):
     def define(self):
         #g = ifg.graph()
         #g = ifg.hairpin()
-        g = ifg.circle()
+        #g = ifg.circle()
+        g = ifg.newcastle()
         #g = ifg.ramp()
 
         #contbnd = dpr.point_ring(250,8)
@@ -71,13 +72,11 @@ class continent(dgc.context):
         #lscape.generate(worn)
         #self._consume(lscape.generate(worn))
 
-        #tpelt = self.igraph.tplc.pelt()
-        #rpelt = self.igraph.rplc.pelt()
-        #tnode = self._node_wrap(tpelt)
-        #rnode = self._node_wrap(rpelt)
-        #self._nodes_to_graph(tnode,rnode)
-        #self._nodes_to_graph(tnode)
-        #self._nodes_to_graph(rnode)
+        tpelt = self.igraph.tplc.pelt()
+        rpelt = self.igraph.rplc.pelt()
+        tnode = self._node_wrap(tpelt)
+        rnode = self._node_wrap(rpelt)
+        self._nodes_to_graph(tnode,rnode)
 
         opelt = dtl.box().pelt()
         onode = self._node_wrap(opelt)

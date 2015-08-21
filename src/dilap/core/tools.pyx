@@ -33,6 +33,32 @@ cdef float near_c(float a,float b,float c = 0.000001):
     if abs(a-b) < c:return b
     else:return a
 
+# return the index of the smallest value in values
+cdef int locate_smallest_c(list values):
+    cdef int vcnt = len(values)
+    cdef int vx
+    cdef float v
+    cdef float sv = values[0]
+    cdef int si = 0
+    for vx in range(1,vcnt):
+        v = values[vx]
+        if v < sv:
+            si = vx
+            sv = v
+    return si
+
+# return the ordered indices for a list of values (ascending)
+cdef list order_ascending_c(list values):
+    cdef list xrng = [x for x in range(len(values))]
+    cdef list od = list(list(zip(*sorted(zip(values,xrng))))[1])
+    #od.reverse()
+    return od
+
+# return the shortest angular distance between two angles
+cdef float adist_c(float a1,float a2):
+    cdef float da = clamp_periodic(a1-a2,0.0,twoPI)
+    return da if da < PI else twoPI - da
+
 # is seq1 a cyclic permutation of seq2?
 cdef bint cyclic_permutation_c(seq1,seq2):
     cdef int s1cnt = len(seq1)
@@ -111,8 +137,8 @@ cpdef float angle_between(dpv.vector v1,dpv.vector v2):
     return angle_between_c(v1,v2)
 
 cdef float signed_angle_between_xy_c(dpv.vector v1,dpv.vector v2):
-    cdef dpv.vector n1 = v1.copy().xy().normalize()
-    cdef dpv.vector n2 = v2.copy().xy().normalize()
+    cdef dpv.vector n1 = v1.xy().normalize()
+    cdef dpv.vector n2 = v2.xy().normalize()
     cdef dpv.vector vn
     cdef float n12dot = dpv.dot_c(n1,n2)
     cdef float ang = 0.0
@@ -270,25 +296,12 @@ cdef bint inside_circle_c(dpv.vector pt,dpv.vector c,float r):
 # of the circumcenter found in the plane plane by projecting p1,p2,p3
 # in the plane
 cdef tuple circumscribe_tri_c(dpv.vector p1,dpv.vector p2,dpv.vector p3):
-    cdef dpv.vector cp1 = p1.copy()
-    cdef dpv.vector cp2 = p2.copy()
-    cdef dpv.vector cp3 = p3.copy()
+    cdef dpv.vector cp1 = p1.xy()
+    cdef dpv.vector cp2 = p2.xy()
+    cdef dpv.vector cp3 = p3.xy()
     cdef dpv.vector e1 = cp1 - cp3
     cdef dpv.vector e2 = cp2 - cp3
     cdef float th = angle_between_c(e1,e2)
-
-    #if e1.near(dpv.zero_c()) or e2.near(dpv.zero_c()) or e1.near(e2):
-    #    print('here you aint',th)
-    #if th < 0.0001:th = PI
-    #if e1.near(dpv.zero_c()) or e2.near(dpv.zero_c()) or e1.near(e2):
-    #    print('here you are',th)
-    #    quit()
-
-    if isnear(th,0) or isnear(th,PI):
-        print('here you are',th,e1.__str__(),e2.__str__())
-        print('here you are',cp1.__str__(),cp2.__str__(),cp3.__str__())
-        quit()
-
     cdef float cr = dpv.distance_c(cp1,cp2)/(2*numpy.sin(th))
     cdef dpv.vector cp = e2.copy().scale_u(
         e1.magnitude2())-e1.copy().scale_u(e2.magnitude2())
@@ -326,6 +339,11 @@ cdef bint segments_intersect_c(dpv.vector s11,dpv.vector s12,
         if proj2.x - proj1.x > err and proj1.y - proj2.x > err:return 1
     return 0
 
+# NOTE: DOES THE POINT NEED TO BE PROJECTED INTO THE PLANE OF THE TRIANGLE????
+# NOTE: DOES THE POINT NEED TO BE PROJECTED INTO THE PLANE OF THE TRIANGLE????
+# NOTE: DOES THE POINT NEED TO BE PROJECTED INTO THE PLANE OF THE TRIANGLE????
+# NOTE: DOES THE POINT NEED TO BE PROJECTED INTO THE PLANE OF THE TRIANGLE????
+# NOTE: DOES THE POINT NEED TO BE PROJECTED INTO THE PLANE OF THE TRIANGLE????
 # calculate the barycentric coordinates of the point pt for the triangle abc
 cdef dpv.vector2d barycentric_c(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c): 
     cdef dpv.vector v0 = c  - a
@@ -574,6 +592,21 @@ cpdef bint isnear(float a,float b,float c = 0.000001):
 cpdef float near(float a,float b,float c = 0.000001):
     '''effectively round a to b if within a neighborhood c'''
     return near_c(a,b,c)
+
+# return the index of the smallest value in values
+cpdef int locate_smallest(list values):
+    '''locate the smallest value in a list of values'''
+    return locate_smallest_c(values)
+
+# return the ordered indices for a list of values (ascending)
+cpdef list order_ascending(list values):
+    '''determine the ascending ordering of a list of values'''
+    return order_ascending_c(values)
+
+# return the shortest angular distance between two angles
+cpdef float adist(float a1,float a2):
+    '''find the angular distance between two angles'''
+    return adist_c(a1,a2)
 
 # is seq1 a cyclic permutation of seq2?
 cpdef bint cyclic_permutation(seq1,seq2):

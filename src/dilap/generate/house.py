@@ -3,6 +3,8 @@ import dilap.core.vector as dpv
 import dilap.core.tools as dpr
 import dilap.core.sgraph as dsg
 import dilap.core.context as dgc
+import dilap.mesh.tools as dtl
+import dilap.mesh.piecewisecomplex as pwc
 import dilap.io.io as dio
 import dilap.primitive.cube as dcu
 import dilap.primitive.cone as dco
@@ -12,20 +14,24 @@ import dilap.primitive.floor as df
 import dilap.primitive.road as dr
 import dilap.generate.floorplan as dfp
 
+import matplotlib.pyplot as plt
 import random
+import pdb
 
 class house(dgc.context):
 
-    def __init__(self,l,w,*args,**kwargs):
+    #def __init__(self,l,w,*args,**kwargs):
+    def __init__(self,*args,**kwargs):
         dgc.context.__init__(self,*args,**kwargs)
-        self.l = l
-        self.w = w
+        self._def('boundary',None,**kwargs)
+        #self.l = l
+        #self.w = w
         self._def('stories',3,**kwargs)
         self._def('fheights',[0.25 for x in range(self.stories)],**kwargs)
         self._def('cheights',[0.25 for x in range(self.stories)],**kwargs)
         self._def('wheights',[4.0 for x in range(self.stories)],**kwargs)
         self._def('stoop',(5,3,2),**kwargs)
-        self.fplan = dfp.floorplan(self)
+        #self.fplan = dfp.floorplan(self)
 
     def _terrain_points(self):
         tpts = self.fplan._terrain_points()
@@ -58,6 +64,21 @@ class house(dgc.context):
         self._nodes_to_graph(*storynodes)
 
     def generate(self,worn = 0):
+        
+        polygon = (tuple(x.copy() for x in self.boundary),())
+        plc = pwc.piecewise_linear_complex()
+        plc.add_polygons(polygon)
+        plc.extrude_polygon(0,dpv.vector(0,0,10))
+        plc.triangulate()
+
+        #plc.plot()
+        #plt.show()
+
+        pelt = plc.pelt()
+        node = self._node_wrap(pelt)
+        self._nodes_to_graph(node)
+        return self
+
         self.fplan.plan()
         for x in range(self.stories):
             self.fplan.plan_specific(x)

@@ -87,8 +87,8 @@ class shaft(dgc.context):
         rside.translate_x( rwoffx).translate_y(-rwoffy).translate_z(fh)
         lside._project_uv_flat()
         rside._project_uv_flat()
-        if level == self.stories - 1:final = dpr.combine([pform1,extra])
-        else:final = dpr.combine([pform1,pform2,pform3,lside,rside,extra])
+        if level == self.stories - 1:final = dmo.combine([pform1,extra])
+        else:final = dmo.combine([pform1,pform2,pform3,lside,rside,extra])
         return self._node_wrap(final)
 
     # generate and return a node representing ramps of one story
@@ -100,7 +100,7 @@ class shaft(dgc.context):
     # generate and return a node representing walls of one story
     def generate_walls(self,level):
         l,w,fh,wh,ch = self._params(level)
-        cs = dpr.corners(l,w)
+        cs = dpr.square(l,w)
         margs = ()
         wargs = [
             [(cs[1],cs[2]),{'h':wh,'w':0.25,'fh':fh,

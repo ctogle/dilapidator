@@ -1,50 +1,35 @@
 import dilap.core.base as db
-import dilap.core.vector as dpv
 import dilap.core.tools as dpr
-import dilap.core.lsystem as dls
+import dilap.core.vector as dpv
+import dilap.core.graphedge as geg
+
 import dilap.mesh.tools as dtl
-import dilap.infrastructure.graphnode as gnd
-import dilap.infrastructure.infralsystem as ifl
 
 import matplotlib.pyplot as plt
-import random as rm
 import pdb
 
 
 
-class edge(db.base):
+class edge(geg.edge):
     
     def plot(self,ax = None):
-        if ax is None:ax = dtl.plot_axes()
-        np1 = self.one.p
-        np2 = self.two.p
-        dtl.plot_edges([np1,np2],ax)
-        dtl.plot_edges(self.rpts,ax)
+        ax = geg.edge.plot(self,ax)
+        #dtl.plot_edges(self.rpts,ax)
         return ax
 
-    def plot_xy(self,ax = None):
-        if ax is None:ax = dtl.plot_axes_xy()
-        np1 = self.one.p
-        np2 = self.two.p
-        dtl.plot_edges_xy([np1,np2],ax)
-        dtl.plot_edges_xy(self.rpts,ax)
-        return ax
-
-    def key(self):
-        return (self.one.key(),self.two.key())
-
+    def layer(self):
+        if self.one.layer == self.two.layer:return self.one.layer
+        else:return self.one.layer,self.two.layer
+    def cut_door(self,dw,dh,dp):
+        self.doors.append((self.width,dw,dh,dp))
+    def cut_window(self,ww,wh,wz,wp):
+        self.windows.append((self.width,ww,wh,wz,wp))
     def __init__(self,node1,node2,**kwargs):
-        self._def('index',None,**kwargs)
+        geg.edge.__init__(self,node1,node2,**kwargs)
         self._def('interpolated',True,**kwargs)
-        self.one = node1
-        self.two = node2
-        self._def('width',10,**kwargs)
-
-    def _directions(self):
-        self.tangent = dpv.v1_v2(self.one.p,self.two.p)
-        ndir = dpr.deg(dpr.angle_from_xaxis_xy(self.tangent))
-        ndirf = ndir+180 if ndir < 180 else ndir - 180
-        return ndir,ndirf
+        self._def('width',0.75,**kwargs)
+        self._def('doors',[],**kwargs)
+        self._def('windows',[],**kwargs)
 
     # return list of layers which self and o have in common
     # otherwise return None
@@ -109,24 +94,6 @@ class edge(db.base):
             adists = [dpr.clamp_periodic(fa-ta,0,dpr.twoPI) for ta in tangles]
             turns = list(list(zip(*sorted(zip(adists,turns))))[1])
             if not wise == 0:turns.reverse()
-            '''#
-            e1d = dpv.x().rotate_z(fa)
-            e1 = [share.p.copy(),share.p.copy().translate(e1d)]
-            oes = []
-            tps = []
-            for tn in turns:
-                t = dpr.rad(share.targetring[tn])
-                oed = dpv.x().rotate_z(t)
-                oe  = [share.p.copy(),share.p.copy().translate(oed)]
-                oes.append(oe)
-                tps.append(oe[1])
-            ax = dtl.plot_axes_xy()
-            ax = dtl.plot_edges_xy(e1,ax,lw = 5)
-            for oe in oes:
-                ax = dtl.plot_edges_xy(oe,ax)
-            ax = dtl.plot_points_xy(tps,ax,number = True)
-            plt.show()
-            '''#
             return turns[0]
             
 
@@ -138,4 +105,4 @@ class edge(db.base):
 
 
 
-
+ 

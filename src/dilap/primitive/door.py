@@ -21,7 +21,7 @@ class door(dmo.model):
         top = dcu.cube().translate_z(0.5)
         top.scale_x(w).scale_y(ww).scale_z(th)
         top.translate_z(self.z+self.h)
-        top.rotate(dpq.q_from_uu(dpv.xhat,self.wall.tangent))
+        top.rotate(dpq.q_from_uu(dpv.x(),self.wall.tangent))
         top._project_uv_flat()
         self._consume(top)
 

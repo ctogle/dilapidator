@@ -19,6 +19,14 @@ import numpy,pdb
 ### it can write itself as a fbx model
 ###############################################################################
 
+# reduce a list of models to a single model
+def combine(models):
+    final = models[0]
+    if len(models) > 1:
+        for m in models[1:]:
+            final._consume(m)
+    return final
+
 unused_model_id = 0
 class model(db.base):
 
@@ -222,11 +230,11 @@ class model(db.base):
             for fdx in face:
                 p = self.pcoords[fdx]
                 n = self.ncoords[fdx]
-                if dpv.near(n,dpv.nxhat) or dpv.near(n,dpv.xhat):
+                if dpv.near(n,dpv.nx()) or dpv.near(n,dpv.x()):
                     nu = p.copy().yz2d()
-                elif dpv.near(n,dpv.nyhat) or dpv.near(n,dpv.yhat):
+                elif dpv.near(n,dpv.ny()) or dpv.near(n,dpv.y()):
                     nu = p.copy().xz2d()
-                elif dpv.near(n,dpv.nzhat) or dpv.near(n,dpv.zhat):
+                elif dpv.near(n,dpv.nz()) or dpv.near(n,dpv.z()):
                     nu = p.copy().xy2d()
                 else:continue
                 self.ucoords[fdx] = nu

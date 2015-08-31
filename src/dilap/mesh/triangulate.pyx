@@ -10,31 +10,32 @@ import math,numpy
 
 cdef class triangulation:
 
-    # if triangle uvw is skinny
-    # return the center of its circumcircle otherwise return None
-    cpdef skinny_triangle(self,int u,int v,int w,float h):
-        v1,v2,v3 = self.points.get_points(u,v,w)
-        tcp,tcr = dpr.circumscribe_tri_c(v1,v2,v3)
-        if tcr/h > 1.0:return tcp 
-
     # given the index of a point, return the index of a ghost
     # whose real edge intersects the point, or -1
     cdef int point_on_boundary(self,int u):
-        up = self.points.ps[u]
+        cdef dpv.vector up = self.points.ps[u]
+        cdef dpv.vector g1,g2
+        cdef int gdx,gx1,gx2,gx3
+        cdef float dx,dy,dv,nx,ny,prj1,prj2,prj3
         for gdx in range(self.ghostcnt):
             gst = self.ghosts[gdx]
             if gst is None:continue
-            g1,g2 = self.points.get_points(gst[0],gst[1])
-            if g1.near(up) or g2.near(up):return gdx
+            gx1,gx2,gx3 = gst
+            g1,g2 = self.points.get_points(gx1,gx2)
             dx = g2.x - g1.x
             dy = g2.y - g1.y
             dv = math.sqrt(dx**2 + dy**2)
-            norm = dpv.vector(dy/dv,-dx/dv,0)
-            nrmd = dpr.distance_to_edge_c(up,g1,g2,norm)
-            if dpr.isnear_c(nrmd,0):
-                linkd = dpv.distance_c(up,g1)+dpv.distance_c(up,g2)
-                if dpr.isnear_c(linkd,dpv.distance_c(g1,g2)):
-                    return gdx
+            nx =  dy/dv
+            ny = -dx/dv
+            prj1 = g1.x*nx + g1.y*ny
+            prj3 = up.x*nx + up.y*ny
+            if dpr.isnear_c(prj1,prj3):
+                prj1 = -g1.x*ny + g1.y*nx
+                prj3 = -up.x*ny + up.y*nx
+                if dpr.near_c(prj3,prj1) >= prj1:
+                    prj2 = -g2.x*ny + g2.y*nx
+                    if dpr.near_c(prj3,prj2) <= prj2:
+                        return gdx
         return -1
 
     # given the indices of the endpoints of an edge, 
@@ -161,7 +162,7 @@ cdef void initialize(triangulation data,list bnd):
     b1,b2,b3 = bnd[0],bnd[1],bnd[2]
     bnorm,btang = dpr.normal_c(b1,b2,b3),dpr.tangent_c(b1,b2,b3)
     convexcom = dpv.com(bnd)
-    convexrad = max([dpv.distance_c(cx,convexcom) for cx in bnd])+1000
+    convexrad = max([dpv.distance_c(cx,convexcom) for cx in bnd])+100
     c01delta = dpv.vector(-1,-1,0).normalize().scale_u(convexrad)
     c02delta = dpv.vector( 1,-1,0).normalize().scale_u(convexrad)
     c03delta = dpv.vector( 0, 1,0).normalize().scale_u(convexrad)
@@ -178,6 +179,8 @@ cdef void initialize(triangulation data,list bnd):
 # return a list of indices pointing to newly created triangles 
 #cdef list point_location(triangulation data,dpv.vector y):
 cdef list point_location(triangulation data,dpv.vector y):
+    cdef int pretricnt,nv,onb,tdx,gdx,u,v,w,x,tu
+    cdef dpv.vector vu,vv,vw
     pretricnt = data.tricnt
     if data.points.find_point(y):return []
     nv = data.points.add_point(y)
@@ -193,16 +196,16 @@ cdef list point_location(triangulation data,dpv.vector y):
         data.add_triangle(tu,w,nv)
         return [x for x in range(pretricnt,data.tricnt)]
 
-    for tdx in range(data.tricnt):
+    for tdx in range(data.tricnt-1,-1,-1):
         tri = data.triangles[tdx]
         if tri is None:continue
         else:u,v,w = tri
         vu,vv,vw = data.points.get_points(u,v,w)
-        if dpr.intriangle_c(y,vu,vv,vw):
+        if dpr.intriangle_xy_c(y,vu,vv,vw):
             data.insert_vertex(nv,u,v,w)
             return [x for x in range(pretricnt,data.tricnt)]
 
-    for gdx in range(data.ghostcnt):
+    for gdx in range(data.ghostcnt-1,-1,-1):
         ghost = data.ghosts[gdx]
         if ghost is None:continue
         else:u,v,w = ghost
@@ -227,6 +230,16 @@ cdef void cover_polygon(triangulation data,tuple ebnd,tuple ibnds):
                 if dpr.concaves_contains_c(ibnd,ptri):
                     extras.append(tdx)
                     break
+
+        elif dpr.inconcave_xy_c(dpv.com(list(ptri)),ebnd):
+            print('wu tang')
+            import matplotlib.pyplot as plt
+            import dilap.mesh.tools as dtl
+            ax = dtl.plot_axes_xy()
+            dtl.plot_polygon_xy(list(ebnd),ax)
+            dtl.plot_polygon_xy(list(ptri),ax,center = True)
+            plt.show()
+
     for x in extras:
         xtri = data.triangles[x]
         if xtri is None:continue
@@ -260,16 +273,25 @@ cdef void constrain_delaunay(triangulation data):
 
 # perform chews first refinement algorithm on a triangulation
 cdef void refine_chews_first(triangulation data,float h):
-    unfinished = [t for t in data.triangles]
-    while unfinished:
+    cdef list unfinished = [t for t in data.triangles]
+    cdef int ucnt = len(unfinished)
+    cdef int ufx1,ufx2,ufx3
+    cdef dpv.vector v1,v2,v3
+    cdef list ntxs
+    cdef int ntx
+    while ucnt > 0:
         unfin = unfinished.pop(0)
+        ucnt -= 1
         if unfin is None:continue
         if not unfin in data.triangles:continue
         ufx1,ufx2,ufx3 = unfin
-        tcp = data.skinny_triangle(ufx1,ufx2,ufx3,h)
-        if not tcp is None:
+        v1,v2,v3 = data.points.get_points(ufx1,ufx2,ufx3)
+        tcp,tcr = dpr.circumscribe_tri_c(v1,v2,v3)
+        if tcr/h > 1.0:
             ntxs = point_location(data,tcp)
-            for ntx in ntxs:unfinished.append(data.triangles[ntx])
+            for ntx in ntxs:
+                unfinished.append(data.triangles[ntx])
+                ucnt += 1
 
 # given triangulation data, construct a dictionary encoding vertex 1-rings
 cdef dict vertex_rings(triangulation data):
@@ -315,17 +337,26 @@ cdef void plot_triangulation(triangulation data,ax = None):
 # poly contains an exterior bound and da tuple of interior bounds
 # bounds are ordered loops of points with no duplicates
 # bounds are possibly concave; interior bounds represent holes
-cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin):
+cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
     p0 = ebnd[0].copy()
     pn = dpr.polygon_normal_c(ebnd)
     if pn.near(dpv.nzhat):prot = dpq.q_from_av_c(numpy.pi,dpv.xhat)
     elif not pn.near(dpv.zhat):prot = dpq.q_from_uu_c(pn,dpv.zhat)
     else:prot = dpq.zero_c()
-    print('prot',prot.__str__(),pn.__str__())
+
+    #print('prot',prot.__str__(),pn.__str__())
+    #import matplotlib.pyplot as plt
+    #import dilap.mesh.tools as dtl
+    #ax = dtl.plot_axes()
+    #dtl.plot_polygon(list(ebnd),ax)
+
     #move points to xy plane, move back post triangulation
     for ep in ebnd:ep.rotate(prot)
     for ib in ibnds:
         for ip in ib:ip.rotate(prot)
+
+    #dtl.plot_polygon(list(ebnd),ax)
+    #plt.show()
 
     data = triangulation(p0,pn)
     initialize(data,list(ebnd))
@@ -342,8 +373,8 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin):
     cover_polygon(data,ebnd,ibnds)
     ghost_border(data,plcedges)              
     constrain_delaunay(data)
-    refine_chews_first(data,hmin)
-    smooth_laplacian(data,vertex_rings(data),100,0.5)
+    if refine:refine_chews_first(data,hmin)
+    if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
 
     prot.flip()
     for p in data.points.ps:p.rotate(prot)
@@ -370,8 +401,8 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin):
 # poly contains an exterior bound and da tuple of interior bounds
 # bounds are ordered loops of points with no duplicates
 # bounds are possibly concave; interior bounds represent holes
-cpdef tuple triangulate(tuple ebnd,tuple ibnds,float hmin):
-    return triangulate_c(ebnd,ibnds,hmin)
+cpdef tuple triangulate(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
+    return triangulate_c(ebnd,ibnds,hmin,refine,smooth)
 
 
 

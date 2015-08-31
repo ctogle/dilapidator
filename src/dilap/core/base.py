@@ -12,6 +12,7 @@ class base(object):
             if key in kwargs.keys():aval = kwargs[key]
             else:aval = dval
             self.__dict__[key] = aval
+        return self.__dict__[key]
 
 # return the path to a safe resource directory, 
 # or a full path to a file therein

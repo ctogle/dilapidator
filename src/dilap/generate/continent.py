@@ -2,11 +2,14 @@ import dilap.core.vector as dpv
 import dilap.core.quaternion as dpq
 import dilap.core.tools as dpr
 import dilap.core.context as dgc
+import dilap.core.profiler as dprf
+import dilap.mesh.piecewisecomplex as pwc
 import dilap.mesh.tools as dtl
 import dilap.infrastructure.graphregion as grg
 import dilap.infrastructure.infragraph as ifg
 import dilap.generate.landscape as dls
 import dilap.generate.city as dcy
+import dilap.generate.area as dar
 
 import dilap.generate.lot as dlt
 import dilap.primitive.cylinder as dcyl
@@ -26,27 +29,14 @@ class continent(dgc.context):
     def define(self):
         #g = ifg.graph()
         #g = ifg.hairpin()
-        #g = ifg.circle()
-        g = ifg.newcastle()
+        g = ifg.circle()
+        #g = ifg.newcastle()
+        #g = ifg.eight()
+        #g = ifg.clover()
         #g = ifg.ramp()
-
-        #contbnd = dpr.point_ring(250,8)
-        #gregion = grg.region(contbnd,sealevel = self.sealevel)
-        #nbhdbnd = dpr.point_ring(150,6)
-        #nbhdregion = grg.neighborhood(nbhdbnd)
-        #gregion._embed(nbhdregion)
-        #gregion._graph(g)
-
-        #contbnd = dpr.point_ring(250,8)
-        #opass = grg.overpass(contbnd)
-        #opass._graph(g)
 
         g._update()
         self.igraph = g
-        #ax = g.plot()
-        #plt.show()
-
-        #g.plot_regions()
 
         cityseed = dpv.vector(0,0,150)
         self.cityseeds = [cityseed]
@@ -71,16 +61,24 @@ class continent(dgc.context):
         #lscape = dls.landscape(controls = tpts,holes = hpts,regions = rpts)
         #lscape.generate(worn)
         #self._consume(lscape.generate(worn))
+        #tplc = pwc.piecewise_linear_complex()
+        #tplc.add_polygons(*self.igraph.tpolygons)
+        #dprf.profile_function(tplc.triangulate)
 
-        tpelt = self.igraph.tplc.pelt()
-        rpelt = self.igraph.rplc.pelt()
-        tnode = self._node_wrap(tpelt)
-        rnode = self._node_wrap(rpelt)
-        self._nodes_to_graph(tnode,rnode)
+        for tpoly in self.igraph.tpolygons[1:]:
+            tarea = dar.area(boundary = tpoly)
+            self._consume(tarea.generate())
 
-        opelt = dtl.box().pelt()
-        onode = self._node_wrap(opelt)
-        self._nodes_to_graph(onode)
+        rplc = pwc.piecewise_linear_complex()
+        rplc.add_polygons(*self.igraph.rpolygons)
+        #rplc.triangulate()
+        #rpelt = rplc.pelt()
+        #rnode = self._node_wrap(rpelt)
+        #self._nodes_to_graph(rnode)
+
+        #opelt = dtl.facade().pelt()
+        #onode = self._node_wrap(opelt)
+        #self._nodes_to_graph(onode)
 
         # add water models to scenegraph
         '''#
@@ -95,5 +93,6 @@ class continent(dgc.context):
         self._nodes_to_graph(wnode)
         '''#
         return self
+
 
 

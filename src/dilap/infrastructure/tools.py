@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import random as rm
 import pdb
 
+'''#
 def adist(a1,a2):
     da = dpr.clamp_periodic(a1-a2,0.0,360.0)
     return da if da < 180 else 360 - da
@@ -64,6 +65,7 @@ def nudge(angles,ws,target = 90,error = 1):
         oas = [apply_err(oas[x],es[x],oas[dxs[x]]) for x in range(acnt)]
     if tries == maxtries:print('tries exceeded while nuding!')
     return oas
+'''#
 
 
 

@@ -65,7 +65,7 @@ class floorplan(dgc.context):
     # given the plan for a room, return verts for its corners
     def wall_verts(self,rmargs):
         rmkws = rmargs[1]
-        cs = dpr.corners(rmkws['l'],rmkws['w'],
+        cs = dpr.square(rmkws['l'],rmkws['w'],
             dpv.vector(rmkws['x'],rmkws['y'],0.0))
         pairs = []
         for cdx in range(1,len(cs)):
@@ -114,10 +114,10 @@ class floorplan(dgc.context):
     def create_bbox(self,roomplan):
         x,y = roomplan[1]['x'],roomplan[1]['y']
         l,w = roomplan[1]['l']-0.01,roomplan[1]['w']-0.01
-        cns = dpr.corners(l,w,dpv.vector(x,y,0))
-        xpj = dpv.project_coords(cns,dpv.xhat)
-        ypj = dpv.project_coords(cns,dpv.yhat)
-        zpj = dpv.project_coords(cns,dpv.zhat)
+        cns = dpr.square(l,w,dpv.vector(x,y,0))
+        xpj = dpv.project_coords(cns,dpv.x())
+        ypj = dpv.project_coords(cns,dpv.y())
+        zpj = dpv.project_coords(cns,dpv.z())
         bb = dbb.bbox(xpj,ypj,zpj)
         roomplan[1]['bbox'] = bb 
 
@@ -126,7 +126,7 @@ class floorplan(dgc.context):
         if length is None:
 
             l,w = self.bldg.l,self.bldg.w
-            corners = dpr.corners(l,w)
+            corners = dpr.square(l,w)
 
             sidept = dpv.midpoint(*side[0])
             bdist = dpv.distance_to_border_xy(sidept,corners)
@@ -357,8 +357,8 @@ class floorplan(dgc.context):
         c3,c4 = dpr.extrude_edge(c1,c2,gleng,side[1]['normal'])
         newcorners = [c1,c2,c3,c4]
         x,y,z = dpv.center_of_mass(newcorners)
-        xpj = dpv.project_coords(newcorners,dpv.xhat)
-        ypj = dpv.project_coords(newcorners,dpv.yhat)
+        xpj = dpv.project_coords(newcorners,dpv.x())
+        ypj = dpv.project_coords(newcorners,dpv.y())
         l,w = xpj.y-xpj.x,ypj.y-ypj.x
         margs = ((),{'x':x,'y':y,'l':l,'w':w,'shafted':False})
         self.create_bbox(margs)

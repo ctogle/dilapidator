@@ -54,19 +54,27 @@ def plot_points(points,ax = None,ms = None):
     for pdx in range(len(points)):plot_point(points[pdx],ax,ms[pdx])  
     return ax
 
-def plot_edges_xy(points,ax = None,mk = None,lw = 1.0):
+def plot_edges_xy(points,ax = None,mk = None,lw = 1.0,center = False):
     if ax is None:ax = plot_axes_xy()
     if mk is None:mk = '+'
     pts = [p.to_tuple() for p in points]
     xs,ys,zs = zip(*pts)
     ax.plot(xs,ys,marker = mk,lw = lw)
+    if center:
+        centers = [dpv.midpoint(points[x-1],points[x]) 
+                        for x in range(1,len(points))]
+        plot_points_xy(centers,ax)
     return ax
 
-def plot_edges(points,ax = None,lw = 1.0):
+def plot_edges(points,ax = None,lw = 1.0,center = False):
     if ax is None:ax = plot_axes()
     pts = [p.to_tuple() for p in points]
     xs,ys,zs = zip(*pts)
     ax.plot(xs,ys,zs,marker = '+',lw = lw)
+    if center:
+        centers = [dpv.midpoint(points[x-1],points[x]) 
+                        for x in range(1,len(points))]
+        plot_points(centers,ax)
     return ax
 
 def plot_polygon_xy(points,ax = None,center = False,lw = 1.0):
@@ -81,6 +89,20 @@ def plot_polygon(points,ax = None,center = False,lw = 1.0):
     epts.append(points[0])
     ax = plot_edges(epts,ax,lw = lw)
     if center:plot_point(dpv.center_of_mass(points),ax,marker = 's')
+    return ax
+
+def plot_polygon_full_xy(poly,ax = None,center = False,lw = 1.0):
+    if ax is None:ax = plot_axes_xy()
+    ebnd,ibnds = poly
+    plot_polygon_xy(list(ebnd),ax,center = True)
+    for ib in ibnds:plot_polygon_xy(list(ib),ax,center = True)
+    return ax
+
+def plot_polygon_full(poly,ax = None,center = False,lw = 1.0):
+    if ax is None:ax = plot_axes()
+    ebnd,ibnds = poly
+    plot_polygon(list(ebnd),ax,center = True)
+    for ib in ibnds:plot_polygon(list(ib),ax,center = True)
     return ax
 
 def plot_tetrahedron(points,ax = None):
@@ -98,6 +120,12 @@ def plot_circle(c,r,ax = None,center = False):
 
 ###############################################################################
 
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
 # given poly, a sequence of points, return the lengths of 
 # the edges of the polygon that poly describes
 def edge_lengths(*poly):
@@ -123,39 +151,58 @@ def shortest_edge(*poly):
     return min(elengs)
 
 # given line segment s1, line segment s2
-# does s1 overlap the interior or s2?
 # a segment is a tuple of two points
 # return the point of intersection if there is one
 # otherwise return None
 #   note: currently assumes s1,s2 in xy-plane
-def segments_intersect_at(s1,s2):
-    p,q = s1[0],s2[0]
-    r = dpv.v1_v2(*s1)
-    s = dpv.v1_v2(*s2)
+def segments_intersect_at(s11,s12,s21,s22):
+    p,q = s11,s21
+    r = dpv.v1_v2(s11,s12)
+    s = dpv.v1_v2(s21,s22)
     qmp = q-p
     rcs = r.cross(s)
     rcsmag = rcs.magnitude()
     qmpcr = qmp.cross(r)
     qmpcrmag = qmpcr.magnitude()
     rmag2 = r.magnitude2()
+    if dpr.isnear(rcsmag,0) and dpr.isnear(qmpcrmag,0):
 
-    if isnear(rcsmag,0) and isnear(qmpcrmag,0):
-        t0 = qmp.dot(r)/rmag2
-        t1 = t0 + s.dot(r)/rmag2
-        if s.dot(r) < 0.0:t0,t1 = t1,t0
-        if dpb.overlap(dpv.vector2d(0,1),dpv.vector2d(t0,t1)):
-            if t0 == 1 or t1 == 0:return None
-            t0pt = p + r.copy().scale_u(t0)
-            t1pt = p + r.copy().scale_u(t1)
-            print('colinear and overlapping!')
-            return t0pt,t1pt
-        else:return None
-    elif isnear(rcsmag,0) and not isnear(qmpcrmag,0):return None
-    elif not isnear(rcsmag,0) and not isnear(qmpcrmag,0):
-        u = qmpcr.z/rcs.z
-        t = qmp.cross(s).z/rcs.z
-        if (u == 0 or u == 1) and (t == 0 or t == 1):return None
-        if dpb.p_in_rng(u,0,1) and dpb.p_in_rng(t,0,1):return q + s.scale_u(u)
+        if dpr.isnear(rmag2,0):
+          print('wtffffffffffffffffff')
+          ax = plot_axes()
+          plot_edges([s11,s12],ax,center = True,lw = 5.0)
+          plot_edges([s21,s22],ax,center = True)
+          plt.show()
+          pdb.set_trace()
+
+        t0 = dpr.near(dpr.near(dpv.dot(qmp,r)/rmag2,0),1)
+        t1 = dpr.near(dpr.near( t0 + s.dot(r)/rmag2,0),1)
+        if dpv.dot(s,r) < 0.0:t0,t1 = t1,t0
+        t0pt = p + r.copy().scale_u(t0)
+        t1pt = p + r.copy().scale_u(t1)
+        if dpr.inrange(t0,0,1) or dpr.inrange(t1,0,1):return t0pt,t1pt
+        elif dpr.inrange(0,t0,t1) and dpr.inrange(1,t0,t1):return s11,s12
+        elif (t0 == 0 and t1 == 1) or (t0 == 1 and t1 == 0):return t0pt,t1pt
+    elif dpr.isnear(rcsmag,0) and not dpr.isnear(qmpcrmag,0):return None
+    #elif not dpr.isnear(rcsmag,0) and not dpr.isnear(qmpcrmag,0):
+    #elif not dpr.isnear(rcsmag,0):
+    elif not dpr.isnear(rcs.z,0):
+
+        '''#
+        if dpr.isnear(rcs.z,0):
+          ax = plot_axes()
+          plot_edges([s11,s12],ax,center = True,lw = 5.0)
+          plot_edges([s21,s22],ax,center = True)
+          plt.show()
+          pdb.set_trace()
+        '''#
+
+        u = dpr.near(dpr.near(       qmpcr.z/rcs.z,0),1)
+        t = dpr.near(dpr.near(qmp.cross(s).z/rcs.z,0),1)
+        if (u == 0 or u == 1) and (t == 0 or t == 1):return
+        #print('uvt',u,t)
+        if not dpr.inrange(u,0,1) or not dpr.inrange(t,0,1):return None
+        else:return q + s.scale_u(u)
 
 # generate a plc for an icosphere with faces split n times
 def icosphere(r = 1,n = 1):
@@ -279,7 +326,45 @@ def roof():
     plt.show()
     return plc
 
+def facade():
+    import dilap.mesh.piecewisecomplex as pwc
+    rim = [
+        dpv.vector(0,0,0),dpv.vector(15,0,0),
+        dpv.vector(15,0,4),dpv.vector(0,0,4)]
 
+    door = [
+        dpv.vector(-1,0,0.2),dpv.vector(1,0,0.2),
+        dpv.vector(1,0,3),dpv.vector(-1,0,3)]
+    dpv.translate_coords(door,dpv.vector(10,0,0))
+
+    wspline = dpv.vector_spline(
+        dpv.vector(2,0,3),dpv.vector(1.8,0,3.2),
+        dpv.vector(-1.8,0,3.2),dpv.vector(-2,0,3),10)
+    window = [
+        dpv.vector(-2,0,0.5),dpv.vector(2,0,0.5),
+        dpv.vector(2,0,3)]+wspline+[dpv.vector(-2,0,3)]
+    dpv.translate_coords(window,dpv.vector(5,0,0))
+
+    beam = [
+        dpv.vector(1,0,1),dpv.vector(2,0,1),
+        dpv.vector(2,0,9),dpv.vector(1,0,9)]
+
+    #fac = (rim,(door,window,beam)),(beam,())
+    fac = (rim,(door,window,beam)),
+    
+    plc = pwc.piecewise_linear_complex()
+    plc.add_polygons(*fac)
+
+    #plc.translate_polygon(2,dpv.vector(0,0,10))
+    #plc.extrude_polygon(1,dpv.vector(0,1,0))
+
+    plc.triangulate()
+
+    #ax = plc.plot_xy()
+    #ax = plc.plot()
+
+    #plt.show()
+    return plc
 
 # profile the test function
 def profile_triangulation():

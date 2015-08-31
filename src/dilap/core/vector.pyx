@@ -272,9 +272,12 @@ cdef class vector:
 
     # return a copy of self in basis of [b1,b2,b3]
     cpdef vector in_basis(self,vector b1,vector b2,vector b3):
-        cdef float bx = self.dot(b1)/b1.magnitude2()
-        cdef float by = self.dot(b2)/b2.magnitude2()
-        cdef float bz = self.dot(b3)/b3.magnitude2()
+        #cdef float bx = self.dot(b1)/b1.magnitude2()
+        #cdef float by = self.dot(b2)/b2.magnitude2()
+        #cdef float bz = self.dot(b3)/b3.magnitude2()
+        cdef float bx = dot_c(self,b1)/b1.magnitude2()
+        cdef float by = dot_c(self,b2)/b2.magnitude2()
+        cdef float bz = dot_c(self,b3)/b3.magnitude2()
         cdef vector new = vector(bx,by,bz)
         return new 
 
@@ -292,9 +295,12 @@ cdef class vector:
         cdef float row3y = 2*(q.y*q.z + q.w*q.x)
         cdef float row3z = q.w**2 - q.x**2 - q.y**2 + q.z**2
         cdef vector row3 = vector(row3x,row3y,row3z)
-        cdef float rotx = row1.dot(self)
-        cdef float roty = row2.dot(self)
-        cdef float rotz = row3.dot(self)
+        #cdef float rotx = row1.dot(self)
+        #cdef float roty = row2.dot(self)
+        #cdef float rotz = row3.dot(self)
+        cdef float rotx = dot_c(row1,self)
+        cdef float roty = dot_c(row2,self)
+        cdef float rotz = dot_c(row3,self)
         self.x = rotx
         self.y = roty
         self.z = rotz
@@ -443,6 +449,17 @@ cdef vector cross_c(vector v1, vector v2):
 cpdef vector cross(vector v1, vector v2):
     return cross_c(v1,v2)
 
+cdef vector v1_v2_xy_c(vector v1, vector v2):
+    cdef float dx = v2.x - v1.x
+    cdef float dy = v2.y - v1.y
+    cdef float dz = 0.0
+    cdef vector new = vector(dx,dy,dz)
+    return new
+
+cpdef vector v1_v2_xy(vector v1, vector v2):
+    cdef vector pt = v1_v2_xy_c(v1, v2)
+    return pt
+
 cdef vector v1_v2_c(vector v1, vector v2):
     cdef float dx = v2.x - v1.x
     cdef float dy = v2.y - v1.y
@@ -488,10 +505,12 @@ cpdef vector barymetric_to_world(float u,float v,vector v0,vector v1,vector v2):
 cdef vector2d project_coords_c(list coords, vector axis):
     cdef ccnt = len(coords)
     cdef int cdx
-    cdef float proj = coords[0].dot(axis)
+    #cdef float proj = coords[0].dot(axis)
+    cdef float proj = dot_c(coords[0],axis)
     cdef vector2d projv = vector2d(proj,proj)
     for cdx in range(1,ccnt):
-        proj = coords[cdx].dot(axis)
+        #proj = coords[cdx].dot(axis)
+        proj = dot_c(coords[cdx],axis)
         if proj < projv.x:projv.x = proj
         if proj > projv.y:projv.y = proj
     return projv
@@ -500,9 +519,12 @@ cpdef vector2d project_coords(list coords, vector axis):
     return project_coords_c(coords,axis)
 
 cdef float distance_to_edge_c(vector pt,vector e1,vector e2,vector nm):
-    cdef float eproj11 = e1.dot(nm)
-    cdef float eproj12 = e2.dot(nm)
-    cdef float pproj   = pt.dot(nm)
+    #cdef float eproj11 = e1.dot(nm)
+    #cdef float eproj12 = e2.dot(nm)
+    #cdef float pproj   = pt.dot(nm)
+    cdef float eproj11 = dot_c(e1,nm)
+    cdef float eproj12 = dot_c(e2,nm)
+    cdef float pproj   = dot_c(pt,nm)
     cdef vector2d eproj = vector2d(min(eproj11,eproj12),max(eproj11,eproj12))
     return abs(eproj.x - pproj)
 
@@ -894,14 +916,12 @@ cdef nxhat = vector(-1,0,0)
 cdef nyhat = vector(0,-1,0)
 cdef nzhat = vector(0,0,-1)
 
-cpdef vector x():
-    return xhat.copy()
-#xhat  = vector( 1, 0, 0)
-yhat  = vector( 0, 1, 0)
-zhat  = vector( 0, 0, 1)
-nxhat = vector(-1, 0, 0)
-nyhat = vector( 0,-1, 0)
-nzhat = vector( 0, 0,-1)
+cpdef vector x():return xhat.copy()
+cpdef vector y():return yhat.copy()
+cpdef vector z():return zhat.copy()
+cpdef vector nx():return nxhat.copy()
+cpdef vector ny():return nyhat.copy()
+cpdef vector nz():return nzhat.copy()
 
 cdef list line_normals_c(list verts):
     cdef list norms = []
@@ -1044,6 +1064,14 @@ cpdef lexicographic_order(list pts):
         ordered.append(nxt)
         ocnt += 1
     return ordered
+
+# given an origin and a list of pts
+# return a list of the same pts ordered by distance to origin
+cpdef proximity_order(vector origin,list pts):
+    cdef list pdists = [distance_c(origin,p) for p in pts]
+    cdef list indices = [x for x in range(len(pdists))]
+    spdists,sindices = zip(*sorted(zip(pdists,indices)))
+    return sindices
 
 # given an origin and a list of pts
 # return a list of the same pts ordered by distance to origin

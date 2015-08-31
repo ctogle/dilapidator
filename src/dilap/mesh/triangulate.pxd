@@ -15,7 +15,6 @@ cdef class triangulation:
     cdef public int ghostcnt
     cdef public dict eg_ghost_lookup
 
-    cpdef skinny_triangle(self,int u,int v,int w,float h)
     cdef int point_on_boundary(self,int u)
     cdef bint locally_delaunay(self,int u,int v)
     cdef int adjacent(self,int u,int v)
@@ -31,7 +30,7 @@ cdef class triangulation:
 
 cdef float PI
 
-cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin)
+cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth)
 
 
 

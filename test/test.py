@@ -1,4 +1,5 @@
 import dilap.core.vector as dpv
+import dilap.core.quaternion as dpq
 import dilap.construct as dlc
 import dilap.destruct as dld
 import dilap.core.tools as dpr
@@ -7,6 +8,7 @@ import dilap.core.profiler as prf
 
 import dilap.core.lsystem as pls
 #import dilap.core.tmesh as tms
+import dilap.structures.tools as dstl
 
 import dilap.mesh.piecewisecomplex as pwc
 
@@ -116,6 +118,10 @@ def triang():
     pts2 = dpv.translate_coords(dpr.square(30,10),dpv.vector(30,20,0))
     pts3 = dpv.translate_coords(dpr.square(20,10),dpv.vector(-30,-20,0))
 
+    pts2.insert(1,dpv.vector(20,15,0))
+    pts2.insert(1,dpv.vector(20,20,0))
+    pts2.insert(1,dpv.vector(18,20,0))
+    pts2.insert(1,dpv.vector(18,15,0))
     #pts2 = dpr.point_ring(100,16)
 
     points = []
@@ -130,12 +136,16 @@ def triang():
     plc.add_points(*points)
     plc.add_edges(*edges)
     plc.add_polygons(*polygons)
-    plc.add_polyhedra(*polyhedra)
+    #plc.add_polyhedra(*polyhedra)
     #plc.triangulate_xy()
+
+    #plc.translate_polygon(2,dpv.vector(0,0,10))
+    plc.extrude_polygon(2,dpv.vector(0,0,10))
+
     plc.triangulate()
 
-    ax = plc.plot_xy()
-    #ax = plc.plot()
+    #ax = plc.plot_xy()
+    ax = plc.plot()
     plt.show()
 
     #pelt = plc.covers['tri'].pelt()
@@ -144,6 +154,52 @@ def triang():
     pelt = pwc.model_plc(polygons = polygons)
     dlc.build(pelt)
 
+    '''#
+
+def facade():
+    dtl.facade()
+    '''#
+    dw,dh,dp = 2,3,dpv.vector(10,0.5,0)
+
+    #rim = dpr.square(40,20)
+    rim = [
+        dpv.vector(0,0,0),dpv.vector(15,0,0),
+        dpv.vector(15,0,4),dpv.vector(0,0,4)]
+
+    door = [
+        dpv.vector(-1,0,0.2),dpv.vector(1,0,0.2),
+        dpv.vector(1,0,3),dpv.vector(-1,0,3)]
+    dpv.translate_coords(door,dpv.vector(10,0,0))
+
+    wspline = dpv.vector_spline(
+        dpv.vector(2,0,3),dpv.vector(1.8,0,3.2),
+        dpv.vector(-1.8,0,3.2),dpv.vector(-2,0,3),10)
+    window = [
+        dpv.vector(-2,0,0.5),dpv.vector(2,0,0.5),
+        dpv.vector(2,0,3)]+wspline+[dpv.vector(-2,0,3)]
+    dpv.translate_coords(window,dpv.vector(5,0,0))
+
+    beam = [
+        dpv.vector(1,0,1),dpv.vector(2,0,1),
+        dpv.vector(2,0,9),dpv.vector(1,0,9)]
+
+    #fac = (rim,(door,window,beam)),(beam,())
+    fac = (rim,(door,window,beam)),
+    
+    plc = pwc.piecewise_linear_complex()
+    plc.add_polygons(*fac)
+
+    #plc.translate_polygon(2,dpv.vector(0,0,10))
+    #plc.extrude_polygon(1,dpv.vector(0,1,0))
+
+    plc.triangulate()
+
+    #ax = plc.plot_xy()
+    ax = plc.plot()
+
+    plt.show()
+
+    #dpv.rotate_coords(rim,dpq.q_from_av(dpr.rad(90),dpv.yhat))
     '''#
 
 def intriangle_test():
@@ -204,8 +260,50 @@ def intriangle_test():
     print('barrry',dpr.barycentric(pt,t1,t2,t3))
     pdb.set_trace()
 
+def sub_v_v1v2_test():
+    one = dpv.vector(100,0,0)
+    two = dpv.vector(0,100,100)
+    
+    #for x in range(1000000):
+    #    three = one - two
+    for x in range(1000000):
+        three = dpv.v1_v2(one,two)
+
+def mergetest():
+    #left = dpr.square(0.5,8)
+    #lefth = dpr.square(0.25,2)
+    #right = [x.translate_x(0.5) for x in dpr.square(0.5,5)]
+    #righth = [x.translate_x(0.5) for x in dpr.square(0.25,2)]
+    #dpr.rotate_polygon((tuple(left),(tuple(lefth),)),dpq.q_from_av(dpr.PI/2.0,dpv.x()))
+    #dpr.rotate_polygon((tuple(right),(tuple(righth),)),dpq.q_from_av(dpr.PI/2.0,dpv.x()))
+    mpolys = dstl.post(dpv.vector(0,0,0),4,0.5,8.0)
+    #mtest = dstl.merge_two_polygons((tuple(left),()),(tuple(right),()))
+    mtest = dstl.merge_polygons(mpolys)
+    #mtest = dstl.merge_polygons(
+    #    ((tuple(left),(tuple(lefth),)),
+    #    (tuple(right),(tuple(righth),))))[0]
+    print('mtest',mtest)
+    ax = dtl.plot_axes()
+    for m in mtest:ax = dtl.plot_polygon_full(m,ax)
+    #ax = dtl.plot_polygon_xy(left,ax)
+    #ax = dtl.plot_polygon_xy(right,ax)
+    plt.show()
+
+def isecttest():
+    p1,p2 = dpv.vector(-10,0,0),dpv.vector(10,0,0)
+    p3,p4 = dpv.vector(-5,0,0),dpv.vector(5,0,0)
+    isect1 = dtl.segments_intersect_at(p1,p2,p3,p4)
+    isect2 = dtl.segments_intersect_at(p1,p2,p4,p3)
+    isect3 = dtl.segments_intersect_at(p2,p1,p4,p3)
+    isect4 = dtl.segments_intersect_at(p2,p1,p3,p4)
+    print('isect',isect1,isect2,isect3,isect4)
+    pdb.set_trace()
+    
 
 
+#prf.profile_function(sub_v_v1v2_test)
+
+#pdb.set_trace()
 
 #cube()
 #cone()
@@ -221,9 +319,12 @@ def intriangle_test():
 #pls.test()
 #afmtest()
 #tetra()
-triang()
-#cont()
+#triang()
+cont()
+#mergetest()
+#isecttest()
 #intriangle_test()
+#facade()
 
 
 

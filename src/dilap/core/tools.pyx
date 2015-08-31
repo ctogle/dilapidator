@@ -23,15 +23,22 @@ __doc__ = '''General purpose tool functions...'''
 
 # if a is within c of b, return True
 # else return False
-cdef bint isnear_c(float a,float b,float c = 0.000001):
+cdef bint isnear_c(float a,float b,float c = 0.001):
     if abs(a-b) < c:return 1
     else:return 0
 
 # if a is within c of b, return b
 # else return a
-cdef float near_c(float a,float b,float c = 0.000001):
+cdef float near_c(float a,float b,float c = 0.001):
     if abs(a-b) < c:return b
     else:return a
+
+# is a on the interior of (a,b) given an error of d
+cdef bint inrange_c(float a,float b,float c,float d = 0.001):
+    cdef float r = near_c(near_c(a,b,d),c,d)
+    #cdef bint inr = r >= b and r <= c
+    cdef bint inr = r > b and r < c
+    return inr
 
 # return the index of the smallest value in values
 cdef int locate_smallest_c(list values):
@@ -94,9 +101,9 @@ cdef float clamp_periodic_c(float v,float f,float c):
 
 # compute the distance from pt to the edge segment e1,e2 along nm
 cdef float distance_to_edge_c(dpv.vector pt,dpv.vector e1,dpv.vector e2,dpv.vector nm):
-    cdef float eproj11 = e1.dot(nm)
-    cdef float eproj12 = e2.dot(nm)
-    cdef float pproj   = pt.dot(nm)
+    cdef float eproj11 = dpv.dot_c(e1,nm)
+    cdef float eproj12 = dpv.dot_c(e2,nm)
+    cdef float pproj   = dpv.dot_c(pt,nm)
     cdef dpv.vector2d eproj = dpv.vector2d(min(eproj11,eproj12),max(eproj11,eproj12))
     return abs(eproj.x - pproj)
 
@@ -107,6 +114,15 @@ cdef dpv.vector revolve_about_edge_c(dpv.vector pt,dpv.vector e1,dpv.vector e2,f
     cdef dpv.vector new = (pt-e1).rotate(q).translate(e1)
     return new
 
+# rotate a list of vectors by a quaternion q
+cdef list rotate_coords_c(list ps,dpq.quaternion q):
+    cdef int pcnt = len(ps)
+    cdef int px
+    cdef dpv.vector p
+    for px in range(pcnt):
+        p = <dpv.vector>ps[px]
+        p.rotate(q)
+    return ps
 
 #######
 #######
@@ -123,7 +139,8 @@ cdef float angle_between_c(dpv.vector v1,dpv.vector v2):
     cdef dpv.vector n1 = v1.copy().normalize()
     cdef dpv.vector n2 = v2.copy().normalize()
 
-    cdef float n12dot = dpv.dot_c(n1,n2)
+    #cdef float n12dot = dpv.dot_c(n1,n2)
+    cdef float n12dot = n1.x*n2.x + n1.y*n2.y + n1.z*n2.z
     cdef float ang = 0.0
     if   abs(n12dot - 1.0) < 0.000001:return ang
     elif abs(n12dot + 1.0) < 0.000001:return PI
@@ -140,14 +157,16 @@ cdef float signed_angle_between_xy_c(dpv.vector v1,dpv.vector v2):
     cdef dpv.vector n1 = v1.xy().normalize()
     cdef dpv.vector n2 = v2.xy().normalize()
     cdef dpv.vector vn
-    cdef float n12dot = dpv.dot_c(n1,n2)
+    #cdef float n12dot = dpv.dot_c(n1,n2)
+    cdef float n12dot = n1.x*n2.x + n1.y*n2.y + n1.z*n2.z
     cdef float ang = 0.0
     #print('signed_angle_between_xy_c')
     if   abs(n12dot - 1.0) < 0.000001:return ang
     elif abs(n12dot + 1.0) < 0.000001:return PI
     else:ang = numpy.arccos(n12dot)
     vn = n1.cross(n2)
-    if vn.dot(dpv.zhat) < 0.0:ang *= -1.0
+    #if vn.dot(dpv.zhat) < 0.0:ang *= -1.0
+    if vn.z < 0.0:ang *= -1.0
     return ang                    
 
 cpdef float signed_angle_between_xy(dpv.vector v1,dpv.vector v2):
@@ -156,9 +175,7 @@ cpdef float signed_angle_between_xy(dpv.vector v1,dpv.vector v2):
 cdef float signed_angle_between_c(dpv.vector v1,dpv.vector v2,dpv.vector n):
     cdef dpv.vector n1 = v1.copy().normalize()
     cdef dpv.vector n2 = v2.copy().normalize()
-    #print('signed_angle_between_c')
-
-    cdef float n12dot = dpv.dot_c(n1,n2)
+    cdef float n12dot = n1.x*n2.x + n1.y*n2.y + n1.z*n2.z
     cdef float ang = 0.0
     if   abs(n12dot - 1.0) < 0.000001:return ang
     elif abs(n12dot + 1.0) < 0.000001:return PI
@@ -167,7 +184,8 @@ cdef float signed_angle_between_c(dpv.vector v1,dpv.vector v2,dpv.vector n):
 
     #cdef float ang = numpy.arccos(dpv.dot_c(n1,n2))
     cdef dpv.vector vn = n1.cross(n2)
-    if vn.dot(n) < 0.0:ang *= -1.0
+    #if vn.dot(n) < 0.0:ang *= -1.0
+    if dpv.dot_c(vn,n) < 0.0:ang *= -1.0
     return ang                    
 
 cpdef float signed_angle_between(dpv.vector v1,dpv.vector v2,dpv.vector n):
@@ -175,8 +193,10 @@ cpdef float signed_angle_between(dpv.vector v1,dpv.vector v2,dpv.vector n):
 
 cdef float angle_from_xaxis_c(dpv.vector v):
     cdef dpv.vector nv = v.copy().normalize()
-    cdef float xproj = dpv.dot_c(nv,dpv.xhat)
-    cdef float yproj = dpv.dot_c(nv,dpv.yhat)
+    #cdef float xproj = dpv.dot_c(nv,dpv.xhat)
+    #cdef float yproj = dpv.dot_c(nv,dpv.yhat)
+    cdef float xproj = nv.x
+    cdef float yproj = nv.y
     cdef float ang
     #print('angle_from_xaxis_c')
     ang = numpy.arccos(xproj)
@@ -210,12 +230,26 @@ cdef dpv.vector normal_c(dpv.vector c1,dpv.vector c2,dpv.vector c3):
 # return a vector normal to the polygon poly
 cdef dpv.vector polygon_normal_c(tuple poly):
     cdef dpv.vector zero = dpv.zero_c()
+    cdef dpv.vector c1c2 
+    cdef dpv.vector c2c3
+    cdef dpv.vector pn = zero
+
+    #c1,c2,c3 = poly[x],poly[x+1],poly[x+2]
+    #c1c2 = dpv.v1_v2_c(c1,c2).normalize()
+    #c2c3 = dpv.v1_v2_c(c2,c3).normalize()
+    #pn = c1c2.cross(c2c3)
+
+    #cdef dpv.vector pn = normal_c(poly[x],poly[x+1],poly[x+2])
     cdef int x = 0
-    cdef dpv.vector pn = normal_c(poly[x],poly[x+1],poly[x+2])
     while pn.near(zero):
+        #pn = normal_c(poly[x],poly[x+1],poly[x+2])
+        c1,c2,c3 = poly[x],poly[x+1],poly[x+2]
+        c1c2 = dpv.v1_v2_c(c1,c2)
+        c2c3 = dpv.v1_v2_c(c2,c3)
+        cang = angle_between_c(c1c2,c2c3)
+        if cang > 0.1 and cang < PI-0.1:pn = c1c2.cross(c2c3)
         x += 1
-        pn = normal_c(poly[x],poly[x+1],poly[x+2])
-    return pn
+    return pn.normalize()
 
 # return a vector tanget to the plane containing c1,c2,c3
 cdef dpv.vector tangent_c(dpv.vector c1,dpv.vector c2,dpv.vector c3):
@@ -299,8 +333,10 @@ cdef tuple circumscribe_tri_c(dpv.vector p1,dpv.vector p2,dpv.vector p3):
     cdef dpv.vector cp1 = p1.xy()
     cdef dpv.vector cp2 = p2.xy()
     cdef dpv.vector cp3 = p3.xy()
-    cdef dpv.vector e1 = cp1 - cp3
-    cdef dpv.vector e2 = cp2 - cp3
+    #cdef dpv.vector e1 = cp1 - cp3
+    #cdef dpv.vector e2 = cp2 - cp3
+    cdef dpv.vector e1 = dpv.v1_v2_c(cp3,cp1)
+    cdef dpv.vector e2 = dpv.v1_v2_c(cp3,cp2)
     cdef float th = angle_between_c(e1,e2)
     cdef float cr = dpv.distance_c(cp1,cp2)/(2*numpy.sin(th))
     cdef dpv.vector cp = e2.copy().scale_u(
@@ -322,21 +358,51 @@ cdef bint segments_intersect_c(dpv.vector s11,dpv.vector s12,
     cdef float proj12
     cdef float proj21
     cdef float proj22
-    proj11 = s11.dot(n1)
-    proj12 = s12.dot(n1)
-    proj21 = s21.dot(n1)
-    proj22 = s22.dot(n1)
+    proj11 = s11.x*n1.x + s11.y*n1.y + s11.z*n1.z
+    proj12 = s12.x*n1.x + s12.y*n1.y + s12.z*n1.z
+    proj21 = s21.x*n1.x + s21.y*n1.y + s21.z*n1.z
+    proj22 = s22.x*n1.x + s22.y*n1.y + s22.z*n1.z
     proj1 = dpv.vector2d(min(proj11,proj12),max(proj11,proj12))
     proj2 = dpv.vector2d(min(proj21,proj22),max(proj21,proj22))
     if proj1.x - proj2.x > err and proj2.y - proj1.x > err:
         n2 = dpv.v1_v2_c(s21,s22).rotate_z(PI2)
-        proj11 = s11.dot(n2)
-        proj12 = s12.dot(n2)
-        proj21 = s21.dot(n2)
-        proj22 = s22.dot(n2)
+        proj11 = s11.x*n2.x + s11.y*n2.y + s11.z*n2.z
+        proj12 = s12.x*n2.x + s12.y*n2.y + s12.z*n2.z
+        proj21 = s21.x*n2.x + s21.y*n2.y + s21.z*n2.z
+        proj22 = s22.x*n2.x + s22.y*n2.y + s22.z*n2.z
         proj1 = dpv.vector2d(min(proj11,proj12),max(proj11,proj12))
         proj2 = dpv.vector2d(min(proj21,proj22),max(proj21,proj22))
         if proj2.x - proj1.x > err and proj1.y - proj2.x > err:return 1
+    return 0
+
+# calculate the barycentric coordinates of the point pt for the triangle abc
+# assume all points are in the xy plane 
+cdef tuple barycentric_xy_c(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c): 
+    cdef float v0x =  c.x-a.x
+    cdef float v0y =  c.y-a.y
+    cdef float v1x =  b.x-a.x
+    cdef float v1y =  b.y-a.y
+    cdef float v2x = pt.x-a.x
+    cdef float v2y = pt.y-a.y
+    cdef float dot00 = v0x*v0x + v0y*v0y
+    cdef float dot01 = v0x*v1x + v0y*v1y
+    cdef float dot02 = v0x*v2x + v0y*v2y
+    cdef float dot11 = v1x*v1x + v1y*v1y
+    cdef float dot12 = v1x*v2x + v1y*v2y
+    cdef float invdenom = 1.0 / (dot00 * dot11 - dot01 * dot01)
+    cdef float u = (dot11 * dot02 - dot01 * dot12) * invdenom
+    cdef float v = (dot00 * dot12 - dot01 * dot02) * invdenom
+    return u,v
+
+# determine if the point pt is inside the triangle abc
+# assume all points are in the xy plane 
+cdef bint intriangle_xy_c(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c):
+    cdef float u,v
+    u,v = barycentric_xy_c(pt,a,b,c)
+    if u > 0 or abs(u) < 0.001:
+        if v > 0 or abs(v) < 0.001:
+            if 1-u-v > 0 or abs(1-u-v) < 0.001:
+                return 1
     return 0
 
 # NOTE: DOES THE POINT NEED TO BE PROJECTED INTO THE PLANE OF THE TRIANGLE????
@@ -346,14 +412,14 @@ cdef bint segments_intersect_c(dpv.vector s11,dpv.vector s12,
 # NOTE: DOES THE POINT NEED TO BE PROJECTED INTO THE PLANE OF THE TRIANGLE????
 # calculate the barycentric coordinates of the point pt for the triangle abc
 cdef dpv.vector2d barycentric_c(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c): 
-    cdef dpv.vector v0 = c  - a
-    cdef dpv.vector v1 = b  - a
-    cdef dpv.vector v2 = pt - a
-    cdef float dot00 = v0.dot(v0)
-    cdef float dot01 = v0.dot(v1)
-    cdef float dot02 = v0.dot(v2)
-    cdef float dot11 = v1.dot(v1)
-    cdef float dot12 = v1.dot(v2)
+    cdef dpv.vector v0 = dpv.v1_v2_c(a,c)
+    cdef dpv.vector v1 = dpv.v1_v2_c(a,b)
+    cdef dpv.vector v2 = dpv.v1_v2_c(a,pt)
+    cdef float dot00 = v0.x*v0.x + v0.y*v0.y + v0.z*v0.z  
+    cdef float dot01 = v0.x*v1.x + v0.y*v1.y + v0.z*v1.z  
+    cdef float dot02 = v0.x*v2.x + v0.y*v2.y + v0.z*v2.z  
+    cdef float dot11 = v1.x*v1.x + v1.y*v1.y + v1.z*v1.z  
+    cdef float dot12 = v1.x*v2.x + v1.y*v2.y + v1.z*v2.z  
     cdef float invdenom = 1.0 / (dot00 * dot11 - dot01 * dot01)
     cdef float u = (dot11 * dot02 - dot01 * dot12) * invdenom
     cdef float v = (dot00 * dot12 - dot01 * dot02) * invdenom
@@ -363,8 +429,6 @@ cdef dpv.vector2d barycentric_c(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vect
 # determine if the point pt is inside the triangle abc
 cdef bint intriangle_c(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c):
     cdef dpv.vector2d bary = barycentric_c(pt,a,b,c)
-    #cdef bint ins = (bary.x >= 0) and (bary.y >= 0) and (bary.x + bary.y < 1)
-    #cdef bint ins = (bary.x >= 0) and (bary.y >= 0) and (bary.x + bary.y <= 1)
     cdef bint i1 = near_c(bary.x,0) >= 0
     cdef bint i2 = near_c(bary.y,0) >= 0
     cdef bint i3 = near_c(1-bary.x-bary.y,0) >= 0
@@ -386,16 +450,32 @@ cdef bint inconvex_c(dpv.vector pt,tuple poly):
 #####
 
 # determine if the point pt is inside the concave polygon poly
-cdef bint inconcave_c(dpv.vector pt,tuple poly):
+cdef bint inconcave_xy_c(dpv.vector pt,tuple poly):
+    cdef dpv.vector p1,p2
     cdef float angle = 0.0
-    cdef dpv.vector e1
-    cdef dpv.vector e2
+    cdef float ang,n12dot,e1x,e1y,e2x,e2y,e1m,e2m
     cdef int pcnt = len(poly)
     cdef int x
     for x in range(pcnt):
-        e1 = poly[x-1] - pt
-        e2 = poly[x]   - pt
-        angle += signed_angle_between_xy_c(e1,e2)
+        p1,p2 = poly[x-1],poly[x]
+        e1x = p1.x-pt.x
+        e1y = p1.y-pt.y
+        e2x = p2.x-pt.x
+        e2y = p2.y-pt.y
+        e1m = math.sqrt(e1x**2+e1y**2)
+        e2m = math.sqrt(e2x**2+e2y**2)
+        if e1m == 0:return 0
+        if e2m == 0:return 0
+        e1x /= e1m
+        e1y /= e1m
+        e2x /= e2m
+        e2y /= e2m
+        n12dot = e1x*e2x + e1y*e2y
+        if   abs(n12dot - 1.0) < 0.0001:ang = 0
+        elif abs(n12dot + 1.0) < 0.0001:ang = PI
+        else:ang = numpy.arccos(n12dot)
+        if e1x*e2y - e1y*e2x < 0.0:ang *= -1.0
+        angle += ang
     if abs(angle) < PI:return 0
     else:return 1
 
@@ -410,7 +490,7 @@ cdef bint concaves_contains_c(tuple p1,tuple p2):
     cdef int px
     cdef int py
     cdef dpv.vector i2 = dpv.com(list(p2))
-    if not inconcave_c(i2,p1):return 0
+    if not inconcave_xy_c(i2,p1):return 0
     for px in range(p1cnt):
         if isegsectfound:break
         for py in range(p2cnt):
@@ -418,6 +498,23 @@ cdef bint concaves_contains_c(tuple p1,tuple p2):
                 isegsectfound = 1
                 break
     return 1-isegsectfound
+
+# given concave polygon p1, concave polygon p2
+# determine if facets of p1 intersect facets of p2
+# a polygon is a tuple of points
+cdef bint concaves_intersect_c(tuple p1,tuple p2):
+    cdef bint isegsectfound = 0
+    cdef int p1cnt = len(p1)
+    cdef int p2cnt = len(p2)
+    cdef int px
+    cdef int py
+    for px in range(p1cnt):
+        if isegsectfound:break
+        for py in range(p2cnt):
+            if segments_intersect_c(p1[px-1],p1[px],p2[py-1],p2[py]):
+                isegsectfound = 1
+                break
+    return isegsectfound
 
 # return the point with the highest y value
 cdef dpv.vector find_y_apex_c(list pts):
@@ -508,6 +605,98 @@ cdef list offset_faces_c(list faces,int offset):
         fa[2] += offset
     return faces
 
+# copy a polygon: (extbnd,(holes...)) 
+cdef tuple copy_polygon_c(tuple polygon):
+    cdef list eb = [x.copy() for x in polygon[0]]
+    cdef list ibnds = []
+    for ibnd in polygon[1]:
+        ibnds.append(tuple([x.copy() for x in ibnd]))
+    return (tuple(eb),tuple(ibnds))
+
+# translate a polygon: (extbnd,(holes...)) by vector tv
+cdef tuple translate_polygon_c(tuple polygon,dpv.vector tv):
+    cdef tuple ebnd
+    cdef tuple ibnds
+    cdef tuple ibnd
+    ebnd,ibnds = polygon
+    cdef int elen = len(ebnd)
+    cdef int ex
+    cdef int islen = len(ibnds)
+    cdef int ibx
+    cdef int ilen 
+    cdef int ix
+    for ex in range(elen):
+        ebnd[ex].translate(tv)
+    for ibx in range(islen):
+        ibnd = ibnds[ibx]
+        ilen = len(ibnd)
+        for ix in range(ilen):
+            ibnd[ix].translate(tv)
+    return polygon
+
+# rotate a polygon: (extbnd,(holes...)) by a quaternion q
+cdef tuple rotate_polygon_c(tuple polygon,dpq.quaternion q):
+    cdef tuple ebnd
+    cdef tuple ibnds
+    cdef tuple ibnd
+    ebnd,ibnds = polygon
+    cdef int elen = len(ebnd)
+    cdef int ex
+    cdef int islen = len(ibnds)
+    cdef int ibx
+    cdef int ilen 
+    cdef int ix
+    for ex in range(elen):
+        ebnd[ex].rotate(q)
+    for ibx in range(islen):
+        ibnd = ibnds[ibx]
+        ilen = len(ibnd)
+        for ix in range(ilen):
+            ibnd[ix].rotate(q)
+    return polygon
+
+# rotate a polygon: (extbnd,(holes...)) by float a around xhat
+cdef tuple rotate_x_polygon_c(tuple polygon,float a):
+    cdef tuple ebnd
+    cdef tuple ibnds
+    cdef tuple ibnd
+    ebnd,ibnds = polygon
+    cdef int elen = len(ebnd)
+    cdef int ex
+    cdef int islen = len(ibnds)
+    cdef int ibx
+    cdef int ilen 
+    cdef int ix
+    for ex in range(elen):
+        ebnd[ex].rotate_x(a)
+    for ibx in range(islen):
+        ibnd = ibnds[ibx]
+        ilen = len(ibnd)
+        for ix in range(ilen):
+            ibnd[ix].rotate_x(a)
+    return polygon
+
+# translate a polygon: (extbnd,(holes...)) by float a around zhat
+cdef tuple rotate_z_polygon_c(tuple polygon,float a):
+    cdef tuple ebnd
+    cdef tuple ibnds
+    cdef tuple ibnd
+    ebnd,ibnds = polygon
+    cdef int elen = len(ebnd)
+    cdef int ex
+    cdef int islen = len(ibnds)
+    cdef int ibx
+    cdef int ilen 
+    cdef int ix
+    for ex in range(elen):
+        ebnd[ex].rotate_z(a)
+    for ibx in range(islen):
+        ibnd = ibnds[ibx]
+        ilen = len(ibnd)
+        for ix in range(ilen):
+            ibnd[ix].rotate_z(a)
+    return polygon
+
 # return the signed area of the triangle created 
 # by the vectors a-c,b-c
 # return 0 if a,b,c are colinear
@@ -583,15 +772,20 @@ cdef float insphere_c(dpv.vector a,dpv.vector b,dpv.vector c,dpv.vector d,dpv.ve
 
 # if a is within c of b, return True
 # else return False
-cpdef bint isnear(float a,float b,float c = 0.000001):
+cpdef bint isnear(float a,float b,float c = 0.0001):
     '''determine if a is within a neighborhood c of b'''
     return isnear_c(a,b,c)
 
 # if a is within c of b, return b
 # else return a
-cpdef float near(float a,float b,float c = 0.000001):
+cpdef float near(float a,float b,float c = 0.0001):
     '''effectively round a to b if within a neighborhood c'''
     return near_c(a,b,c)
+
+# is a on the interior of (a,b) given an error of d
+cpdef bint inrange(float a,float b,float c,float d = 0.0001):
+    '''determine if a value is on an open interval'''
+    return inrange_c(a,b,c,d)
 
 # return the index of the smallest value in values
 cpdef int locate_smallest(list values):
@@ -642,6 +836,11 @@ cpdef float distance_to_edge(dpv.vector pt,dpv.vector e1,dpv.vector e2,dpv.vecto
 cpdef dpv.vector revolve_about_edge(dpv.vector pt,dpv.vector e1,dpv.vector e2,float ang):
     '''compute the distance from a point to an edge segment along a unit vector'''
     return revolve_about_edge_c(pt,e1,e2,ang)
+
+# rotate a list of vectors by a quaternion q
+cpdef list rotate_coords(list coords,dpq.quaternion q):
+    '''rotate a list of vectors by a quaternion'''
+    return rotate_coords_c(coords,q)
 
 # return a vector normal to the plane containing c1,c2,c3
 # returns 0 if c1,c2,c3 are colinear
@@ -702,6 +901,18 @@ cpdef bint segments_intersect(dpv.vector s11,dpv.vector s12,
     return segments_intersect_c(s11,s12,s21,s22,err)
 
 # calculate the barycentric coordinates of the point pt for the triangle abc
+# assume all points are in the xy plane
+cpdef dpv.vector2d barycentric_xy(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c): 
+    '''calculate a barycentric representation of a point relative to a triangle in the xy plane'''
+    return barycentric_xy_c(pt,a,b,c)
+
+# determine if the point pt is inside the triangle abc
+# assume all points are in the xy plane
+cpdef bint intriangle_xy(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c):
+    '''determine if a point lies within a triangle in the xy plane'''
+    return intriangle_xy_c(pt,a,b,c)
+
+# calculate the barycentric coordinates of the point pt for the triangle abc
 cpdef dpv.vector2d barycentric(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c): 
     '''calculate a barycentric representation of a point relative to a triangle'''
     return barycentric_c(pt,a,b,c)
@@ -717,9 +928,9 @@ cpdef bint inconvex(dpv.vector pt,tuple poly):
     return inconvex_c(pt,poly)
 
 # determine if the point pt is inside the concave polygon poly
-cpdef bint inconcave(dpv.vector pt,tuple poly):
+cpdef bint inconcave_xy(dpv.vector pt,tuple poly):
     '''determine if a point is inside a concave polygon'''
-    return inconcave_c(pt,poly)
+    return inconcave_xy_c(pt,poly)
 
 # given concave polygon p1, concave polygon p2
 # does p1 overlap the interior p2?
@@ -728,6 +939,13 @@ cpdef bint inconcave(dpv.vector pt,tuple poly):
 cpdef bint concaves_contains(tuple p1,tuple p2):
     '''determine if one polygon overlaps the interior of another'''
     return concaves_contains_c(p1,p2)
+
+# given concave polygon p1, concave polygon p2
+# determine if facets of p1 intersect facets of p2
+# a polygon is a tuple of points
+cpdef bint concaves_intersect(tuple p1,tuple p2):
+    '''determine if the bounds of one polygon intersect those of another'''
+    return concaves_intersect_c(p1,p2)
 
 # return the point with the highest y value
 cpdef dpv.vector find_y_apex(list pts):
@@ -759,6 +977,31 @@ cpdef list inflate(list convex,float radius):
 cpdef list offset_faces(list faces,int offset):
     '''apply an index offset to a list of triangles'''
     return offset_faces_c(faces,offset)
+
+# copy a polygon: (extbnd,(holes...)) 
+cpdef tuple copy_polygon(tuple polygon):
+    '''create a copy of a concave polygon with holes'''
+    return copy_polygon_c(polygon)
+
+# translate a polygon: (extbnd,(holes...)) by vector tv
+cpdef tuple translate_polygon(tuple polygon,dpv.vector tv):
+    '''translate a concave polygon and its holes by a vector'''
+    return translate_polygon_c(polygon,tv)
+
+# rotate a polygon: (extbnd,(holes...)) by a quaternion q
+cpdef tuple rotate_polygon(tuple polygon,dpq.quaternion q):
+    '''rotate a concave polygon and its holes by a quaternion'''
+    return rotate_polygon_c(polygon,q)
+
+# rotate a polygon: (extbnd,(holes...)) by float a about zhat
+cpdef tuple rotate_z_polygon(tuple polygon,float a):
+    '''rotate a concave polygon and its holes by a float about zhat'''
+    return rotate_z_polygon_c(polygon,a)
+
+# rotate a polygon: (extbnd,(holes...)) by float a about xhat
+cpdef tuple rotate_x_polygon(tuple polygon,float a):
+    '''rotate a concave polygon and its holes by a float about xhat'''
+    return rotate_x_polygon_c(polygon,a)
 
 # return the signed area of the triangle created 
 # by the vectors a-c,b-c

@@ -20,13 +20,13 @@ class window(dmo.model):
         w,ww,bh = self.w,self.wall.w,self.wall.h-self.h-self.z
         bottom = dcu.cube().translate_z(0.5)
         bottom.scale_x(w).scale_y(ww).scale_z(bh)
-        bottom.rotate(dpq.q_from_uu(dpv.xhat,self.wall.tangent))
+        bottom.rotate(dpq.q_from_uu(dpv.x(),self.wall.tangent))
         bottom._project_uv_flat()
         th = self.wall.h-self.h-bh
         top = dcu.cube().translate_z(0.5)
         top.scale_x(w).scale_y(ww).scale_z(th)
         top.translate_z(bh+self.h)
-        top.rotate(dpq.q_from_uu(dpv.xhat,self.wall.tangent))
+        top.rotate(dpq.q_from_uu(dpv.x(),self.wall.tangent))
         top._project_uv_flat()
         self._consume(bottom)._consume(top)
 

@@ -4,7 +4,7 @@ import dilap.core.tools as dpr
 import dilap.core.lsystem as dls
 
 import dilap.mesh.tools as dtl
-import dilap.mesh.piecewisecomplex as pwc
+import dilap.mesh.pointset as dps
 
 import dilap.infrastructure.graphnode as gnd
 import dilap.infrastructure.graphedge as geg
@@ -131,7 +131,7 @@ class graph(db.base):
             ewalklcw  = self._loopwalk(e,1,0)
 
             if set(ewalkrcw)  == set(ewalkrccw):
-                print('closed loop!',len(edgestodo))
+                #print('closed loop!',len(edgestodo))
                 rloop = tuple(ewalkrcw)
             else:
                 print('unclosed loop!',len(edgestodo))
@@ -139,7 +139,7 @@ class graph(db.base):
                 rloop = tuple(ewalkrccw[::-1][:-1]+ewalkrcw[1:])
 
             if set(ewalklccw) ==  set(ewalklcw):
-                print('closed loop!',len(edgestodo))
+                #print('closed loop!',len(edgestodo))
                 lloop = tuple(ewalklccw)
             else:
                 print('unclosed loop!',len(edgestodo))
@@ -196,6 +196,7 @@ class graph(db.base):
             if dpv.distance(p,r) < dpv.distance(p,l):return r
             else:return l
 
+        '''#
         ax = dtl.plot_axes_xy()
         ax = dtl.plot_point_xy(tip,ax)
         ax = dtl.plot_edges_xy(le.rpts,ax)
@@ -204,8 +205,8 @@ class graph(db.base):
         ax = dtl.plot_edges_xy([s1,s2],ax,lw = 5.0)
         ax = dtl.plot_edges_xy([tip,closer(tip,ne.rbpts[0],ne.rbpts[-1])],ax)
         ax = dtl.plot_edges_xy([tip,closer(tip,ne.lbpts[0],ne.lbpts[-1])],ax)
-
         plt.show()
+        '''#
 
         '''#
         this function is verrrrry sloppy.... rewrite it....
@@ -218,11 +219,12 @@ class graph(db.base):
             segsect = dpr.segments_intersect(s1,s2,lpt,tip)
             if not segsect:return lpt
         def connect_end(lp,lpt):
-            if lpt.near(lp[0]):return lp[:]
+            d1,d2 = dpv.distance(lp[0],lpt),dpv.distance(lp[-1],lpt)
+            if d1 < d2:return lp[:]
             else:return lp[::-1]
 
         if le is ne:
-            if tip in ne.rbpts:return connect_end(ne.lbpts,tip)
+            if tip in le.rbpts:return connect_end(ne.lbpts,tip)
             else:return connect_end(ne.rbpts,tip)
         else:
             lrpt = same_side(ne.rbpts)
@@ -246,6 +248,16 @@ class graph(db.base):
 
     # return a collection of points outlining all nodes/edges in the graph
     def _edge_loop_boundaries(self):
+        def uniq_loop(eloops,elp):
+            uniq = True
+            for elps in eloops:
+                for x in range(len(elps)):
+                    p = elps[x]
+                    for y in range(len(elp)):
+                        q = elp[y]
+                        if p.near(q):return False
+            return True
+
         edgelloops,edgerloops = self._edge_loops()
         rperms = {}
         lperms = {}
@@ -255,125 +267,76 @@ class graph(db.base):
             isperm = False
             for rps in rperms:
                 if dpr.cyclic_permutation(rkey,rps):isperm = True;break
-            if not isperm:
-                print('found rperm',rloop)
-                rperms[rkey] = self._edge_loop_points(rloop,0) 
+            if not isperm:rperms[rkey] = self._edge_loop_points(rloop,0) 
             lkey = lloop[:-1]
             isperm = False
             for lps in lperms:
                 if dpr.cyclic_permutation(lkey,lps):isperm = True;break
-            if not isperm:
-                print('found lperm',lloop)
-                lperms[lkey] = self._edge_loop_points(lloop,1) 
-
-        # each loop has the potential to form a loop of points
-        # either on the left or right side of the loop
+            if not isperm:lperms[lkey] = self._edge_loop_points(lloop,1) 
+        eloops = []
         for el in lperms:
-            ax = dtl.plot_axes_xy()
             elp = [v for v in lperms[el]]
-            ax = dtl.plot_points_xy(elp,ax,number = True)
-            ax = self.plot_xy(ax)
-            plt.show()
-        print('thats the lperms')
+            if uniq_loop(eloops,elp):eloops.append(elp)
         for el in rperms:
-            ax = dtl.plot_axes_xy()
             elp = [v for v in rperms[el]]
-            ax = dtl.plot_points_xy(elp,ax,number = True)
-            ax = self.plot_xy(ax)
-            plt.show()
-
-        pdb.set_trace()
-        return self._rank_edge_loops(rperms,lperms)
+            if uniq_loop(eloops,elp):eloops.append(elp)
+        return self._rank_edge_loops(eloops)
 
     # determine how the loops are arranged based on containment
     # so that they can be properly triangulated
-    def _rank_edge_loops(self,rloops,lloops):
+    def _rank_edge_loops(self,eloops):
         bedgeloops = {}
 
-        ax = dtl.plot_axes_xy()
-        ax = self.plot_xy(ax)
-        for bedge in rloops:
-            ax = dtl.plot_edges_xy(rloops[bedge],ax)
-        for bedge in lloops:
-            ax = dtl.plot_edges_xy(lloops[bedge],ax)
-        plt.show()
+        #ax = dtl.plot_axes_xy()
+        #ax = self.plot_xy(ax)
+        #for bedge in eloops:ax = dtl.plot_edges_xy(bedge,ax)
+        #plt.show()
 
-        for rkey in rloops:
-            isperm = False
-            for bkey in bedgeloops:
-                if dpr.cyclic_permutation(rkey,bkey):isperm = True;break
-            if not isperm:bedgeloops[rkey] = rloops[rkey]
-        for lkey in lloops:
-            isperm = False
-            for bkey in bedgeloops:
-                if dpr.cyclic_permutation(lkey,bkey):isperm = True;break
-            if not isperm:bedgeloops[lkey] = lloops[lkey]
-        return bedgeloops
+        containments = [[] for el in eloops]
+        for elx in range(len(eloops)):
+            elp = tuple(eloops[elx])
+            for elxo in range(len(eloops)):
+                if elxo == elx:continue
+                elpo = tuple(eloops[elxo])
+                isect = dpr.concaves_intersect(elp,elpo)
+                elins = dpr.inconcave_xy(elpo[0],elp)
+                if isect:raise ValueError
+                elif elins:containments[elx].append(elxo)
+        looplook = {'king':[],'interiors':[]}
+        for elx in range(len(eloops)):
+            cont = containments[elx]
+            if cont:looplook['king'].append(eloops[elx])
+            else:looplook['interiors'].append(eloops[elx])
+        return looplook
+        # provide a polygon for the terrain
+        #
+        # provide a polygon for the road
+        #
+        # the terrain runs from convex bound to the loop that contains 
+        # all other loops
+        # the terrain also contains the interiors of all loops of road
+        # 
+        # the road extends from the loop that contains all others to the
+        # collection of all other loops of road
+        #
+        # assume the graph is connected? fix if not?
 
     # calculate polygons representing regions to place terrain
     def _regions(self):
         rpts = []
         for eg in self.edges:rpts.extend([x.copy() for x in eg.rpts])
-
         convexbnd = dpr.pts_to_convex_xy(rpts)
-        convexbnd = dpr.inflate(convexbnd,100)
+        convexbnd = dpr.inflate(convexbnd,50)
         eloops = self._edge_loop_boundaries()
 
-        print('amennnnn')
-        pdb.set_trace()
+        #ax = dtl.plot_axes_xy()
+        #dtl.plot_edges_xy(eloops['king'][0],ax)
+        #for loop in eloops['interiors']:dtl.plot_edges_xy(loop,ax)
+        #plt.show()
 
-        eloopkeys = eloops.keys()
-        eloops1 = eloops[[x for x in eloopkeys][0]]
-        eloops2 = eloops[[x for x in eloopkeys][1]]
-
-        print('rpts',len(rpts))
-        ax = dtl.plot_axes_xy()
-        dtl.plot_edges_xy(convexbnd,ax)
-        dtl.plot_edges_xy(eloops1,ax)
-        dtl.plot_edges_xy(eloops2,ax)
-        plt.show()
-
-        eloops3 = [p.copy() for p in eloops2]
-        #dpv.translate_coords_x(eloops3,200)
-        #polygons = [(convexbnd,(eloops1,)),(eloops1,(eloops2,)),(eloops2,())]
-        #polygons = [(convexbnd,(eloops1,))]
-        #polygons = [(eloops2,())]
-
-        print('amen')
-
-        tpolygons = [(convexbnd,(eloops1,)),(eloops3,())]
-        #tpolygons = [(convexbnd,(eloops1,))]
-        #tpolygons = [(convexbnd,())]
-        #tpolygons = [(eloops3,())]
-        tplc = pwc.piecewise_linear_complex()
-        tplc.add_polygons(*tpolygons)
-        #tplc.triangulate_xy()
-        #tplc.triangulate()
-        self.tplc = tplc
-
-        #another = dtl.icosphere()
-        #another = dtl.box(10,20,50)
-        print('amen2')
-
-        rpolygons = [(eloops1,(eloops2,))]
-        #rpolygons = [(eloops1,())]
-        #rpolygons = [(eloops2,())]
-        rplc = pwc.piecewise_linear_complex()
-        rplc.add_polygons(*rpolygons)
-        #rplc.triangulate()
-
-        self.tplc = tplc
-        self.rplc = rplc
-        #self.rplc = another
-        ax = dtl.plot_axes_xy()
-        #ax = self.plot()
-        ax = dtl.plot_polygon_xy(convexbnd,ax,True)
-        ax = dtl.plot_polygon_xy(eloops2,ax,True)
-        ax = dtl.plot_polygon_xy(eloops1,ax,True)
-        ax = self.tplc.plot_xy(ax)
-        ax = self.rplc.plot_xy(ax)
-        #ax = another.plot_xy(ax)
-        plt.show()
+        self.tpolygons = [(tuple(convexbnd),(tuple(eloops['king'][0]),))]+\
+                              [(tuple(i),()) for i in eloops['interiors']]
+        self.rpolygons = [(eloops['king'][0],tuple(eloops['interiors']))]
 
     # add a new node to the graph or existing node index
     # ndkey is a tuple(x,y,layer)
@@ -437,46 +400,6 @@ class graph(db.base):
         del self.edges_lookup[ekey]
         del self.edges_lookup[ekey[::-1]]
         self.edges[edge.index] = None
-
-    '''#
-    # safely add a new node to the graph
-    # if node n is within e of existing nodes, try to stack/merge
-    def _node(self,n,e = 50):
-        exnds = self._find_nodes(n.p,e)
-        if len(exnds) == 0:return [self._add_node(n)]
-        exnps = [self.nodes[x].p for x in exnds]
-        exnls = [self.nodes[x].layer for x in exnds]
-        exnps.append(n.p)
-        exnls.append(n.layer)
-        exnds.append(None)
-
-        lnp = dpv.center_of_mass(exnps)
-        exlys = {x:[] for x in exnls}
-        for x in range(len(exnls)):
-            if not exnds[x] is None:
-                exlys[exnls[x]].append(exnds[x])
-
-        newxs = [None for x in range(max(exlys)+1)]
-
-        print('xlys',exlys)
-
-        for l in exlys:
-            lpp = lnp.copy().xy().translate_z(20*l)
-            lky = (lpp.x,lpp.y,l)
-            if lky in self.nodes_lookup:
-                newx = self.nodes_lookup[lky]
-                if self.nodes[newx] is None:
-                    ln = node(lpp,layer = l)
-                    newx = self._add_node(ln)
-            else:
-                ln = node(lpp,layer = l)
-                newx = self._add_node(ln)
-            self._merge_nodes(exlys[l],newx)
-            self.nodes_lookup[(lnp.x,lnp.y,l)] = newx
-            newxs[l] = newx
-
-        return newxs
-    '''#
 
     # delete existing nodes from the graph and replace all
     # connectivity with new edges to a new node
@@ -740,6 +663,49 @@ def newcastle():
     g._add_edge((0,w,0),(-l*0.5,l*0.5,0),interpolated = True)
     g._add_edge((-l*0.5,w*0.5,0),(0,0,0),interpolated = True)
     g._add_edge((0,0,0),(0,w*0.5,0),interpolated = True)
+
+    return g
+
+def eight():
+    g = graph()
+
+    r = 100
+    g._add_edge((0,0,0),(r,0,0),interpolated = True)
+    g._add_edge((r,0,0),(2*r,0,0),interpolated = True)
+    g._add_edge((2*r,0,0),(2*r,r,0),interpolated = True)
+    g._add_edge((2*r,r,0),(r,r,0),interpolated = True)
+    g._add_edge((r,r,0),(0,r,0),interpolated = True)
+    g._add_edge((0,r,0),(0,0,0),interpolated = True)
+    g._add_edge((r,r,0),(r,0,0),interpolated = True)
+
+    g._update()
+
+    #ax = dtl.plot_axes()
+    #ax = g.plot(ax)
+    #ax.set_zlim([0,40])
+    #plt.show()
+
+    return g
+
+def clover():
+    g = graph()
+
+    r = 100
+    g._add_edge((0,0,0),( r,0,0),interpolated = True)
+    g._add_edge((0,0,0),(-r,0,0),interpolated = True)
+    g._add_edge((0,0,0),(0, r,0),interpolated = True)
+    g._add_edge((0,0,0),(0,-r,0),interpolated = True)
+    g._add_edge(( r,0,0),(2*r,-r,0),interpolated = True)
+    g._add_edge((2*r,-r,0),(3*r,0,0),interpolated = True)
+    g._add_edge((3*r,0,0),(2*r,r,0),interpolated = True)
+    g._add_edge((2*r,r,0),(r,0,0),interpolated = True)
+
+    g._update()
+
+    #ax = dtl.plot_axes()
+    #ax = g.plot(ax)
+    #ax.set_zlim([0,40])
+    #plt.show()
 
     return g
 

@@ -22,8 +22,8 @@ class floor(dmo.model):
     def _geo_gap(self):
         l,w,h,g,m = self.l,self.w,self.h,self.gap,self.m
         gp,gl,gw = g
-        iloop = dpr.corners(gl,gw,gp)
-        oloop = dpr.corners(l,w)
+        iloop = dpr.square(gl,gw,gp)
+        oloop = dpr.square(l,w)
         iloop.append(iloop[0])
         oloop.append(oloop[0])
         iloopb = [c.copy() for c in iloop]
@@ -42,8 +42,9 @@ class floor(dmo.model):
 
     def _geo_gapless(self):
         l,w,h,m = self.l,self.w,self.h,self.m
-        corners = dpr.corners(l,w)
-        us = dpr.polygon(4)
+        corners = dpr.square(l,w)
+        #us = dpr.polygon(4)
+        us = dpr.square(1,1)
         dpv.translate_coords(us,dpv.one().scale_u(0.5))
         dpv.scale_coords_x(us,l)
         dpv.scale_coords_y(us,w)

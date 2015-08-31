@@ -1,3 +1,4 @@
+import dilap.core.base as db
 import dilap.core.tools as dpr
 import dilap.core.vector as dpv
 import dilap.core.model as dmo
@@ -13,9 +14,12 @@ import math
 
 sqrt3 = math.sqrt(3)
 
-class piecewise_linear_complex:
+class piecewise_linear_complex(db.base):
 
     def plot(self,ax = None):
+        if ax is None:
+            l = self.radius()
+            ax = dtl.plot_axes(x = l)
         ax = dtl.plot_points(self.points.ps,ax)
         for edx in range(len(self.edges)):
             e = self.edges[edx]
@@ -37,7 +41,11 @@ class piecewise_linear_complex:
         for gst in self.ghostbnds:dtl.plot_edges_xy(gst,ax,lw = 5.0)
         return ax
 
-    def __init__(self):
+    def radius(self):
+        rs = [p.magnitude() for p in self.points.ps]
+        return max(rs)
+
+    def __init__(self,*args,**kwargs):
         self.points = dps.pointset()
         self.edges = []
         self.edgecount = 0
@@ -46,6 +54,8 @@ class piecewise_linear_complex:
         self.polyhedra = []
         self.polyhedroncount = 0
         self.covers = {}
+        self._def('refine',False,**kwargs)
+        self._def('smooth',False,**kwargs)
 
         self.eg_lookup = {}
         self.eg_poly_lookup = {}
@@ -110,7 +120,8 @@ class piecewise_linear_complex:
         ne2dex = self.add_edge(w,v)
         if edex in self.eg_poly_lookup:
             poly = self.eg_poly_lookup[edex]
-            for pygn in poly:
+            for pygnx in poly:
+                pygn = self.polygons[pygnx]
                 eb,ibs = pygn
                 if edex in eb:
                     epdex = eb.index(edex)
@@ -121,8 +132,8 @@ class piecewise_linear_complex:
                             ipdex = ib.index(edex)
                             replace_edge(ib,ipdex,ne1dex,ne2dex)
                             break
-                add_edge_lookup(pygn,ne1dex)
-                add_edge_lookup(pygn,ne2dex)
+                add_edge_lookup(pygnx,ne1dex)
+                add_edge_lookup(pygnx,ne2dex)
         return (u,w),(w,v)
 
     # is the edge formed by uv (or vu) a segment in the domain?
@@ -149,6 +160,15 @@ class piecewise_linear_complex:
             pxs.append(self.polygon_frompoints(polyeb,*polyibs))
         return pxs
 
+    def delete_polygon(self,px):
+        poly = self.polygons[px]
+        if poly is None:return
+        eb,ibs = poly
+        for ex in eb:self.delete_edge(*self.edges[ex])
+        for ib in ibs:
+            for ex in ib:self.delete_edge(*self.edges[ex])
+        self.polygons[px] = None
+
     def polygon_frompoints(self,ebnd,*ibnds):
         plcxs = self.add_points(*ebnd)
         ebnddexes = self.add_edges(*plcxs)
@@ -163,16 +183,18 @@ class piecewise_linear_complex:
         pdex = self.polygoncount
         polygon = (ebnd,ibnds)
         self.polygons.append(polygon)
-        self.polygoncount += 1
         for e in ebnd:
             if not e in self.eg_poly_lookup:
                 self.eg_poly_lookup[e] = []
-            self.eg_poly_lookup[e].append(polygon)
+            #self.eg_poly_lookup[e].append(polygon)
+            self.eg_poly_lookup[e].append(self.polygoncount)
         for ib in ibnds:
             for i in ib:
                 if not i in self.eg_poly_lookup:
                     self.eg_poly_lookup[i] = []
-                self.eg_poly_lookup[i].append(polygon)
+                #self.eg_poly_lookup[i].append(polygon)
+                self.eg_poly_lookup[i].append(self.polygoncount)
+        self.polygoncount += 1
         return pdex
 
     # given a point p, return the index of a polygon 
@@ -195,7 +217,6 @@ class piecewise_linear_complex:
                 if isin:return px
 
     def add_polyhedra(self,*polyhedra):
-        return
         raise NotImplemented
 
     # return a dictionary of the length of 
@@ -213,19 +234,21 @@ class piecewise_linear_complex:
 
     # given v1,v2, the positions of the endpoints of an edge, 
     # return True if locally delaunay
-    #def locally_delaunay_edge(self,v1,v2):
     def locally_delaunay_edge(self,u,v):
-        #
-        # take all the polygons containing u,v...
-        # does every polygon need to ensure unique edges?!?!
-        #
         v1,v2 = self.points.get_points(u,v)
         cc = dpv.midpoint(v1,v2)
         cr = dpv.distance(cc,v1)
-        for p in self.points:
-            if p.near(v1) or p.near(v2):continue
-            if dpr.inside_circle(p,cc,cr):
-                return False
+        polyxs = self.eg_poly_lookup[self.eg_lookup[(u,v)]]
+        polyps = [self.get_polygon_points(px) for px in polyxs]
+        for polyp in polyps:
+            ebps,ibs = polyp
+            for ep in ebps:
+                if ep.near(v1) or ep.near(v2):continue
+                if dpr.inside_circle(ep,cc,cr):return False
+            for ibps in ibs:
+                for ip in ibps:
+                    if ip.near(v1) or ip.near(v2):continue
+                    if dpr.inside_circle(ip,cc,cr):return False
         return True
 
     # force edges to be locally delaunay by splitting as needed
@@ -241,7 +264,6 @@ class piecewise_linear_complex:
 
     def chew1_subdivide_polygon(self,px):
         elengs = self.edge_lengths()
-
         poly = self.polygons[px]
         polyes = poly[0][:]
         for ib in poly[1]:polyes += ib[:]
@@ -266,38 +288,28 @@ class piecewise_linear_complex:
                 curr = ne1[1]
         return hmin
 
-    # force edges to abide by chew1 precondition on edge lengths
-    def chew1_subdivide_edges(self):
-        elengs = self.edge_lengths()
-        hmin = min([elengs[x] for x in elengs])
+    # given a vector, mov all points by the vector tn
+    def translate(self,tn):
+        for p in self.points.ps:
+            p.translate(tn)
+        return self
 
-        print('hmin:',hmin)
+    # given the index of a polygon and a vector, move
+    # the associated points by the vector tn
+    def translate_polygon(self,px,tn):
+        polyp = self.get_polygon_points(px)
+        for ep in polyp[0]:ep.translate(tn)
+        return self
 
-        unfinished = [e for e in self.edges]
-        while unfinished:
-            unfin = unfinished.pop(0)
-            if unfin is None:continue
-            ex1,ex2 = unfin
-            ep1,ep2 = self.points.get_points(ex1,ex2)
-            eleng = elengs[unfin]
-            m = 1
-            while eleng/m > sqrt3*hmin:m += 1
-            divpts = dpr.point_line(ep1,ep2,m)[1:-1]
-            curr = ex1
-            for dpt in divpts:
-                ne1,ne2 = self.split_edge(curr,ex2,dpt)
-                curr = ne1[1]
-        elengs = self.edge_lengths()
-        hmin = min([elengs[x] for x in elengs])
-        return hmin
-
-    def tetrahedralize(self):
-        tetra = dth.tetrahedralization(self)
-        self.covers['tetra'] = tetra
-
-# BEGIN HERE
-# MUST TRIANGULATE POLYGONS ONE BY ONE, 
-# PERMITTING NON XY TRI.TION AS WELL!!
+    # given the index of a polygon and a vector, extrude the 
+    # polygon adding other polygons to maintain connectivity
+    def extrude_polygon(self,px,tn):
+        pre = self.get_polygon_points_copy(px)
+        self.translate_polygon(px,tn)
+        post = self.get_polygon_points_copy(px)
+        for ex in range(len(pre[0])):
+            p1,p2,p3,p4 = pre[0][ex-1],pre[0][ex],post[0][ex],post[0][ex-1]
+            self.add_polygons(((p1,p2,p3,p4),()))
 
     # given the index of an edge, return vectors for its endpoints
     # or return None if the edge is missing
@@ -323,15 +335,64 @@ class piecewise_linear_complex:
         ibsps = tuple((self.get_edgeloop_points(ib) for ib in ibs))
         return (ebps,ibsps)
 
+    # the same as "get_polygon_points" except return copies of the points
+    def get_polygon_points_copy(self,px):
+        poly = self.get_polygon_points(px)
+        copy = (tuple(p.copy() for p in poly[0]),
+            tuple(tuple(p.copy() for p in ib) for ib in poly[1]))
+        return copy
+
+    # verify/correct any unacceptable polygons
+    def clean_polygons(self):
+        def repair_boundary(eb,ib):
+            raise NotImplemented
+
+        for px in range(self.polygoncount):
+            polybs = self.get_polygon_points(px)
+            eb,ibs = polybs
+            neb = eb[:]
+            nibs = []
+            for ib in ibs:
+                isect = dpr.concaves_intersect(eb,ib)
+                ins = dpr.inconcave_xy(ib[0],eb)
+                if isect:
+                    print('polygon hole intersects boundary',px)
+                    #neb = repair_boundary(eb,ib)
+                elif ins:nibs.append(ib)
+                else:print('polygon hole found outside of boundary',px)
+
+            #r = self.radius()
+            #ax = dtl.plot_axes(x = r)
+            #ax = dtl.plot_polygon(list(eb),ax)
+            #for ib in ibs:ax = dtl.plot_polygon(list(ib),ax)
+            #plt.show()
+
+            npoly = (neb,tuple(nibs))
+            if not polybs == npoly:
+                self.delete_polygon(px)
+                self.add_polygons(npoly)
+
+                #r = self.radius()
+                #ax = dtl.plot_axes(x = r)
+                #ax = dtl.plot_polygon(list(neb),ax)
+                #for ib in nibs:ax = dtl.plot_polygon(list(ib),ax)
+                #plt.show()
+
     # iterate over each polygon, adding simplices which properly cover
     # a simplex is a tuple of indices pointing to self.points
     def triangulate(self):
+        #self.clean_polygons()
         self.subdivide_edges()
         smps,bnds = [],[]
+        ref,smo = self.refine,self.smooth
         for x in range(self.polygoncount):
-            hmin = self.chew1_subdivide_polygon(x)
+            if self.polygons[x] is None:continue
+            #hmin = self.chew1_subdivide_polygon(x)
+            if ref:hmin = self.chew1_subdivide_polygon(x)
+            else:hmin = 1.0
             polypts = self.get_polygon_points(x)
-            polysmp,polybnd = dtg2.triangulate(*polypts,hmin = hmin)
+            polysmp,polybnd = dtg2.triangulate(*polypts,
+                hmin = hmin,refine = ref,smooth = smo)
             smps.extend(polysmp)
             bnds.extend(polybnd)
         self.simplices = smps
@@ -340,12 +401,13 @@ class piecewise_linear_complex:
     def pelt(self):
         s = dmo.model()
         for smp in self.simplices:
-            s._triangle(*smp)
+            t1,t2,t3 = smp
+            s._triangle(t3,t2,t1)
         return s
 
-    def triangulate_xy(self):
-        tri = dtg.triangulation(self)
-        self.covers['tri'] = tri
+    def tetrahedralize(self):
+        tetra = dth.tetrahedralization(self)
+        self.covers['tetra'] = tetra
 
 def model_plc(points = None,edges = None,polygons = None,polyhedra = None):
     plc = piecewise_linear_complex()

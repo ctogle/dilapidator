@@ -45,6 +45,15 @@ class pointset:
     # find_point would in a one to one sequence
     def find_points(self,*ps):
         return [self.find_point(p) for p in ps]
+
+    # is the intersection of self and other nonempty
+    def nonempty_intersect(self,other):
+        for x in range(self.pcnt):
+            p = self.ps[x]
+            for y in range(other.pcnt):
+                q = other.ps[y]
+                if p.near(q):return True
+        return False
         
 
 

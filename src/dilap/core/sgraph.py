@@ -1,4 +1,5 @@
 import dilap.core.base as db
+import dilap.core.model as dmo
 import dilap.core.vector as dpv
 import dilap.core.quaternion as dpq
 import dilap.core.bbox as dbb
@@ -220,10 +221,10 @@ class node(db.base):
         self.models.extend(chps)
         self.lod_models.extend(chlps)
         if self.models:
-            final_prim = dpr.combine(self.models)
+            final_prim = dmo.combine(self.models)
             self.models = [final_prim]
         if self.lod_models:
-            final_lod_prim = dpr.combine(self.lod_models)
+            final_lod_prim = dmo.combine(self.lod_models)
             self.lod_models = [final_lod_prim]
             if self.models:
                 self.models[0].has_lod = True

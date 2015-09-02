@@ -10,9 +10,6 @@ class pointset:
         self.pcnt = 0
         self.snapgrid = 0.001
 
-    def lexicographic(self):raise NotImplemented
-
-    #####
     def get_points_copy(self,*rng):
         if not rng:rng = range(self.pcnt)
         return [self.ps[x].copy() for x in rng]

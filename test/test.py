@@ -156,52 +156,6 @@ def triang():
 
     '''#
 
-def facade():
-    dtl.facade()
-    '''#
-    dw,dh,dp = 2,3,dpv.vector(10,0.5,0)
-
-    #rim = dpr.square(40,20)
-    rim = [
-        dpv.vector(0,0,0),dpv.vector(15,0,0),
-        dpv.vector(15,0,4),dpv.vector(0,0,4)]
-
-    door = [
-        dpv.vector(-1,0,0.2),dpv.vector(1,0,0.2),
-        dpv.vector(1,0,3),dpv.vector(-1,0,3)]
-    dpv.translate_coords(door,dpv.vector(10,0,0))
-
-    wspline = dpv.vector_spline(
-        dpv.vector(2,0,3),dpv.vector(1.8,0,3.2),
-        dpv.vector(-1.8,0,3.2),dpv.vector(-2,0,3),10)
-    window = [
-        dpv.vector(-2,0,0.5),dpv.vector(2,0,0.5),
-        dpv.vector(2,0,3)]+wspline+[dpv.vector(-2,0,3)]
-    dpv.translate_coords(window,dpv.vector(5,0,0))
-
-    beam = [
-        dpv.vector(1,0,1),dpv.vector(2,0,1),
-        dpv.vector(2,0,9),dpv.vector(1,0,9)]
-
-    #fac = (rim,(door,window,beam)),(beam,())
-    fac = (rim,(door,window,beam)),
-    
-    plc = pwc.piecewise_linear_complex()
-    plc.add_polygons(*fac)
-
-    #plc.translate_polygon(2,dpv.vector(0,0,10))
-    #plc.extrude_polygon(1,dpv.vector(0,1,0))
-
-    plc.triangulate()
-
-    #ax = plc.plot_xy()
-    ax = plc.plot()
-
-    plt.show()
-
-    #dpv.rotate_coords(rim,dpq.q_from_av(dpr.rad(90),dpv.yhat))
-    '''#
-
 def intriangle_test():
 
     def show(ins):
@@ -299,7 +253,30 @@ def isecttest():
     print('isect',isect1,isect2,isect3,isect4)
     pdb.set_trace()
     
+def csgtest():
+    plc1 = dtl.box(5,5,5)
+    plc2 = dtl.box(5,5,5).translate(dpv.vector(5,0,0))
 
+    print('union input')
+    ax = dtl.plot_axes()
+    ax = plc1.plot(ax)
+    ax = plc2.plot(ax)
+    plt.show()
+
+    plc3 = pwc.union(plc1,plc2)
+
+    print('union output')
+    ax = dtl.plot_axes()
+    ax = plc3.plot(ax)
+    plt.show()
+
+def containmenttest():
+    p = dpv.vector(2.5,0,0)
+    py = tuple(dpr.square(5,5))
+
+    wn = dpr.winding(p,py)
+    ins = dpr.inconcave_xy(p,py)
+    print('wtfman',wn,ins)
 
 #prf.profile_function(sub_v_v1v2_test)
 
@@ -321,6 +298,8 @@ def isecttest():
 #tetra()
 #triang()
 cont()
+#csgtest()
+#containmenttest()
 #mergetest()
 #isecttest()
 #intriangle_test()

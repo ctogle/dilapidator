@@ -21,6 +21,10 @@ __doc__ = '''General purpose tool functions...'''
 ### c space
 ###############################################################################
 
+###############################################################################
+### 1d inputs/problems
+###############################################################################
+
 # if a is within c of b, return True
 # else return False
 cdef bint isnear_c(float a,float b,float c = 0.001):
@@ -33,12 +37,40 @@ cdef float near_c(float a,float b,float c = 0.001):
     if abs(a-b) < c:return b
     else:return a
 
+# convert an angle from degrees to radians
+cdef float rad_c(float deg):return PI*deg/180.0
+
+# convert an angle from radians to degrees
+cdef float deg_c(float rad):return 180.0*rad/PI
+
+# keep the value val bounded by f and c by flooring
+cdef float clamp_c(float v,float f,float c):
+    if v < f:return f
+    elif v > c:return c
+    else:return v
+
+# keep the value val bounded by f and c by wrapping around
+cdef float clamp_periodic_c(float v,float f,float c):
+    period = c - f
+    while v < f:v += period
+    while v > c:v -= period
+    else:return v                                  
+
 # is a on the interior of (a,b) given an error of d
 cdef bint inrange_c(float a,float b,float c,float d = 0.001):
     cdef float r = near_c(near_c(a,b,d),c,d)
     #cdef bint inr = r >= b and r <= c
     cdef bint inr = r > b and r < c
     return inr
+
+# return the shortest angular distance between two angles
+cdef float adist_c(float a1,float a2):
+    cdef float da = clamp_periodic(a1-a2,0.0,twoPI)
+    return da if da < PI else twoPI - da
+
+###############################################################################
+### sequence inputs/problems
+###############################################################################
 
 # return the index of the smallest value in values
 cdef int locate_smallest_c(list values):
@@ -61,11 +93,6 @@ cdef list order_ascending_c(list values):
     #od.reverse()
     return od
 
-# return the shortest angular distance between two angles
-cdef float adist_c(float a1,float a2):
-    cdef float da = clamp_periodic(a1-a2,0.0,twoPI)
-    return da if da < PI else twoPI - da
-
 # is seq1 a cyclic permutation of seq2?
 cdef bint cyclic_permutation_c(seq1,seq2):
     cdef int s1cnt = len(seq1)
@@ -77,27 +104,52 @@ cdef bint cyclic_permutation_c(seq1,seq2):
         if perm == seq2:return 1
     return 0
 
-# convert an angle from degrees to radians
-cdef float rad_c(float deg):return PI*deg/180.0
+###############################################################################
+### 2d inputs/problems
+###############################################################################
 
-# convert an angle from radians to degrees
-cdef float deg_c(float rad):return 180.0*rad/PI
+# determine if a point is to the left,right,atop an infinite line
+# return <0,~0,>0 for these cases respectively
+#cdef float onleft_c(dpv.vector pt,dpv.vector v1,dpv.vector v2):
+#    cdef float dx = v2.x-v1.x
+#    cdef float dy = v2.y-v1.y
+#    cdef float px = v0.x-v1.x
+#    cdef float py = v0.y-v1.y
+#    cdef float side = near_c(dx*py - dy*px,0)
+#    return side
 
-# keep the value val bounded by f and c by flooring
-cdef float clamp_c(float v,float f,float c):
-    if v < f:return f
-    elif v > c:return c
-    else:return v
+# determine if a point p lies on the interior of a line segment s1,s2
+cpdef bint insegment(dpv.vector p,dpv.vector s1,dpv.vector s2):
+    '''determine if a point lies on the interior of a line segment'''
+    return insegment_c(p,s1,s2)
 
-# keep the value val bounded by f and c by wrapping around
-cdef float clamp_periodic_c(float v,float f,float c):
-    period = c - f
-    while v < f:v += period
-    while v > c:v -= period
-    else:return v
+# determine if a point lies on the interior of a line segment
+cdef bint insegment_c(dpv.vector p,dpv.vector s1,dpv.vector s2):
+    if not orient2d_c(p,s1,s2) == 0:return 0
+    #if (s1.x != s2.x): # S is not  vertical
+    if not isnear_c(s1.x,s2.x): # S is not  vertical
+        if (s1.x <= p.x and p.x <= s2.x):return 1
+        if (s1.x >= p.x and p.x >= s2.x):return 1
+    else: # S is vertical, so test y  coordinate
+        if (s1.y <= p.y and p.y <= s2.y):return 1
+        if (s1.y >= p.y and p.y >= s2.y):return 1
+    return 0
 
-# perp distance should get a function??
-#cdef float ed = abs(pt.dot(etn)-e1.dot(etn))
+# return the signed area of the triangle created 
+# by the vectors a-c,b-c
+# return 0 if a,b,c are colinear
+# this assumes theyre in the xy plane!!!
+cdef float orient2d_c(dpv.vector a,dpv.vector b,dpv.vector c):
+    cdef float m11 = a.x-c.x
+    cdef float m12 = a.y-c.y
+    cdef float m21 = b.x-c.x
+    cdef float m22 = b.y-c.y
+    cdef float det = m11*m22-m12*m21
+    return near_c(det,0)
+
+###############################################################################
+### 3d inputs/problems
+###############################################################################
 
 # compute the distance from pt to the edge segment e1,e2 along nm
 cdef float distance_to_edge_c(dpv.vector pt,dpv.vector e1,dpv.vector e2,dpv.vector nm):
@@ -123,6 +175,10 @@ cdef list rotate_coords_c(list ps,dpq.quaternion q):
         p = <dpv.vector>ps[px]
         p.rotate(q)
     return ps
+
+###############################################################################
+### DISORGANIZED!!
+###############################################################################
 
 #######
 #######
@@ -405,12 +461,8 @@ cdef bint intriangle_xy_c(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c):
                 return 1
     return 0
 
-# NOTE: DOES THE POINT NEED TO BE PROJECTED INTO THE PLANE OF THE TRIANGLE????
-# NOTE: DOES THE POINT NEED TO BE PROJECTED INTO THE PLANE OF THE TRIANGLE????
-# NOTE: DOES THE POINT NEED TO BE PROJECTED INTO THE PLANE OF THE TRIANGLE????
-# NOTE: DOES THE POINT NEED TO BE PROJECTED INTO THE PLANE OF THE TRIANGLE????
-# NOTE: DOES THE POINT NEED TO BE PROJECTED INTO THE PLANE OF THE TRIANGLE????
 # calculate the barycentric coordinates of the point pt for the triangle abc
+# NOTE: DOES THE POINT NEED TO BE PROJECTED INTO THE PLANE OF THE TRIANGLE????
 cdef dpv.vector2d barycentric_c(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c): 
     cdef dpv.vector v0 = dpv.v1_v2_c(a,c)
     cdef dpv.vector v1 = dpv.v1_v2_c(a,b)
@@ -451,6 +503,11 @@ cdef bint inconvex_c(dpv.vector pt,tuple poly):
 
 # determine if the point pt is inside the concave polygon poly
 cdef bint inconcave_xy_c(dpv.vector pt,tuple poly):
+    return not winding_c(pt,poly) == 0
+
+
+
+    '''#
     cdef dpv.vector p1,p2
     cdef float angle = 0.0
     cdef float ang,n12dot,e1x,e1y,e2x,e2y,e1m,e2m
@@ -464,8 +521,17 @@ cdef bint inconcave_xy_c(dpv.vector pt,tuple poly):
         e2y = p2.y-pt.y
         e1m = math.sqrt(e1x**2+e1y**2)
         e2m = math.sqrt(e2x**2+e2y**2)
-        if e1m == 0:return 0
-        if e2m == 0:return 0
+
+        tn = dpv.v1_v2_xy_c(p1,p2)
+        nm = tn.copy().rotate_z(PI2)
+        ed = abs(dpv.dot_c(tn,nm)-dpv.dot_c(pt,nm))
+        if ed < 0.0001:return 0
+        #if isnear_c(e1m,0):return 0
+        #if isnear_c(e2m,0):return 0
+        if e1m == 0 or e2m == 0 and ed != 0:
+            print('inconcave wtf',e1m,e2m,ed,pt.__str__(),tn.__str__(),nm.__str__())
+            
+
         e1x /= e1m
         e1y /= e1m
         e2x /= e2m
@@ -478,6 +544,23 @@ cdef bint inconcave_xy_c(dpv.vector pt,tuple poly):
         angle += ang
     if abs(angle) < PI:return 0
     else:return 1
+    '''#
+
+# determine the winding number of a point wrt a polygon
+cdef int winding_c(dpv.vector pt,tuple py):
+    cdef int wn = 0
+    cdef int px
+    cdef int pcnt = len(py)
+    cdef float read
+    for px in range(pcnt):
+        read = orient2d_c(pt,py[px-1],py[px])
+        if py[px-1].y <= pt.y:
+            if py[px].y > pt.y:
+                if read > 0:wn += 1
+        else:
+            if py[px].y <= pt.y:
+                if read < 0:wn -= 1
+    return wn
 
 # given concave polygon p1, concave polygon p2
 # does p1 overlap the interior p2?
@@ -696,18 +779,6 @@ cdef tuple rotate_z_polygon_c(tuple polygon,float a):
         for ix in range(ilen):
             ibnd[ix].rotate_z(a)
     return polygon
-
-# return the signed area of the triangle created 
-# by the vectors a-c,b-c
-# return 0 if a,b,c are colinear
-# this assumes theyre in the xy plane!!!
-cdef float orient2d_c(dpv.vector a,dpv.vector b,dpv.vector c):
-    cdef float m11 = a.x-c.x
-    cdef float m12 = a.y-c.y
-    cdef float m21 = b.x-c.x
-    cdef float m22 = b.y-c.y
-    cdef float det = m11*m22-m12*m21
-    return near_c(det,0)
 
 # return the signed volume of the parallelpiped created
 # by the vectors a-d,b-d,c-d
@@ -931,6 +1002,11 @@ cpdef bint inconvex(dpv.vector pt,tuple poly):
 cpdef bint inconcave_xy(dpv.vector pt,tuple poly):
     '''determine if a point is inside a concave polygon'''
     return inconcave_xy_c(pt,poly)
+
+# determine the winding number of a point wrt a polygon
+cpdef int winding(dpv.vector pt,tuple py):
+    '''calculate the winding number of a point wrt a polygon'''
+    return winding_c(pt,py)
 
 # given concave polygon p1, concave polygon p2
 # does p1 overlap the interior p2?

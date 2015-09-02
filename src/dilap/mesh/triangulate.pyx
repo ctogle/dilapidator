@@ -230,16 +230,6 @@ cdef void cover_polygon(triangulation data,tuple ebnd,tuple ibnds):
                 if dpr.concaves_contains_c(ibnd,ptri):
                     extras.append(tdx)
                     break
-
-        elif dpr.inconcave_xy_c(dpv.com(list(ptri)),ebnd):
-            print('wu tang')
-            import matplotlib.pyplot as plt
-            import dilap.mesh.tools as dtl
-            ax = dtl.plot_axes_xy()
-            dtl.plot_polygon_xy(list(ebnd),ax)
-            dtl.plot_polygon_xy(list(ptri),ax,center = True)
-            plt.show()
-
     for x in extras:
         xtri = data.triangles[x]
         if xtri is None:continue

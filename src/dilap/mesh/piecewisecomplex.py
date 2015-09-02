@@ -2,10 +2,11 @@ import dilap.core.base as db
 import dilap.core.tools as dpr
 import dilap.core.vector as dpv
 import dilap.core.model as dmo
+import dilap.core.pointset as dps
 import dilap.mesh.tools as dtl
-import dilap.mesh.pointset as dps
-import dilap.mesh.tetrahedralization as dth
-import dilap.mesh.triangulation as dtg
+#import dilap.mesh.pointset as dps
+#import dilap.mesh.tetrahedralization as dth
+#import dilap.mesh.triangulation as dtg
 import dilap.mesh.triangulate as dtg2
 
 import matplotlib.pyplot as plt
@@ -13,6 +14,37 @@ import pdb
 import math
 
 sqrt3 = math.sqrt(3)
+
+
+# return a plc representing the union of two plcs
+def union(plc1,plc2):
+    # all facets of plc1 and plc2 must be considered for inclusion
+    # facets which intersect facets of the other plc must be cleaved
+    # the resulting facets which do not intersect improperly can be considered
+    # make a new plc using the new polygons
+    #
+    # facets can intersect in several ways:
+    # tangentially - full or partial overlap
+    #   if a single point is shared - ignore
+    #   if an edge is partially shared, delete the shared subsegment
+    #   if interior space is shared, use the merge polygon algorithm
+    # in a non tang manner - cleave each polygon along the line of intersection
+    raise NotImplemented
+
+# return a plc representing the intersection of two plcs
+def intersection(plc1,plc2):
+    raise NotImplemented
+
+# return a plc representing the difference of two plcs
+def difference(plc1,plc2):
+    # all facets of plc1 and plc2 must be considered
+    # facets of plc1 are either kept or modified and kept
+    # facets of plc2 are kept if on the interior of plc1,
+    #  thrown away if on the exterior, 
+    #  used to modify those of plc1 if intersecting tangentially
+    #
+    # this process also begins by properly cleaving polygons
+    raise NotImplemented
 
 class piecewise_linear_complex(db.base):
 

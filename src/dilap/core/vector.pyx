@@ -324,7 +324,7 @@ cdef class vector:
         self.z = newz
         return self
 
-    cpdef vector rotate_z(self, float zang):
+    cpdef vector rotate_z(self,float zang):
         cdef float cosz = cos(zang)
         cdef float sinz = sin(zang)
         cdef float newx = cosz*self.x - sinz*self.y

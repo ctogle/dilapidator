@@ -103,7 +103,7 @@ class graph(dgr.graph):
         mpolys.extend(self.model_walls())
         mpolys.extend(self.model_corners())
         mpolys.extend(self.model_roof())
-        mpolys = dstl.merge_polygons(mpolys)
+        mpolys = dtl.merge_polygons(mpolys)
         return mpolys
 
     def plot(self,ax = None):

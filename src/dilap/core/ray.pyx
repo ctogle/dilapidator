@@ -1,7 +1,10 @@
 #imports
 # cython: profile=True
 #cimport cython
+cimport dilap.core.tools as dpr
+import dilap.core.tools as dpr
 cimport dilap.core.vector as dpv
+import dilap.core.vector as dpv
 #import dp_vector as dpv
 cimport dilap.core.bbox as dbb
 #import dp_bbox as dbb
@@ -22,6 +25,10 @@ cdef float epsilon = 0.0000001
 
 cdef class ray:
 
+    cdef public dpv.vector origin
+    cdef public dpv.vector direction
+    cdef public dpv.vector cast
+
     def __cinit__(self,dpv.vector origin,dpv.vector direction):
         self.origin = origin 
         self.direction = direction
@@ -37,23 +44,27 @@ cdef class ray:
 
     # tests if this ray intersects a triangle (assuming culling)
     cpdef bint intersect_tri(self,dpv.vector v0,dpv.vector v1,dpv.vector v2):
-        cdef dpv.vector e1 = v1 - v0
-        cdef dpv.vector e2 = v2 - v0
+        cdef dpv.vector e1 = dpv.v1_v2(v0,v1)
+        cdef dpv.vector e2 = dpv.v1_v2(v0,v2)
         cdef dpv.vector T  = self.origin - v0
         cdef dpv.vector P  = dpv.cross(self.direction,e2)
         cdef dpv.vector Q  = dpv.cross(T,e1)
-        cdef float denom = dpv.dot(P,e1)
-        cdef float t = dpv.dot(Q,e2)
-        cdef float u = dpv.dot(P,T)
-        cdef float v = dpv.dot(Q,self.direction)
-
+        cdef float denom = dpr.near(dpv.dot(P,e1),0)
+        cdef float t = dpr.near(dpv.dot(Q,e2),0)
+        cdef float u = dpr.near(dpv.dot(P,T),0)
+        cdef float v = dpr.near(dpv.dot(Q,self.direction),0)
         self.cast = dpv.xhat.copy().flip()
-        if denom < epsilon:return 0
-        if u < 0.0 or u > denom:return 0
-        if v < 0.0 or u + v > denom:return 0
-        self.cast.x = t/denom
-        self.cast.y = u/denom
-        self.cast.z = v/denom
+        #if denom < epsilon:return 0
+        if abs(denom) < epsilon:return 0
+        t /= denom
+        u /= denom
+        v /= denom
+        if t < 0.0:return 0
+        if u < 0.0 or u > 1:return 0
+        if v < 0.0 or u + v > 1:return 0
+        self.cast.x = t
+        self.cast.y = u
+        self.cast.z = v
         return 1
 
     # tests if this ray intersects a plane 

@@ -75,6 +75,7 @@ def wall(p1,p2,wh1,wh2,ww,doors = (),windows = ()):
     main1 = dpr.translate_polygon(dpr.copy_polygon(main0),x)
     dpr.translate_polygon(main0,x.flip())
     wallgons = (main0,main1)+tuple(extras)
+    #wallgons = (main1,)+tuple(extras)
     for wgon in wallgons:
         dpr.rotate_x_polygon(wgon,dpr.PI/2.0)
         dpr.rotate_z_polygon(wgon,a)

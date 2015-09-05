@@ -255,7 +255,7 @@ def isecttest():
     
 def csgtest():
     plc1 = dtl.box(5,5,5)
-    plc2 = dtl.box(5,5,5).translate(dpv.vector(5,0,0))
+    plc2 = dtl.box(5,3,4).translate(dpv.vector(4,0,-0.5))
 
     print('union input')
     ax = dtl.plot_axes()
@@ -263,7 +263,9 @@ def csgtest():
     ax = plc2.plot(ax)
     plt.show()
 
-    plc3 = pwc.union(plc1,plc2)
+    #plc3 = pwc.union(plc1,plc2)
+    #plc3 = pwc.intersection(plc1,plc2)
+    plc3 = pwc.difference(plc1,plc2)
 
     print('union output')
     ax = dtl.plot_axes()
@@ -277,6 +279,16 @@ def containmenttest():
     wn = dpr.winding(p,py)
     ins = dpr.inconcave_xy(p,py)
     print('wtfman',wn,ins)
+
+def break_polygontest():
+    pts1 = dpv.translate_coords(dpr.square(30,10),dpv.vector( 0,0,0))
+    pts2 = dpv.translate_coords(dpr.square(20,10),dpv.vector( 0,0,0))
+    dpv.rotate_coords(pts2,dpq.q_from_av(dpr.PI2,dpv.y()))
+
+    broken = pwc.break_polygon((tuple(pts1),()),[(tuple(pts2),())])
+    print('brokenarrow',broken)
+
+
 
 #prf.profile_function(sub_v_v1v2_test)
 
@@ -297,8 +309,9 @@ def containmenttest():
 #afmtest()
 #tetra()
 #triang()
-cont()
-#csgtest()
+#cont()
+csgtest()
+#break_polygontest()
 #containmenttest()
 #mergetest()
 #isecttest()

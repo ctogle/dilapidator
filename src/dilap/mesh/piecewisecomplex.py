@@ -1,6 +1,7 @@
 import dilap.core.base as db
 import dilap.core.tools as dpr
 import dilap.core.vector as dpv
+import dilap.core.ray as dry
 import dilap.core.model as dmo
 import dilap.core.pointset as dps
 import dilap.mesh.tools as dtl
@@ -16,35 +17,254 @@ import math
 sqrt3 = math.sqrt(3)
 
 
+
+def inpolyhedron(point,triangles):
+    pray = dry.ray(point,dpv.x())
+    isects = []
+
+    isects = dry.intersect_hits(pray,triangles)
+
+    print('inininin',len(triangles),isects)
+
+    '''#
+    for x in range(len(triangles)):
+        t1,t2,t3 = triangles[x]
+        isct = pray.intersect_tri(t1,t2,t3)
+        if isct == 1:
+            t = pray.cast.x
+            print('t',t)
+            isects.append(t)
+        else:print('noinsct',x)
+    '''#
+    ins = len(isects) % 2 > 0
+
+    pray = dry.ray(point,dpv.y())
+    isects = []
+
+    isects = dry.intersect_hits(pray,triangles)
+
+    ins = ins or len(isects) % 2 > 0
+
+    print('insideeee',ins,len(isects))
+    '''#
+    ax = dtl.plot_axes()
+    for x in range(len(triangles)):
+        ax = dtl.plot_polygon(list(triangles[x]),ax)  
+    ax = dtl.plot_edges([
+        pray.origin,pray.origin.copy().translate(
+            pray.direction.copy().scale_u(100))],ax)
+    plt.show()
+    '''#
+
+    return ins
+
+# return the subset of p1s that does not intersect the interior of plc2
+def polygons_outcomplex(p1s,plc2):
+    plc2.refine,plc2.smooth = False,False
+    plc2.triangulate()
+    tris = plc2.simplices
+    outpolyhedron = []
+    for x in range(len(p1s)):
+        point = dpv.center_of_mass(list(p1s[x][0]))
+        if not inpolyhedron(point,tris):outpolyhedron.append(p1s[x])
+    return outpolyhedron
+
+# return the subset of p1s that does not intersect the interior of plc2
+def polygons_incomplex(p1s,plc2):
+    plc2.refine,plc2.smooth = False,False
+    plc2.triangulate()
+    tris = plc2.simplices
+    outpolyhedron = []
+    for x in range(len(p1s)):
+        point = dpv.center_of_mass(list(p1s[x][0]))
+        if inpolyhedron(point,tris):outpolyhedron.append(p1s[x])
+    return outpolyhedron
+
+# given a poly and a set of other polygons, return pieces of the input 
+# polygon upon consideration their intersections
+def break_polygon(py,p2s,subop = 'union'):
+    breakers = [x for x in range(len(p2s))]
+    broken = [dpr.copy_polygon(py)]
+    pieces = []
+
+    while broken:
+        print('prepop',len(broken))
+        piece = broken.pop(0)
+
+        '''#
+        print('PEACE!!!!!')
+        ax = dtl.plot_axes()
+        dtl.plot_polygon_full(piece,ax,lw = 4.0)
+        plt.show()
+        '''#
+
+        eb1,ibs1 = piece
+        ebn1 = dpr.polygon_normal(eb1)
+
+        brokeone = False
+        for x in breakers:
+            breaker = p2s[x]
+            eb2,ibs2 = breaker
+            ebn2 = dpr.polygon_normal(eb2)
+            pj1 = dpv.project_coords(list(eb1),ebn1)
+            pj2 = dpv.project_coords(list(eb2),ebn1)
+
+            if dpr.isnear(pj2.x,pj2.y):
+                if not dpr.isnear(pj1.x,pj2.x):
+                    print('disjoint polygons!')
+                else:
+                    if subop == 'union':
+                        pu = dtl.polygon_union(piece,breaker)
+                    elif subop == 'intersection':
+                        pu = dtl.polygon_intersection(piece,breaker)
+                    elif subop == 'difference':
+                        pu = dtl.polygon_difference(piece,breaker)
+                    else:print('unknown subop!',subop)
+
+                    print('coplanar polygons!',pu)
+                    if not pu is None:
+                        #broken.append(pu)
+                        pieces.append(pu)
+                        print("breaker will continue to intersect this guy...")
+                        brokeone = True
+                        break
+            else:
+                print('skew polygons')
+                plintersect = dtl.planes_intersection(ebn1,eb1[0],ebn2,eb2[0])
+                if not plintersect is None:
+                    pli1,pli2 = plintersect
+
+                    if dpr.isnear(pli1.x-pli2.x,0) or dpr.isnear(pli1.y-pli2.y,0) or dpr.isnear(pli1.z-pli2.z,0):
+                        print('othrographic!!!')
+                    else:
+                        print('oh shit son')
+                        print('oh shit son')
+                        print('oh shit son')
+                        pdb.set_trace()
+
+                    breakersect = dtl.line_intersects_polygon_at(pli1,pli2,breaker)
+                    if not breakersect is None:
+
+                        if not len(breakersect) == 2:
+                            print('breakersect is confusing!!')
+                            pdb.set_trace()
+                        
+                        b1,b2 = breakersect
+                        lsp = dtl.segment_split_polygon(b1,b2,piece)
+                        if not lsp is None:
+                            
+                            '''#
+                            print('lsssspppp',len(lsp))
+                            ax = dtl.plot_axes()
+                            dtl.plot_line(b1,b2,25,ax,lw = 8.0)
+                            for ls in lsp:
+                                ax = dtl.plot_polygon_full(ls,ax,lw = 1.0)
+                            ax = dtl.plot_polygon_full(breaker,ax,lw = 3.0)
+                            plt.show()
+                            '''#
+
+                            broken.extend(lsp)
+                            brokeone = True
+                            #pdb.set_trace()
+                            break
+        if not brokeone:
+            pieces.append(piece)
+            print('nice piece',len(pieces))
+    
+    '''#
+    if len(pieces) > 1:
+      print('broke some shit??')
+      ax = dtl.plot_axes()
+      for p in pieces:dtl.plot_polygon_full(p,ax)
+      plt.show()
+    '''#
+  
+    return pieces
+
+# given the bounding polygons of two polyhedrons, break p1s based 
+# upon the intersection with p2s into properly nonintersecting polygons
+def break_complex(p1s,p2s,subop = 'union'):
+    print('entry to break complex',len(p1s),len(p2s))
+    broken = []
+    for x in range(len(p1s)):
+        py = p1s[x]
+        pieces = break_polygon(py,p2s,subop)
+        broken.extend(pieces)
+    return broken
+
+# given two piecewise linear complexes, make a broken set of polygons
+# representing nonintersecting proper polygons to construct a plc
+# representing the union,intersection,difference of the two input plcs
+def break_complexes(plc1,plc2,subop = 'union'):
+    p1s = []
+    for px in range(plc1.polygoncount):
+
+        #if not px == 3:continue
+
+        p1s.append(plc1.get_polygon_points(px))
+    p2s = []
+    for px in range(plc2.polygoncount):
+
+        #if px == 0 or px == 1:continue
+
+        p2s.append(plc2.get_polygon_points(px))
+    p1s = [x for x in p1s if not x is None]
+    p2s = [x for x in p2s if not x is None]
+
+    print('before breaking something!!!!!')
+    print('before breaking something!!!!!')
+    print('before breaking something!!!!!')
+    ax = dtl.plot_axes()
+    for s in p1s:dtl.plot_polygon_full(s,ax)
+    for s in p2s:dtl.plot_polygon_full(s,ax)
+    plt.show()
+
+    p1seg = break_complex(p1s,p2s,subop)
+
+    print('after breaking something!!!!!')
+    print('after breaking something!!!!!')
+    print('after breaking something!!!!!')
+    ax = dtl.plot_axes()
+    for s in p1seg:dtl.plot_polygon_full(s,ax,lw = 4.0)
+    for s in p1s:dtl.plot_polygon_full(s,ax)
+    for s in p2s:dtl.plot_polygon_full(s,ax)
+    plt.show()
+
+    p2seg = break_complex(p2s,p1s,subop)
+    return p1seg,p2seg
+
 # return a plc representing the union of two plcs
 def union(plc1,plc2):
-    # all facets of plc1 and plc2 must be considered for inclusion
-    # facets which intersect facets of the other plc must be cleaved
-    # the resulting facets which do not intersect improperly can be considered
-    # make a new plc using the new polygons
-    #
-    # facets can intersect in several ways:
-    # tangentially - full or partial overlap
-    #   if a single point is shared - ignore
-    #   if an edge is partially shared, delete the shared subsegment
-    #   if interior space is shared, use the merge polygon algorithm
-    # in a non tang manner - cleave each polygon along the line of intersection
-    raise NotImplemented
+    broken = break_complexes(plc1,plc2,subop = union)
+    if broken is None:return
+    else:p1seg,p2seg = broken
+    p1inp2 = polygons_outcomplex(p1seg,plc2)
+    p2inp1 = polygons_outcomplex(p2seg,plc1)
+    union = piecewise_linear_complex()
+    union.add_polygons(*(p1inp2+p2inp1))
+    return union
 
 # return a plc representing the intersection of two plcs
 def intersection(plc1,plc2):
-    raise NotImplemented
+    broken = break_complexes(plc1,plc2,subop = 'intersection')
+    if broken is None:return
+    else:p1seg,p2seg = broken
+    p1inp2 = polygons_incomplex(p1seg,plc2)
+    p2inp1 = polygons_incomplex(p2seg,plc1)
+    union = piecewise_linear_complex()
+    union.add_polygons(*(p1inp2+p2inp1))
+    return union
 
 # return a plc representing the difference of two plcs
 def difference(plc1,plc2):
-    # all facets of plc1 and plc2 must be considered
-    # facets of plc1 are either kept or modified and kept
-    # facets of plc2 are kept if on the interior of plc1,
-    #  thrown away if on the exterior, 
-    #  used to modify those of plc1 if intersecting tangentially
-    #
-    # this process also begins by properly cleaving polygons
-    raise NotImplemented
+    broken = break_complexes(plc1,plc2,subop = 'difference')
+    if broken is None:return
+    else:p1seg,p2seg = broken
+    p1inp2 = polygons_outcomplex(p1seg,plc2)
+    p2inp1 = polygons_incomplex(p2seg,plc1)
+    union = piecewise_linear_complex()
+    union.add_polygons(*(p1inp2+p2inp1))
+    return union
 
 class piecewise_linear_complex(db.base):
 

@@ -108,6 +108,20 @@ def plot_polygon_full(poly,ax = None,center = False,lw = 1.0):
 def plot_tetrahedron(points,ax = None):
     raise NotImplemented
 
+def plot_line_xy(l1,l2,r = 25,ax = None,center = False,lw = 1.0):
+    ltan = dpv.v1_v2_xy(l1,l2)
+    l1far = l1.copy().translate(ltan.copy().scale_u(-r))
+    l2far = l2.copy().translate(ltan.copy().scale_u( r))
+    ax = plot_edges_xy([l1far,l2far],ax = ax,center = center,lw = lw)
+    return ax
+
+def plot_line(l1,l2,r = 25,ax = None,center = False,lw = 1.0):
+    ltan = dpv.v1_v2(l1,l2)
+    l1far = l1.copy().translate(ltan.copy().scale_u(-r))
+    l2far = l2.copy().translate(ltan.copy().scale_u( r))
+    ax = plot_edges([l1far,l2far],ax = ax,center = center,lw = lw)
+    return ax
+
 def plot_circle_xy(c,r,ax = None,center = False):
     circ = dpv.translate_coords(dpr.point_ring(r,32),c)
     ax = plot_polygon_xy(circ,ax,center)
@@ -149,6 +163,95 @@ def shortest_edge_tri(*tri):
 def shortest_edge(*poly):
     elengs = edge_lengths(*poly)
     return min(elengs)
+
+# given a polygon, find a quaternion rotating it to the xy plane
+def prot_to_xy(py):
+    eb,ibs = py
+    ebn = dpr.polygon_normal(eb)
+    if       ebn.near(dpv.nz()):prot = dpq.q_from_av(dpr.PI,dpv.x())
+    elif not ebn.near(dpv.z() ):prot = dpq.q_from_uu(ebn,dpv.z())
+    else:                       prot = dpq.zero()
+    return prot
+
+# given two points on a line and a polygon, 
+# return the set of intersections points between the two
+def line_intersects_polygon_at(l1,l2,py):
+    eb,ibs = py
+
+    ltn = dpv.v1_v2(l1,l2).normalize()
+    pyprj = dpv.project_coords(list(eb),ltn)
+    midpt = dpv.midpoint(l1,l2)
+    mpprj = dpv.dot(midpt,ltn)
+    offst = mpprj-((pyprj.x+pyprj.y)/2.0)
+    l1del = ltn.copy().scale_u(offst+100)
+    l2del = ltn.copy().scale_u(offst-100)
+    l1far = midpt.copy().translate(l1del)
+    l2far = midpt.copy().translate(l2del)
+    pysegs = polygon_segments(py)
+    lnsegs = [(l1far,l2far)]
+
+    prot = prot_to_xy(py)
+    '''#
+    print('before you rotate!!',prot.__str__())
+    ax = plot_axes()
+    for p in pysegs:plot_edges(p,ax)
+    plot_edges(lnsegs[-1],ax,lw = 5.0)
+    #for p in isects:plot_point(p,ax)
+    #for p in isects2:plot_point(p,ax,marker = 's')
+    plt.show()
+    print('AMEN')
+    '''#
+
+    dpr.rotate_segments(pysegs,prot)
+    dpr.rotate_coords(list(lnsegs[0]),prot)
+    isects = intersections(pysegs+lnsegs)
+    isects = [x for x in isects if dpr.orient3d(eb[0],eb[1],eb[2],x) == 0]
+
+    '''#
+    print('while you were rotated!!')
+    ax = plot_axes()
+    for p in pysegs:plot_edges(p,ax)
+    plot_edges(lnsegs[-1],ax,lw = 5.0)
+    for p in isects:plot_point(p,ax)
+    #for p in isects2:plot_point(p,ax,marker = 's')
+    plt.show()
+    print('AMEN.5',len(isects))
+    '''#
+
+    prot.flip()
+    dpr.rotate_segments(pysegs,prot)
+    dpr.rotate_coords(list(lnsegs[0]),prot)
+    dpv.rotate_coords(isects,prot)
+
+    '''#
+    print('after you rotate!!')
+    ax = plot_axes()
+    for p in pysegs:plot_edges(p,ax)
+    plot_edges(lnsegs[-1],ax,lw = 5.0)
+    for p in isects:plot_point(p,ax)
+    #for p in isects2:plot_point(p,ax,marker = 's')
+    plt.show()
+    print('AMEN2',len(isects))
+    '''#
+
+    if len(isects) == 0:return
+    else:
+        #ebn = dpr.polygon_normal(eb)
+        #pyj = dpv.project_coords(list(eb),ebn)
+        #isects2 = [x for x in isects if dpr.isnear(dpv.dot(x,ebn),pyj.x)]
+        #isects2 = [x for x in isects if dpr.orient3d(eb[0],eb[1],eb[2],x) == 0]
+
+        '''#
+        print('breakin some shit!!')
+        ax = plot_axes()
+        for p in pysegs:plot_edges(p,ax)
+        plot_edges(lnsegs[-1],ax,lw = 5.0)
+        for p in isects:plot_point(p,ax)
+        #for p in isects2:plot_point(p,ax,marker = 's')
+        plt.show()
+        '''#
+
+        return isects
 
 # given line segment s1, line segment s2
 # a segment is a tuple of two points
@@ -398,55 +501,166 @@ def profile_triangulation():
 
 ###############################################################################
 
+# find the line of intersection between two planes
+def planes_intersection(pn1,p01,pn2,p02):
+    u = pn1.cross(pn2)
+    ax = u.x if u.x >= 0 else -u.x
+    ay = u.y if u.y >= 0 else -u.y
+    az = u.z if u.z >= 0 else -u.z
+    # pn1 and pn2 are near parallel
+    if ((ax+ay+az) < 0.0001):
+        v = p02 - p01
+        if dpr.isnear(dpv.dot(pn1,v),0):return 
+        else:return
+    # pn1 and pn2 intersect in a line
+    # first determine max abs coordinate of cross product
+    if (ax > ay):
+        if (ax > az):maxc =  1
+        else:maxc = 3
+    else:
+        if (ay > az):maxc =  2
+        else:maxc = 3
+
+    # next, to get a point on the intersect line
+    # zero the max coord, and solve for the other two
+    d1 = -dpv.dot(pn1,p01)
+    d2 = -dpv.dot(pn2,p02)
+    # select max coordinate
+    if maxc == 1: # intersect with x=0 
+        y = (d2*pn1.z - d1*pn2.z) / u.x
+        z = (d1*pn2.y - d2*pn1.y) / u.x
+        ip = dpv.vector(0,y,z)
+    elif maxc == 2: # intersect with y=0 
+        x = (d1*pn2.z - d2*pn1.z) / u.y
+        z = (d2*pn1.x - d1*pn2.x) / u.y
+        ip = dpv.vector(x,0,z)
+    elif maxc == 3: # intersect with z=0 
+        x = (d2*pn1.y - d1*pn2.y) / u.z
+        y = (d1*pn2.x - d2*pn1.x) / u.z
+        ip = dpv.vector(x,y,0)
+    return ip,ip + u
+
+# given a polygon and a coplanar line segment, return 
+# a new set of polygons which is split upon intersection with 
+# the line or None if no intersection is found
+def segment_split_polygon(s1,s2,py,plot = False):
+    eb,ibs = py
+
+    ltn = dpv.v1_v2(s1,s2).normalize()
+    pyprj = dpv.project_coords(list(eb),ltn)
+    midpt = dpv.midpoint(s1,s2)
+    mpprj = dpv.dot(midpt,ltn)
+    offst = mpprj-((pyprj.x+pyprj.y)/2.0)
+    l1del = ltn.copy().scale_u(offst+100)
+    l2del = ltn.copy().scale_u(offst-100)
+    l1far = midpt.copy().translate(l1del)
+    l2far = midpt.copy().translate(l2del)
+    pysegs = polygon_segments(py)
+    lnsegs = [(l1far,l2far)]
+    #pysegs = polygon_segments(py)+[(s1,s2)]
+        
+    ebn = dpr.polygon_normal(eb)
+    if       ebn.near(dpv.nz()):prot = dpq.q_from_av(dpr.PI,dpv.x())
+    elif not ebn.near(dpv.z() ):prot = dpq.q_from_uu(ebn,dpv.z())
+    else:                       prot = dpq.zero()
+    dpr.rotate_segments(pysegs,prot)
+    dpr.rotate_coords(list(lnsegs[0]),prot)
+
+    isects = intersections(pysegs+lnsegs)
+
+    '''#
+    print('truly time to line split!!!',len(isects))
+    ax = plot_axes()
+    for p in pysegs:plot_edges(p,ax)
+    plot_edges([l1far,l2far],ax,lw = 4.0)
+    for p in isects:plot_point(p,ax)
+    plt.show()
+    '''#
+
+    if len(isects) == 0:
+        prot.flip()
+        dpr.rotate_segments(pysegs,prot)
+        #dpr.rotate_coords(list(lnsegs[0]),prot)
+        return
+
+    pysegs = break_segments(pysegs,isects)
+    lnsegs = break_segments(lnsegs,isects)
+
+    # THIS MISSES TANGENTIAL INTERSECTION WITH THE LINE
+    # THIS MISSES TANGENTIAL INTERSECTION WITH THE LINE
+    # THIS MISSES TANGENTIAL INTERSECTION WITH THE LINE
+    # THIS MISSES TANGENTIAL INTERSECTION WITH THE LINE
+    # THIS MISSES TANGENTIAL INTERSECTION WITH THE LINE
+
+    lnsegs = segments_inpolygon(lnsegs,py)
+    #lnsegs = segments_inpolygon(lnsegs,eb)
+
+    leftof  = segments_leftofline( pysegs,l1far,l2far)
+    rightof = segments_rightofline(pysegs,l1far,l2far)
+
+    if len(leftof) == 0 or len(rightof) == 0:
+        print('maybe??')
+        prot.flip()
+        dpr.rotate_segments(pysegs,prot)
+        #dpr.rotate_coords(list(lnsegs[0]),prot)
+        return
+
+    if len(leftof) < 3 or len(rightof) < 3:
+        print('HERE IT IS',len(pysegs),s1,s2)
+        ax = plot_axes()
+        #for p in pysegs:plot_edges(p,ax)
+        #for s in leftof:plot_edges(s,ax,lw = 3.0)
+        #for s in rightof:plot_edges(s,ax,lw = 6.0)
+        for s in lnsegs:plot_edges(s,ax,lw = 6.0)
+        #plot_edges([l1far,l2far],ax,lw = 4.0)
+        for p in isects:plot_point(p,ax)
+        plt.show()
+        pdb.set_trace()
+
+    leftloops  = construct_loops( leftof+lnsegs,plot)
+    rightloops = construct_loops(rightof+lnsegs,plot)
+
+    newpolys = []
+    prot.flip()
+    for seg in  leftloops:
+        newpolys.append(dpr.rotate_polygon((seg,()),prot))
+    for seg in rightloops:
+        newpolys.append(dpr.rotate_polygon((seg,()),prot))
+    #dpr.rotate_coords(list(lnsegs[0]),prot)
+
+    '''#
+    print('MADE NEW POLYSSSS',len(newpolys))
+    ax = plot_axes()
+    for ll in newpolys:plot_polygon_full(ll,ax)
+    plt.show()
+    '''#
+
+    return newpolys
+
+#######################################
+#######################################
+
+
+'''#
 # does the line segment interior given by s1,s2 intersect the polygon py
+### DOES NOT WORK .... and is unused!!!!!!!!!!!!
 def intersect_segment_polygon(s1,s2,py):
+
+    if dpr.inconcave_xy(dpv.midpoint(s1,s2),py):return True
+
     if dpr.inconcave_xy(s1,py) and dpr.inconcave_xy(s2,py):return True
     for ex in range(len(py)):
         ep1,ep2 = py[ex-1],py[ex]
         isect = segments_intersect_at(s1,s2,ep1,ep2)
+
+        #if s1.near(ep1) and s2.near(ep2):
+        #    print('here it is?')
+
         if not isect is None:
             if type(isect) == type(()):return True
             #    if dpv.distance(*isect) > 0.001:return True
     return False
-
-# given a line segment and a polygon, produce
-# all points of intersection for edge segmentation
-def segsects(s1,s2,py):
-    unn = False
-    isects = []
-    for pyx in range(len(py)):
-        ep1,ep2 = py[pyx-1],py[pyx]
-        isect = segments_intersect_at(s1,s2,ep1,ep2)
-        if not isect is None:
-            if type(isect) == type(()):
-                isects.append(isect[0])
-                isects.append(isect[1])
-                unn = True
-            elif isect.near(s1) or isect.near(s2):pass
-            elif isect.near(ep1) or isect.near(ep2):isects.append(isect)
-            else:
-                isects.append(isect)
-                unn = True
-    return isects,unn
-
-# given polygon 1 and 2, return segmented edges of polygon 1
-# segmented based on intersection with py2
-def segpoly(py1,py2):
-    unfinished,unionize = [],False
-    for e1x in range(len(py1)):
-        ep11,ep12 = py1[e1x-1],py1[e1x]
-        isects,union = segsects(ep11,ep12,py2)
-        if union:unionize = True
-        isects = segclean(ep11,ep12,isects)
-        for x in range(1,len(isects)):
-            i1,i2 = (isects[x-1],isects[x])
-            #if dpr.inconcave_xy(i1,py2) and dpr.inconcave_xy(i2,py2):pass
-            #elif not intersect_segment_polygon(i1,i2,py2):
-            #if not intersect_segment_polygon(i1,i2,py2):
-            if True:
-                unfinished.append((i1,i2))
-        #else:unfinished.append((ep11,ep12))
-    return unfinished,unionize
+'''#
 
 # return an ordered nonduplicative list of points from s1 to s2
 def segclean(s1,s2,isects):
@@ -460,57 +674,6 @@ def segclean(s1,s2,isects):
         if not clean[-1].near(nxti):clean.append(nxti)
     if not clean[-1].near(s2):clean.append(s2)
     return clean
-
-# given two concave polygons with holes
-# return one polygon if p1 and p2 can be merged
-# or return None
-#def merge_two_polygons(p1,p2):
-def union_polygon(p1,p2):
-    eb1,eb2 = p1[0],p2[0]
-    ebn1 = dpr.polygon_normal(eb1)
-    pj1 = dpv.project_coords(list(eb1),ebn1)
-    pj2 = dpv.project_coords(list(eb2),ebn1)
-    nr = dpr.isnear
-    if not (nr(pj1.x,pj1.y) and nr(pj2.x,pj2.y) and nr(pj1.x,pj2.x)):return
-    if       ebn1.near(dpv.nz()):prot = dpq.q_from_av(dpr.PI,dpv.x())
-    elif not ebn1.near(dpv.z() ):prot = dpq.q_from_uu(ebn1,dpv.z())
-    else:                        prot = dpq.zero()
-    dpr.rotate_polygon(p1,prot)
-    dpr.rotate_polygon(p2,prot)
-    unionize = False
-    unfinished = []
-    eb1seg,unionize1 = segpoly(eb1,eb2)
-    eb2seg,unionize2 = segpoly(eb2,eb1)
-    unfinished.extend(eb1seg)
-    unfinished.extend(eb2seg)
-
-
-    ax = plot_axes_xy()
-    #plot_polygon_full_xy(p1,ax)
-    #plot_polygon_full_xy(p2,ax)
-    for u in unfinished:plot_edges_xy(u,ax,lw = 4.0)
-    plt.show()
-
-
-    unionize = unionize1 or unionize2
-    if not unionize:
-        prot.flip()
-        dpr.rotate_polygon(p1,prot)
-        dpr.rotate_polygon(p2,prot)
-        return
-    finished = []
-    last = unfinished[0][0]
-    while unfinished:
-        for ufx in range(len(unfinished)):
-            unfin = unfinished[ufx]
-            if   last.near(unfin[0]):break
-            elif last.near(unfin[1]):break
-        unfin = unfinished.pop(ufx)
-        which = unfin[1] if last.near(unfin[0]) else unfin[0]
-        finished.append(which)
-        last = which
-    merged = (tuple(finished),tuple(p1[1]+p2[1]))
-    return dpr.rotate_polygon(merged,prot.flip())
 
 # given a collection of concave polygons with holes
 # return a new set of polygons where holes are maintained
@@ -529,7 +692,39 @@ def merge_polygons(polys):
                     if x == y:continue
                     i2 = islands[y]
                     #mp = merge_two_polygons(i1,i2)
+
+                    '''#
+                    print('INPUT')
+                    ax = plot_axes(x = 40)
+                    plot_polygon_full(i1,ax)
+                    plot_polygon_full(i2,ax)
+                    plt.show()
+                    '''#
+
                     mp = polygon_union(i1,i2)
+
+                    '''#
+                    print('OUTPUT')
+                    if not mp is None:
+                        ax = plot_axes(x = 40)
+                        plot_polygon_full(mp,ax)
+                        plt.show()
+                    '''#
+
+                    '''#
+                    for x in range(len(i2[0])):
+                        one,two = i2[0][x-1],i2[0][x]
+                        if one.near(two):
+                            print('wtwfadfafdf:w',mp)
+                            pdb.set_trace()
+                    if not mp is None:
+                        for x in range(len(mp[0])):
+                            one,two = mp[0][x-1],mp[0][x]
+                            if one.near(two):
+                                print('mpmpmpmp',mp)
+                                pdb.set_trace()
+                    '''#
+
                     if not mp is None:
                         islands.remove(i1)
                         islands.remove(i2)
@@ -557,6 +752,13 @@ def merge_polygons(polys):
 # if they do not, return None
 def valid_pair(py1,py2):
     eb1,eb2 = py1[0],py2[0]
+
+    for x in range(len(eb2)):
+        one,two = eb2[x-1],eb2[x]
+        if one.near(two):
+            print('invalid!!!')
+            pdb.set_trace()
+
     ebn1 = dpr.polygon_normal(eb1)
     pj1 = dpv.project_coords(list(eb1),ebn1)
     pj2 = dpv.project_coords(list(eb2),ebn1)
@@ -571,14 +773,15 @@ def valid_pair(py1,py2):
 def containment(py1,py2):
     raise NotImplemented
 
+def newpoint(p,ps):
+    for q in ps:
+        if p.near(q):return
+    ps.append(p)
+
 # given a set of edge segments, 
 # return all points of interior intersection
 # NOTE: this is brute-force now.... consider sweepline in the future
 def intersections(segments):
-    def newpoint(ip):
-        for p in ipts:
-            if p.near(ip):return
-        ipts.append(ip)
     ipts = []
     scnt = len(segments)
     for x in range(scnt):
@@ -590,9 +793,9 @@ def intersections(segments):
             if isect is None:continue
             elif type(isect) == type(()):
                 i1,i2 = isect
-                newpoint(i1)
-                newpoint(i2)
-            else:newpoint(isect)
+                newpoint(i1,ipts)
+                newpoint(i2,ipts)
+            else:newpoint(isect,ipts)
     return ipts
 
 # given a set of edge segments and a set of points, return a new set
@@ -612,27 +815,124 @@ def break_segments(segments,points):
             broken.append((i1,i2))
     return broken
 
+# remove points that do not form an angle of less than 180 degrees
+# with the two edges associated with each point
+def clean_loop(loop,plot = False):
+
+    if plot and len(loop) < 3:
+      print('ENTER LOOP',len(loop))
+      ax = plot_axes()
+      plot_polygon(loop,ax)
+      plt.show()
+      pdb.set_trace()
+
+    def eang(x,y,z):
+        e1 = dpv.v1_v2(loop[x],loop[y])
+        e2 = dpv.v1_v2(loop[x],loop[z])
+        a = dpr.angle_between(e1,e2)
+        return a
+    lcnt = len(loop)
+    for x in range(lcnt):
+        y = x-1
+        z = x+1 if x < lcnt-2 else 0
+        a = eang(x,y,z)
+        print('x',x,a)
+        if dpr.isnear(a,dpr.PI):loop[x] = None
+
+        #if dpr.isnear(a,dpr.PI):marked.append(x-1)
+    #for x in marked:loop.pop(x)
+    #print('looptyloop',marked)
+    for p in loop:print(p)
+
+    loop = [l for l in loop if not l is None]
+
+    if plot and len(loop) < 3:
+      print('EXIT LOOP',len(loop))
+      ax = plot_axes()
+      plot_polygon(loop,ax)
+      plt.show()
+
+    return loop
+    #clean = [loop[x-1] for x in range(lcnt) if not x-1 in marked]
+    #return clean
+
+# given a set of edge segments, 
+# return a boundary represented by the segments
+def construct_loops(segments,plot = False):
+    srange = [x for x in range(len(segments))]
+    loops = [[]]
+    last = segments[0][0].copy()
+    while srange:
+        foundone = False
+        for x in srange:
+            s1,s2 = segments[x]
+            if   last.near(s1):
+                found = s2
+                foundone = True
+                break
+            elif last.near(s2):
+                found = s1
+                foundone = True
+                break
+        #print('srange',srange)
+        if foundone:
+            #print('foundone',foundone)
+            srange.remove(x)
+            newpoint(found.copy(),loops[-1])
+            last = found
+            '''#
+            ax = plot_axes()
+            ax = plot_edges(segments[-1],ax,lw = 5.0)
+            ax = plot_edges(loops[-1],ax)
+
+            plt.show()
+            '''#
+        else:
+            #print('foundone',foundone)
+            last = segments[x][0].copy()
+            loops.append([])
+
+    if min([len(l) for l in loops]) < 3:
+      print('HALT\n'*20,len(segments))
+      ax = plot_axes()
+      for l in loops:plot_edges(l,ax)
+      plt.show()
+      pdb.set_trace()
+
+    loops = [tuple(clean_loop(l,plot)) for l in loops]
+
+    if plot and False:
+      print('got loops?!')
+      ax = plot_axes()
+      for lp in loops:
+          ax = plot_polygon(list(lp),ax)
+      plt.show()
+
+    return loops
+
 # given a set of edge segments, 
 # return a boundary represented by the segments
 def construct_loop(segments):
     srange = [x for x in range(len(segments))]
     loop = []
-    last = segments[0][0]
+    last = segments[0][0].copy()
     while srange:
         for x in srange:
             s1,s2 = segments[x]
             if   last.near(s1):found = s2;break
             elif last.near(s2):found = s1;break
         srange.remove(x)
-        loop.append(found)
+        newpoint(found.copy(),loop)
         last = found
+    loop = clean_loop(loop)
     return tuple(loop)
 
 # given a concave boundary, return the set of edge segments
 # which generate the boundary
 def boundary_segments(bnd):
     segments = []
-    for x in range(len(bnd)):segments.append((bnd[x-1],bnd[x]))
+    for x in range(len(bnd)):
+        segments.append((bnd[x-1],bnd[x]))
     return segments
 
 # given a concave polygon with holes, return the set of 
@@ -646,28 +946,6 @@ def polygon_segments(py):
     #    segments.extend(boundary_segments(ib))
     return segments
 
-# given a set of segments, 
-# return the subset which intersects a polygon
-def segments_inpolygon(segments,py):
-    eb,ibs = py
-    inpoly = []
-    for x in range(len(segments)):
-        i1,i2 = segments[x]
-        if intersect_segment_polygon(i1,i2,eb):
-            inpoly.append((i1,i2))
-    return inpoly
-
-# given a set of segments, 
-# return the subset which does not intersect a polygon
-def segments_outpolygon(segments,py):
-    eb,ibs = py
-    inpoly = []
-    for x in range(len(segments)):
-        i1,i2 = segments[x]
-        if not intersect_segment_polygon(i1,i2,eb):
-            inpoly.append((i1,i2))
-    return inpoly
-
 # given two polygons, return the union of their edge segments
 # broken upon every point of intersection between polygons
 # or return None if there are no intersections
@@ -675,106 +953,201 @@ def break_polygons(p1,p2):
     p1segs = polygon_segments(p1)
     p2segs = polygon_segments(p2)
     isects = intersections(p1segs+p2segs)
-    if len(isects) == 0:return p1segs,p2segs
+    if len(isects) == 0:return
     p1segs = break_segments(p1segs,isects)
     p2segs = break_segments(p2segs,isects)
+    '''#
+    ax = plot_axes_xy()
+    plot_polygon_full_xy(p1,ax)
+    plot_polygon_full_xy(p2,ax)
+    for seg in p1segs:ax = plot_edges_xy(seg,ax,lw = 4.0)
+    for seg in p2segs:ax = plot_edges_xy(seg,ax,lw = 4.0)
+    plt.show()
+    '''#
     return p1segs,p2segs
+
+# given a set of segments, 
+# return the subset on one side of a line
+def segments_leftofline(segments,l1,l2):
+    leftof = []
+    tangs = 0
+    for x in range(len(segments)):
+        s1,s2 = segments[x]
+        ori1 = dpr.orient2d(s1,l1,l2)
+        ori2 = dpr.orient2d(s2,l1,l2)
+
+        print('oriririe left',ori1,ori2)
+
+        #if ori1 > 0 or ori2 > 0:
+        if (ori1 > 0 or ori2 > 0):
+            leftof.append((s1,s2))
+        elif (ori1 == 0 and ori2 == 0):
+            leftof.append((s1,s2))
+            tangs += 1
+    if tangs == len(leftof):return []
+    '''#
+    print('ithinkimleft')
+    ax = plot_axes()
+    for s in leftof:plot_edges(s,ax)
+    plot_edges([l1,l2],ax,lw = 5.0)
+    plt.show()
+    '''#
+    return leftof
+
+# given a set of segments, 
+# return the subset on one side of a line
+def segments_rightofline(segments,l1,l2):
+    rightof = []
+    tangs = 0
+    for x in range(len(segments)):
+        s1,s2 = segments[x]
+        ori1 = dpr.orient2d(s1,l1,l2)
+        ori2 = dpr.orient2d(s2,l1,l2)
+        print('orieeright',ori1,ori2)
+        #if (ori1 < 0 or ori2 < 0) or (ori1 == 0 and ori2 == 0):
+        #    rightof.append((s1,s2))
+
+        if (ori1 < 0 or ori2 < 0):
+            rightof.append((s1,s2))
+        elif (ori1 == 0 and ori2 == 0):
+            rightof.append((s1,s2))
+            tangs += 1
+    if tangs == len(rightof):return []
+
+    '''#
+    print('ithinkimright')
+    ax = plot_axes()
+    for s in segments:plot_edges(s,ax,lw = 4.0)
+    for s in rightof:plot_edges(s,ax)
+    plot_edges([l1,l2],ax,lw = 8.0)
+    plt.show()
+    '''#
+    return rightof
+
+# given a set of segments, 
+# return the subset which intersects a polygon
+def segments_inpolygon(segments,py):
+    eb,ibs = py
+    inpoly = []
+    for x in range(len(segments)):
+        i1,i2 = segments[x]
+        eisect = False
+        for ex in range(len(eb)):
+            ep1,ep2 = eb[ex-1],eb[ex]
+            isect = segments_intersect_at(i1,i2,ep1,ep2)
+            if not isect is None:eisect = False
+        if eisect or dpr.inconcave_xy(dpv.midpoint(i1,i2),eb):
+            inpoly.append((i1,i2))
+    return inpoly
+
+# given a set of segments, 
+# return the subset which does not intersect a polygon
+def segments_outpolygon(segments,py):
+    eb,ibs = py
+    outpoly = []
+    for x in range(len(segments)):
+        i1,i2 = segments[x]
+        eisect = False
+        for ex in range(len(eb)):
+            ep1,ep2 = eb[ex-1],eb[ex]
+            isect = segments_intersect_at(i1,i2,ep1,ep2)
+            if not isect is None:eisect = True 
+        if not eisect and not dpr.inconcave_xy(dpv.midpoint(i1,i2),eb):
+            outpoly.append((i1,i2))
+    return outpoly
 
 def polygon_union(p1,p2):
     prot = valid_pair(p1,p2)
-    if prot is None:print('invalid polygon csg operation...');return
+    if prot is None:return
     dpr.rotate_polygon(p1,prot)
     dpr.rotate_polygon(p2,prot)
     broken = break_polygons(p1,p2)
-    p1segs,p2segs = break_polygons(p1,p2)
+    if broken is None:
+        dpr.rotate_polygon(p1,prot.flip())
+        dpr.rotate_polygon(p2,prot)
+        return
+    else:p1segs,p2segs = broken
     p1inp2 = segments_outpolygon(p1segs,p2)
     p2inp1 = segments_outpolygon(p2segs,p1)
-    #union = (construct_loop(p1inp2+p2inp1),())
     union = (construct_loop(p1inp2+p2inp1),(p1[1]+p2[1]))
     dpr.rotate_polygon(union,prot.flip())
     return union
 
 def polygon_intersection(p1,p2):
     prot = valid_pair(p1,p2)
-    if prot is None:print('invalid polygon csg operation...');return
+    if prot is None:return
     dpr.rotate_polygon(p1,prot)
     dpr.rotate_polygon(p2,prot)
-    p1segs,p2segs = break_polygons(p1,p2)
+    broken = break_polygons(p1,p2)
+    if broken is None:
+        dpr.rotate_polygon(p1,prot.flip())
+        dpr.rotate_polygon(p2,prot)
+        return
+    else:p1segs,p2segs = broken
     p1inp2 = segments_inpolygon(p1segs,p2)
     p2inp1 = segments_inpolygon(p2segs,p1)
-    inter = (construct_loop(p1inp2+p2inp1),())
+    inter = (construct_loop(p1inp2+p2inp1),(p1[1]+p2[1]))
     dpr.rotate_polygon(inter,prot.flip())
     return inter
 
 def polygon_difference(p1,p2):
     prot = valid_pair(p1,p2)
-    if prot is None:print('invalid polygon csg operation...');return
+    if prot is None:return
     dpr.rotate_polygon(p1,prot)
     dpr.rotate_polygon(p2,prot)
-    p1segs,p2segs = break_polygons(p1,p2)
+    broken = break_polygons(p1,p2)
+    if broken is None:
+        dpr.rotate_polygon(p1,prot.flip())
+        dpr.rotate_polygon(p2,prot)
+        return
+    else:p1segs,p2segs = broken
     p1inp2 = segments_outpolygon(p1segs,p2)
     p2inp1 = segments_inpolygon(p2segs,p1)
-    diffr = (construct_loop(p1inp2+p2inp1),())
+    diffr = (construct_loop(p1inp2+p2inp1),(p1[1]+p2[1]))
     dpr.rotate_polygon(diffr,prot.flip())
     return diffr
 
+def polygon_xor(p1,p2):
+    raise NotImplemented
+
 def cgstest():
     p1 = (tuple(dpr.square(5,5)),())
-    p2 = (tuple(dpr.square(5,4,dpv.vector(3,0,0))),())
+    p2 = (tuple(dpr.square(5,4,dpv.vector(4,0,0))),())
+    p3 = (tuple(dpr.square(5,3,dpv.vector(8,0,0))),())
+    dpr.rotate_polygon(p1,dpq.q_from_av(dpr.PI/2.0,dpv.x()))
+    dpr.rotate_polygon(p2,dpq.q_from_av(dpr.PI/2.0,dpv.x()))
+    dpr.rotate_polygon(p3,dpq.q_from_av(dpr.PI/2.0,dpv.x()))
 
-    #union = polygon_union(p1,p2)
-    #inter = polygon_intersection(p1,p2)
-    diffr = polygon_difference(p1,p2)
+    #ptest = polygon_union(p1,p2)
+    #ptest = polygon_union(ptest,p3)
+
+    #ptest = polygon_intersection(p1,p2)
+
+    ptest = polygon_difference(p1,p2)
 
 
+    #ptest = merge_polygons([p1,p2,p3])
 
-
-    ax = plot_axes_xy()
+    ax = plot_axes()
     #for seg in p1segs:ax = plot_edges_xy(seg,ax)
     #for seg in p2segs:ax = plot_edges_xy(seg,ax)
-    plot_polygon_full_xy(p1,ax)
-    plot_polygon_full_xy(p2,ax)
-    #plot_polygon_full_xy(union,ax,lw = 4.0)
-    #plot_polygon_full_xy(inter,ax,lw = 4.0)
-    plot_polygon_full_xy(diffr,ax,lw = 4.0)
+    #plot_polygon_full(p1,ax)
+    #plot_polygon_full(p2,ax)
+    plot_polygon_full(ptest,ax)
+    #for pt in ptest:plot_polygon_full(pt,ax,lw = 4.0)
     plt.show()
 
-    '''#
-    prot = valid_pair(p1,p2)
-    if prot is None:print('invalid polygon csg operation...');return
-    dpr.rotate_polygon(p1,prot)
-    dpr.rotate_polygon(p2,prot)
-  
-    p1segs,p2segs = break_polygons(p1,p2)
-
-    # union
-    p1inp2 = segments_outpolygon(p1segs,p2)
-    p2inp1 = segments_outpolygon(p2segs,p1)
-    union = construct_loop(p1inp2+p2inp1)
-
-    # intersect
-    p1inp2 = segments_inpolygon(p1segs,p2)
-    p2inp1 = segments_inpolygon(p2segs,p1)
-    inter = construct_loop(p1inp2+p2inp1)
-
-    # difference
-    p1inp2 = segments_outpolygon(p1segs,p2)
-    p2inp1 = segments_inpolygon(p2segs,p1)
-    diffr = construct_loop(p1inp2+p2inp1)
-
-    ax = plot_axes_xy()
-    for seg in p1segs:ax = plot_edges_xy(seg,ax)
-    for seg in p2segs:ax = plot_edges_xy(seg,ax)
-    #plot_polygon_full_xy(p1,ax)
-    #plot_polygon_full_xy(p2,ax)
-
-    #plot_polygon_xy(union,ax,lw = 4.0)
-    #plot_polygon_xy(inter,ax,lw = 4.0)
-    plot_polygon_xy(diffr,ax,lw = 4.0)
-    plt.show()
-
-    pdb.set_trace()
-    '''#
+    if ptest is None:print('unacceptable union')
+    else:
+        print('soo whats happeningjj?')
+        ax = plot_axes()
+        #for seg in p1segs:ax = plot_edges_xy(seg,ax)
+        #for seg in p2segs:ax = plot_edges_xy(seg,ax)
+        plot_polygon_full(p1,ax)
+        plot_polygon_full(p2,ax)
+        plot_polygon_full(ptest,ax,lw = 4.0)
+        #for pt in ptest:plot_polygon_full(pt,ax,lw = 4.0)
+        plt.show()
 
 
 

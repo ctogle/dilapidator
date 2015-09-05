@@ -5,6 +5,7 @@ import dilap.core.graph as dgr
 
 import dilap.mesh.tools as dtl
 import dilap.mesh.pointset as dps
+import dilap.mesh.piecewisecomplex as pwc
 
 import dilap.structures.tools as dstl
 import dilap.structures.graphnode as gnd
@@ -57,7 +58,8 @@ class graph(dgr.graph):
 
             print('lookup',e.key(),self.rooms_lookup[e.key()])
             if len(self.rooms_lookup[e.key()]) == 1:
-                e.cut_window(3,2,1,0.5)
+                #e.cut_window(3,2,1,0.5)
+                pass
 
                 '''#
                 wh1,wh2 = e.one.height+e.one.gap,e.two.height+e.two.gap
@@ -99,11 +101,35 @@ class graph(dgr.graph):
 
     def model(self):
         mpolys = []
-        mpolys.extend(self.model_rooms())
-        mpolys.extend(self.model_walls())
-        mpolys.extend(self.model_corners())
-        mpolys.extend(self.model_roof())
-        mpolys = dtl.merge_polygons(mpolys)
+
+        plc1 = dtl.box(5,5,5)
+        plc2 = dtl.box(5,4,4).translate(dpv.vector(4,0,0))
+
+        print('union input')
+        ax = dtl.plot_axes()
+        ax = plc1.plot(ax)
+        ax = plc2.plot(ax)
+        plt.show()
+
+        #plc3 = pwc.union(plc1,plc2)
+        plc3 = pwc.difference(plc1,plc2)
+        #plc3 = pwc.intersection(plc1,plc2)
+
+        print('union output')
+        ax = dtl.plot_axes()
+        ax = plc3.plot(ax)
+        plt.show()
+
+        pys = []
+        for px in range(plc3.polygoncount):
+            pys.append(plc3.get_polygon_points(px))
+        mpolys = pys
+
+        #mpolys.extend(self.model_rooms())
+        #mpolys.extend(self.model_walls())
+        #mpolys.extend(self.model_corners())
+        #mpolys.extend(self.model_roof())
+        #mpolys = dtl.merge_polygons(mpolys)
         return mpolys
 
     def plot(self,ax = None):

@@ -27,13 +27,13 @@ __doc__ = '''General purpose tool functions...'''
 
 # if a is within c of b, return True
 # else return False
-cdef bint isnear_c(float a,float b,float c = 0.001):
+cdef bint isnear_c(float a,float b,float c = 0.01):
     if abs(a-b) < c:return 1
     else:return 0
 
 # if a is within c of b, return b
 # else return a
-cdef float near_c(float a,float b,float c = 0.001):
+cdef float near_c(float a,float b,float c = 0.01):
     if abs(a-b) < c:return b
     else:return a
 
@@ -126,6 +126,7 @@ cpdef bint insegment(dpv.vector p,dpv.vector s1,dpv.vector s2):
 # determine if a point lies on the interior of a line segment
 cdef bint insegment_c(dpv.vector p,dpv.vector s1,dpv.vector s2):
     if not orient2d_c(p,s1,s2) == 0:return 0
+    if p.near(s1) or p.near(s2):return 0
     #if (s1.x != s2.x): # S is not  vertical
     if not isnear_c(s1.x,s2.x): # S is not  vertical
         if (s1.x <= p.x and p.x <= s2.x):return 1
@@ -688,6 +689,16 @@ cdef list offset_faces_c(list faces,int offset):
         fa[2] += offset
     return faces
 
+# rotate a list of segments by a quaternion q
+cdef list rotate_segments_c(list segments,dpq.quaternion q):
+    cdef int slen = len(segments)
+    cdef int ex
+    for ex in range(slen):
+        s1,s2 = segments[ex]
+        s1.rotate(q)
+        #s2.rotate(q)
+    return segments
+
 # copy a polygon: (extbnd,(holes...)) 
 cdef tuple copy_polygon_c(tuple polygon):
     cdef list eb = [x.copy() for x in polygon[0]]
@@ -843,18 +854,18 @@ cdef float insphere_c(dpv.vector a,dpv.vector b,dpv.vector c,dpv.vector d,dpv.ve
 
 # if a is within c of b, return True
 # else return False
-cpdef bint isnear(float a,float b,float c = 0.0001):
+cpdef bint isnear(float a,float b,float c = 0.01):
     '''determine if a is within a neighborhood c of b'''
     return isnear_c(a,b,c)
 
 # if a is within c of b, return b
 # else return a
-cpdef float near(float a,float b,float c = 0.0001):
+cpdef float near(float a,float b,float c = 0.01):
     '''effectively round a to b if within a neighborhood c'''
     return near_c(a,b,c)
 
 # is a on the interior of (a,b) given an error of d
-cpdef bint inrange(float a,float b,float c,float d = 0.0001):
+cpdef bint inrange(float a,float b,float c,float d = 0.01):
     '''determine if a value is on an open interval'''
     return inrange_c(a,b,c,d)
 
@@ -1053,6 +1064,11 @@ cpdef list inflate(list convex,float radius):
 cpdef list offset_faces(list faces,int offset):
     '''apply an index offset to a list of triangles'''
     return offset_faces_c(faces,offset)
+
+# rotate a list of segments by a quaternion q
+cpdef list rotate_segments(list segments,dpq.quaternion q):
+    '''rotate a group of segments by a quaternion'''
+    return rotate_segments_c(segments,q)
 
 # copy a polygon: (extbnd,(holes...)) 
 cpdef tuple copy_polygon(tuple polygon):

@@ -102,8 +102,13 @@ class graph(dgr.graph):
     def model(self):
         mpolys = []
 
-        plc1 = dtl.box(5,5,5)
-        plc2 = dtl.box(5,4,4).translate(dpv.vector(4,0,0))
+        plc1 = dtl.box(15,15,10)
+        #plc2 = dtl.box(5,4,4).translate(dpv.vector(4,0,0))
+        plc2 = dtl.box(14,14,6).translate(dpv.vector(0,0,5))
+        #plc2 = dtl.box(8,3,2).translate(dpv.vector(0,0,1))
+
+        #plc2 = dtl.icosphere(2,1)
+        #plc2.translate(dpv.vector(0,0,5.0))
 
         print('union input')
         ax = dtl.plot_axes()
@@ -111,14 +116,27 @@ class graph(dgr.graph):
         ax = plc2.plot(ax)
         plt.show()
 
-        #plc3 = pwc.union(plc1,plc2)
-        plc3 = pwc.difference(plc1,plc2)
+        plc3 = pwc.union(plc1,plc2)
+        #plc3 = pwc.difference(plc1,plc2)
         #plc3 = pwc.intersection(plc1,plc2)
+        #plc2 = dtl.box(20,12,5).translate(dpv.vector(0,10,46.5))
+
+        #plc3 = pwc.difference(plc1,plc2)
 
         print('union output')
         ax = dtl.plot_axes()
         ax = plc3.plot(ax)
         plt.show()
+
+        '''#
+        plc2 = dtl.box(10,10,6).translate(dpv.vector(5,0,6))
+        plc3 = pwc.union(plc3,plc2)
+
+        print('union output')
+        ax = dtl.plot_axes()
+        ax = plc3.plot(ax)
+        plt.show()
+        '''#
 
         pys = []
         for px in range(plc3.polygoncount):

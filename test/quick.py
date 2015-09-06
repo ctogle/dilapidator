@@ -255,7 +255,14 @@ def isecttest():
     
 def csgtest():
     plc1 = dtl.box(5,5,5)
-    plc2 = dtl.box(5,3,4).translate(dpv.vector(4,0,-0.5))
+    #plc2 = dtl.icosphere(2,1)
+    plc2 = dtl.box(5,3,4).translate(dpv.vector(2,2,-0.5))
+    #plc2 = dtl.box(5,2,2).translate(dpv.vector(0,0,1.5))
+    #plc2 = dtl.box(5,2,2).translate(dpv.vector(0,0,1.5))
+    #plc2.translate(dpv.vector(0,0,5.0))
+    #plc2.translate(dpv.vector(0,0,-3.0))
+    #plc2.rotate(dpq.q_from_av(dpr.PI/6.0,dpv.x()))
+    #plc2.translate(dpv.vector(0,0, 3.0))
 
     print('union input')
     ax = dtl.plot_axes()
@@ -309,8 +316,8 @@ def break_polygontest():
 #afmtest()
 #tetra()
 #triang()
-#cont()
-csgtest()
+cont()
+#csgtest()
 #break_polygontest()
 #containmenttest()
 #mergetest()

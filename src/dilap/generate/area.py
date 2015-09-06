@@ -96,10 +96,15 @@ class area(dgc.context):
         self.place_lots()
         tplc = pwc.piecewise_linear_complex(refine = True,smooth = False)
         tplc.add_polygons(self.boundary)
-        #dprf.profile_function(tplc.triangulate)
-        #tpelt = tplc.pelt()
-        #tnode = self._node_wrap(tpelt)
-        #self._nodes_to_graph(tnode)
+
+        ax = dtl.plot_axes()
+        tplc.plot(ax)
+        plt.show()
+
+        dprf.profile_function(tplc.triangulate)
+        tpelt = tplc.pelt()
+        tnode = self._node_wrap(tpelt)
+        self._nodes_to_graph(tnode)
         return self
 
 

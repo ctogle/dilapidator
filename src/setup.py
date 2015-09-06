@@ -34,9 +34,9 @@ pkgs = [
     'dilap.primitive',
     'dilap.generate',
     'dilap.degenerate',
-    'dilap.csg',
     'dilap.infrastructure',
     'dilap.structures',
+    'dilap.foliage',
 ]
 
 setup(

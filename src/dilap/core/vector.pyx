@@ -1,5 +1,7 @@
 # cython: profile=True
 #cimport cython
+cimport dilap.core.tools as dpr
+import dilap.core.tools as dpr
 cimport dilap.core.quaternion as dpq
 #cimport dp_bbox as dbb
 
@@ -146,10 +148,17 @@ cdef class vector:
         new = vector(self.x*other.x,self.y*other.y,self.z*other.z)
         return new
 
-    def __richcmp__(self, other, comparator):
-        if self.x == other.x:
-            if self.y == other.y:
-                if self.z == other.z: return True
+    def __richcmp__(x,y,op):
+        if op == 2:
+        #if True:
+            return x.__is_equal(y)
+        else:assert False
+
+    def __is_equal(self,other):
+        if dpr.isnear(self.x,other.x):
+            if dpr.isnear(self.y,other.y):
+                if dpr.isnear(self.z,other.z):
+                    return True
         return False
 
     cpdef bint neighborhood(self,vector other,float epsilon):
@@ -518,19 +527,7 @@ cdef vector2d project_coords_c(list coords, vector axis):
 cpdef vector2d project_coords(list coords, vector axis):
     return project_coords_c(coords,axis)
 
-cdef float distance_to_edge_c(vector pt,vector e1,vector e2,vector nm):
-    #cdef float eproj11 = e1.dot(nm)
-    #cdef float eproj12 = e2.dot(nm)
-    #cdef float pproj   = pt.dot(nm)
-    cdef float eproj11 = dot_c(e1,nm)
-    cdef float eproj12 = dot_c(e2,nm)
-    cdef float pproj   = dot_c(pt,nm)
-    cdef vector2d eproj = vector2d(min(eproj11,eproj12),max(eproj11,eproj12))
-    return abs(eproj.x - pproj)
-
-cpdef float distance_to_edge(vector pt,vector e1,vector e2,vector nm):
-    return distance_to_edge_c(pt,e1,e2,nm)
-
+'''#
 cdef list edge_tangents_c(list verts):
     cdef list tangs = []
     cdef int vcnt = len(verts)
@@ -580,13 +577,14 @@ cdef float distance_to_border_xy_c(vector pt,list border):
         e1 = border[edx-1]
         e2 = border[edx]
         norm = edgenorms[edx-1]
-        dists.append(distance_to_edge(pt,e1,e2,norm))
+        dists.append(dpr.distance_to_line(pt,e1,e2,norm))
     dists.append(dists.pop(0))
     distance = min(dists)
     return distance
 
 cpdef float distance_to_border_xy(vector pt,list border):
     return distance_to_border_xy_c(pt,border)
+'''#
 
 #########################################################################
 ### spline interpolation business
@@ -958,6 +956,7 @@ cdef bint overlap_c(vector2d rng1,vector2d rng2):
     elif rng2.y < rng1.x:return 0
     else:return 1
 
+'''#
 # return 1 if a separating axis IS found
 # return 0 if none are found
 cdef bint separating_axis_c(list bb1,list bb2):
@@ -985,6 +984,7 @@ cdef bint separating_axis_c(list bb1,list bb2):
 
 cpdef bint separating_axis(list bb1,list bb2):
     return separating_axis_c(bb1,bb2)
+'''#
 
 cdef list lowest_x_c(list pts):
     cdef int pcnt = len(pts)

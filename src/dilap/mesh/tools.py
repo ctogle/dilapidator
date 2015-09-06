@@ -175,7 +175,8 @@ def prot_to_xy(py):
 
 # given two points on a line and a polygon, 
 # return the set of intersections points between the two
-def line_intersects_polygon_at(l1,l2,py):
+#def line_intersects_polygon_at(l1,l2,py):
+def line_intersects_polygon_at(l1,l2,py,intins):
     eb,ibs = py
 
     ltn = dpv.v1_v2(l1,l2).normalize()
@@ -191,6 +192,7 @@ def line_intersects_polygon_at(l1,l2,py):
     lnsegs = [(l1far,l2far)]
 
     prot = prot_to_xy(py)
+
     '''#
     print('before you rotate!!',prot.__str__())
     ax = plot_axes()
@@ -205,44 +207,63 @@ def line_intersects_polygon_at(l1,l2,py):
     dpr.rotate_segments(pysegs,prot)
     dpr.rotate_coords(list(lnsegs[0]),prot)
     isects = intersections(pysegs+lnsegs)
-    isects = [x for x in isects if dpr.orient3d(eb[0],eb[1],eb[2],x) == 0]
+    #isects = [x for x in isects if dpr.orient3d(eb[0],eb[1],eb[2],x) == 0]
 
-    '''#
-    print('while you were rotated!!')
-    ax = plot_axes()
-    for p in pysegs:plot_edges(p,ax)
-    plot_edges(lnsegs[-1],ax,lw = 5.0)
-    for p in isects:plot_point(p,ax)
-    #for p in isects2:plot_point(p,ax,marker = 's')
-    plt.show()
-    print('AMEN.5',len(isects))
-    '''#
+    if len(isects) == 1:
+      print('while you were rotated!!')
+      ax = plot_axes()
+      for p in pysegs:plot_edges(p,ax)
+      plot_edges(lnsegs[-1],ax,lw = 5.0)
+      for p in isects:plot_point(p,ax)
+      #for p in isects2:plot_point(p,ax,marker = 's')
+      plt.show()
+      print('AMEN.5',len(isects))
 
-    prot.flip()
-    dpr.rotate_segments(pysegs,prot)
-    dpr.rotate_coords(list(lnsegs[0]),prot)
-    dpv.rotate_coords(isects,prot)
-
-    '''#
-    print('after you rotate!!')
-    ax = plot_axes()
-    for p in pysegs:plot_edges(p,ax)
-    plot_edges(lnsegs[-1],ax,lw = 5.0)
-    for p in isects:plot_point(p,ax)
-    #for p in isects2:plot_point(p,ax,marker = 's')
-    plt.show()
-    print('AMEN2',len(isects))
-    '''#
-
-    if len(isects) == 0:return
+    if len(isects) == 0:
+        prot.flip()
+        dpr.rotate_segments(pysegs,prot)
+        dpr.rotate_coords(list(lnsegs[0]),prot)
+        dpv.rotate_coords(isects,prot)
+        return
     else:
+        print('actuallyinsssssisects',isects)
+        actuallyintins = dpr.inconcave_xy(dpv.midpoint(*isects),eb)
+
+        '''#
+        print('wattttch',actuallyintins)
+        ax = plot_axes()
+        plot_polygon(list(eb),ax)
+        plot_edges(isects,ax,lw = 4.0)
+        plt.show()
+        '''#
+
+        prot.flip()
+        dpr.rotate_segments(pysegs,prot)
+        dpr.rotate_coords(list(lnsegs[0]),prot)
+        dpv.rotate_coords(isects,prot)
+        if intins and not actuallyintins:return
+
+        if len(isects) == 1:
+          print('after you rotate!!')
+          ax = plot_axes()
+          for p in pysegs:plot_edges(p,ax)
+          plot_edges(lnsegs[-1],ax,lw = 5.0)
+          for p in isects:plot_point(p,ax)
+          #for p in isects2:plot_point(p,ax,marker = 's')
+          plt.show()
+          print('AMEN2',len(isects))
+
         #ebn = dpr.polygon_normal(eb)
         #pyj = dpv.project_coords(list(eb),ebn)
         #isects2 = [x for x in isects if dpr.isnear(dpv.dot(x,ebn),pyj.x)]
         #isects2 = [x for x in isects if dpr.orient3d(eb[0],eb[1],eb[2],x) == 0]
 
+        #if intins and not dpr.inconcave_xy(dpv.midpoint(*isects),eb):return
+        #intins = dpr.inconcave_xy(dpv.midpoint(*isects),eb)
+        #if not intins:return
+
         '''#
-        print('breakin some shit!!')
+        print('breakin some shit!!',intins)
         ax = plot_axes()
         for p in pysegs:plot_edges(p,ax)
         plot_edges(lnsegs[-1],ax,lw = 5.0)
@@ -258,7 +279,7 @@ def line_intersects_polygon_at(l1,l2,py):
 # return the point of intersection if there is one
 # otherwise return None
 #   note: currently assumes s1,s2 in xy-plane
-def segments_intersect_at(s11,s12,s21,s22):
+def segments_intersect_at(s11,s12,s21,s22,include_endpoints = False):
     p,q = s11,s21
     r = dpv.v1_v2(s11,s12)
     s = dpv.v1_v2(s21,s22)
@@ -284,7 +305,8 @@ def segments_intersect_at(s11,s12,s21,s22):
         t0pt = p + r.copy().scale_u(t0)
         t1pt = p + r.copy().scale_u(t1)
         if dpr.inrange(t0,0,1) or dpr.inrange(t1,0,1):return t0pt,t1pt
-        elif dpr.inrange(0,t0,t1) and dpr.inrange(1,t0,t1):return s11,s12
+        elif dpr.inrange(0,t0,t1) and dpr.inrange(1,t0,t1):
+            return s11.copy(),s12.copy()
         elif (t0 == 0 and t1 == 1) or (t0 == 1 and t1 == 0):return t0pt,t1pt
     elif dpr.isnear(rcsmag,0) and not dpr.isnear(qmpcrmag,0):return None
     #elif not dpr.isnear(rcsmag,0) and not dpr.isnear(qmpcrmag,0):
@@ -302,7 +324,11 @@ def segments_intersect_at(s11,s12,s21,s22):
 
         u = dpr.near(dpr.near(       qmpcr.z/rcs.z,0),1)
         t = dpr.near(dpr.near(qmp.cross(s).z/rcs.z,0),1)
-        if (u == 0 or u == 1) and (t == 0 or t == 1):return
+        if (u == 0 or u == 1) and (t == 0 or t == 1):
+            print('ENDPOINT')
+            if include_endpoints:
+                return q + s.scale_u(u)
+            return
         #print('uvt',u,t)
         if not dpr.inrange(u,0,1) or not dpr.inrange(t,0,1):return None
         else:return q + s.scale_u(u)
@@ -378,10 +404,10 @@ def icosphere(r = 1,n = 1):
     plc.add_polygons(*polygons)
 
     #dprf.profile_function(plc.triangulate)
-    plc.simplices = [(pts[u],pts[v],pts[w]) for u,v,w in triangles]
-    plc.ghostbnds = []
-    ax = plc.plot()
-    plt.show()
+    #plc.simplices = [(pts[u],pts[v],pts[w]) for u,v,w in triangles]
+    #plc.ghostbnds = []
+    #ax = plc.plot()
+    #plt.show()
     return plc
 
 # generate a plc for a triangulated cube
@@ -592,9 +618,7 @@ def segment_split_polygon(s1,s2,py,plot = False):
     # THIS MISSES TANGENTIAL INTERSECTION WITH THE LINE
     # THIS MISSES TANGENTIAL INTERSECTION WITH THE LINE
 
-    lnsegs = segments_inpolygon(lnsegs,py)
-    #lnsegs = segments_inpolygon(lnsegs,eb)
-
+    lnsegs  = segments_inpolygon(lnsegs,py)
     leftof  = segments_leftofline( pysegs,l1far,l2far)
     rightof = segments_rightofline(pysegs,l1far,l2far)
 
@@ -771,6 +795,11 @@ def valid_pair(py1,py2):
 # given two polygons, return 0 if they are disjoint
 # return 1 if py1 is inside py2, or -1 if py2 is inside py1
 def containment(py1,py2):
+    if dpr.inconcave_xy(py1[0],py2):return  1
+    if dpr.inconcave_xy(py2[0],py1):return -1
+    print('CONTAINMENT IS SKETCHY')
+    return 0
+
     raise NotImplemented
 
 def newpoint(p,ps):
@@ -789,13 +818,19 @@ def intersections(segments):
         for y in range(scnt):
             if x == y:continue
             y1,y2 = segments[y]
+            #isect = segments_intersect_at(x1,x2,y1,y2,include_endpoints)
+            #isect = segments_intersect_at(x1,x2,y1,y2,True)
             isect = segments_intersect_at(x1,x2,y1,y2)
+            print('isectttt',isect)
             if isect is None:continue
             elif type(isect) == type(()):
                 i1,i2 = isect
                 newpoint(i1,ipts)
                 newpoint(i2,ipts)
             else:newpoint(isect,ipts)
+    if len(ipts) == 3:
+        print('WHOOOOOP')
+        pdb.set_trace()
     return ipts
 
 # given a set of edge segments and a set of points, return a new set
@@ -807,7 +842,7 @@ def break_segments(segments,points):
         s1,s2 = seg
         relev = []
         for ipt in points:
-            if dpr.insegment(ipt,s1,s2):
+            if dpr.insegment_xy(ipt,s1,s2):
                 relev.append(ipt)
         clean = segclean(s1,s2,relev)
         for x in range(1,len(clean)):
@@ -953,9 +988,15 @@ def break_polygons(p1,p2):
     p1segs = polygon_segments(p1)
     p2segs = polygon_segments(p2)
     isects = intersections(p1segs+p2segs)
-    if len(isects) == 0:return
-    p1segs = break_segments(p1segs,isects)
-    p2segs = break_segments(p2segs,isects)
+    if len(isects) == 0:
+        tpt1,tpt2 = p1segs[0][0],p2segs[0][0]
+        p1inp2 = dpr.inconcave_xy(tpt1,p2[0])
+        p2inp1 = dpr.inconcave_xy(tpt2,p1[0])
+        if not (p1inp2 or p2inp1):
+            return
+    else:
+        p1segs = break_segments(p1segs,isects)
+        p2segs = break_segments(p2segs,isects)
     '''#
     ax = plot_axes_xy()
     plot_polygon_full_xy(p1,ax)
@@ -1071,6 +1112,8 @@ def polygon_union(p1,p2):
     p2inp1 = segments_outpolygon(p2segs,p1)
     union = (construct_loop(p1inp2+p2inp1),(p1[1]+p2[1]))
     dpr.rotate_polygon(union,prot.flip())
+    dpr.rotate_polygon(p1,prot)
+    dpr.rotate_polygon(p2,prot)
     return union
 
 def polygon_intersection(p1,p2):
@@ -1088,6 +1131,8 @@ def polygon_intersection(p1,p2):
     p2inp1 = segments_inpolygon(p2segs,p1)
     inter = (construct_loop(p1inp2+p2inp1),(p1[1]+p2[1]))
     dpr.rotate_polygon(inter,prot.flip())
+    dpr.rotate_polygon(p1,prot)
+    dpr.rotate_polygon(p2,prot)
     return inter
 
 def polygon_difference(p1,p2):
@@ -1103,8 +1148,35 @@ def polygon_difference(p1,p2):
     else:p1segs,p2segs = broken
     p1inp2 = segments_outpolygon(p1segs,p2)
     p2inp1 = segments_inpolygon(p2segs,p1)
-    diffr = (construct_loop(p1inp2+p2inp1),(p1[1]+p2[1]))
+
+    print('THE CONTAINMENT PROBLEM ARISES!')
+    print('THE CONTAINMENT PROBLEM ARISES!')
+    print('THE CONTAINMENT PROBLEM ARISES!',p1inp2,p2inp1)
+    if not p1inp2 and not p2inp1:
+        dpr.rotate_polygon(p1,prot.flip())
+        dpr.rotate_polygon(p2,prot)
+        return
+
+    #diffr = (construct_loop(p1inp2+p2inp1),(p1[1]+p2[1]))
+    loops = construct_loops(p1inp2+p2inp1)
+    if len(loops) == 0:
+        print('FAILED TO MAKE LOOPS?!')
+        pdb.set_trace()
+    if len(loops) > 1:
+        ct = containment(loops[0],loops[1])
+        print('cocknballs',ct)
+        if   ct == -1:loop,holes = tuple(loops[0]),(tuple(loops[1]),)
+        elif ct ==  1:loop,holes = tuple(loops[1]),(tuple(loops[0]),)
+        #else:loop,holes = tuple(loops[0]),(p1[1]+p2[1])
+        else:loop,holes = tuple(loops[0]),(p1[1]+p2[1])
+
+        #pdb.set_trace()
+
+    #diffr = (construct_loops(p1inp2+p2inp1),(p1[1]+p2[1]))
+    diffr = (loop,holes)
     dpr.rotate_polygon(diffr,prot.flip())
+    dpr.rotate_polygon(p1,prot)
+    dpr.rotate_polygon(p2,prot)
     return diffr
 
 def polygon_xor(p1,p2):
@@ -1112,18 +1184,19 @@ def polygon_xor(p1,p2):
 
 def cgstest():
     p1 = (tuple(dpr.square(5,5)),())
-    p2 = (tuple(dpr.square(5,4,dpv.vector(4,0,0))),())
-    p3 = (tuple(dpr.square(5,3,dpv.vector(8,0,0))),())
-    dpr.rotate_polygon(p1,dpq.q_from_av(dpr.PI/2.0,dpv.x()))
-    dpr.rotate_polygon(p2,dpq.q_from_av(dpr.PI/2.0,dpv.x()))
-    dpr.rotate_polygon(p3,dpq.q_from_av(dpr.PI/2.0,dpv.x()))
+    p2 = (tuple(dpr.square(4,4,dpv.vector(0,0,0))),())
+    #p2 = (tuple(dpr.square(5,4,dpv.vector(4,0,0))),())
+    #p3 = (tuple(dpr.square(5,3,dpv.vector(8,0,0))),())
+    #dpr.rotate_polygon(p1,dpq.q_from_av(dpr.PI/2.0,dpv.x()))
+    #dpr.rotate_polygon(p2,dpq.q_from_av(dpr.PI/2.0,dpv.x()))
+    #dpr.rotate_polygon(p3,dpq.q_from_av(dpr.PI/2.0,dpv.x()))
 
-    #ptest = polygon_union(p1,p2)
+    ptest = polygon_union(p1,p2)
     #ptest = polygon_union(ptest,p3)
 
     #ptest = polygon_intersection(p1,p2)
 
-    ptest = polygon_difference(p1,p2)
+    #ptest = polygon_difference(p1,p2)
 
 
     #ptest = merge_polygons([p1,p2,p3])

@@ -65,7 +65,12 @@ def polygons_outcomplex(p1s,plc2):
     tris = plc2.simplices
     outpolyhedron = []
     for x in range(len(p1s)):
-        point = dpv.center_of_mass(list(p1s[x][0]))
+
+        pcom = dpv.center_of_mass(list(p1s[x][0]))
+        #point = p1s[x][0][0].copy()
+        #point.translate(dpv.v1_v2(point,pcom).scale_u(0.1))
+        point = pcom
+
         if not inpolyhedron(point,tris):outpolyhedron.append(p1s[x])
     return outpolyhedron
 
@@ -76,7 +81,13 @@ def polygons_incomplex(p1s,plc2):
     tris = plc2.simplices
     outpolyhedron = []
     for x in range(len(p1s)):
-        point = dpv.center_of_mass(list(p1s[x][0]))
+
+        #point = dpv.center_of_mass(list(p1s[x][0]))
+        pcom = dpv.center_of_mass(list(p1s[x][0]))
+        #point = p1s[x][0][0].copy()
+        #point.translate(dpv.v1_v2(point,pcom).scale_u(0.1))
+        point = pcom
+
         if inpolyhedron(point,tris):outpolyhedron.append(p1s[x])
     return outpolyhedron
 
@@ -120,9 +131,18 @@ def break_polygon(py,p2s,subop = 'union'):
                     elif subop == 'difference':
                         pu = dtl.polygon_difference(piece,breaker)
                     else:print('unknown subop!',subop)
-
+                    print('known subop!',subop)
                     print('coplanar polygons!',pu)
+
                     if not pu is None:
+
+                        ax = dtl.plot_axes()
+                        #dtl.plot_polygon_full(piece,ax)
+                        #dtl.plot_polygon_full(breaker,ax)
+                        dtl.plot_polygon(list(pu[0]),ax,lw = 5.0)
+                        dtl.plot_polygon(list(pu[1][0]),ax,lw = 1.0)
+                        plt.show()
+
                         #broken.append(pu)
                         pieces.append(pu)
                         print("breaker will continue to intersect this guy...")
@@ -134,19 +154,24 @@ def break_polygon(py,p2s,subop = 'union'):
                 if not plintersect is None:
                     pli1,pli2 = plintersect
 
-                    if dpr.isnear(pli1.x-pli2.x,0) or dpr.isnear(pli1.y-pli2.y,0) or dpr.isnear(pli1.z-pli2.z,0):
-                        print('othrographic!!!')
-                    else:
-                        print('oh shit son')
-                        print('oh shit son')
-                        print('oh shit son')
-                        pdb.set_trace()
+                    intins = subop == 'difference'
+                    #intins = dpr.inconcave_xy(dpv.midpoint(pli1,pli2),eb2)
 
-                    breakersect = dtl.line_intersects_polygon_at(pli1,pli2,breaker)
+                    print('inis',subop,intins)
+                    breakersect = dtl.line_intersects_polygon_at(
+                                        pli1,pli2,breaker,intins)
                     if not breakersect is None:
 
                         if not len(breakersect) == 2:
                             print('breakersect is confusing!!')
+
+                            ax = dtl.plot_axes()
+                            dtl.plot_polygon_full(breaker,ax)
+                            dtl.plot_line(pli1,pli2,25,ax,lw = 4.0)
+                            for x in range(len(breakersect)):
+                                dtl.plot_point(breakersect[x],ax)
+                            plt.show()
+
                             pdb.set_trace()
                         
                         b1,b2 = breakersect
@@ -199,13 +224,17 @@ def break_complexes(plc1,plc2,subop = 'union'):
     p1s = []
     for px in range(plc1.polygoncount):
 
+        #if not px == 5:continue
         #if not px == 3:continue
+        #if px == 0 or px == 1:continue
 
         p1s.append(plc1.get_polygon_points(px))
     p2s = []
     for px in range(plc2.polygoncount):
 
         #if px == 0 or px == 1:continue
+        #if px in [0,2,3,4,5]:continue
+        #if not px == 3:continue
 
         p2s.append(plc2.get_polygon_points(px))
     p1s = [x for x in p1s if not x is None]
@@ -231,11 +260,21 @@ def break_complexes(plc1,plc2,subop = 'union'):
     plt.show()
 
     p2seg = break_complex(p2s,p1s,subop)
+
+    print('after breaking another!!!!!')
+    print('after breaking another!!!!!')
+    print('after breaking another!!!!!')
+    ax = dtl.plot_axes()
+    for s in p1seg:dtl.plot_polygon_full(s,ax,lw = 4.0)
+    for s in p1s:dtl.plot_polygon_full(s,ax)
+    for s in p2s:dtl.plot_polygon_full(s,ax)
+    plt.show()
+
     return p1seg,p2seg
 
 # return a plc representing the union of two plcs
 def union(plc1,plc2):
-    broken = break_complexes(plc1,plc2,subop = union)
+    broken = break_complexes(plc1,plc2,subop = 'union')
     if broken is None:return
     else:p1seg,p2seg = broken
     p1inp2 = polygons_outcomplex(p1seg,plc2)
@@ -262,9 +301,11 @@ def difference(plc1,plc2):
     else:p1seg,p2seg = broken
     p1inp2 = polygons_outcomplex(p1seg,plc2)
     p2inp1 = polygons_incomplex(p2seg,plc1)
-    union = piecewise_linear_complex()
-    union.add_polygons(*(p1inp2+p2inp1))
-    return union
+    #p1inp2 = p1seg
+    #p2inp1 = p2seg
+    diffr = piecewise_linear_complex()
+    diffr.add_polygons(*(p1inp2+p2inp1))
+    return diffr
 
 class piecewise_linear_complex(db.base):
 
@@ -540,10 +581,16 @@ class piecewise_linear_complex(db.base):
                 curr = ne1[1]
         return hmin
 
-    # given a vector, mov all points by the vector tn
+    # given a vector, move all points by the vector tn
     def translate(self,tn):
         for p in self.points.ps:
             p.translate(tn)
+        return self
+
+    # given a vector, rotate all points by the quaternion qn
+    def rotate(self,qn):
+        for p in self.points.ps:
+            p.rotate(qn)
         return self
 
     # given the index of a polygon and a vector, move

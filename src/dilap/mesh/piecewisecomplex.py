@@ -690,10 +690,22 @@ class piecewise_linear_complex(db.base):
             if ref:hmin = self.chew1_subdivide_polygon(x)
             else:hmin = 1.0
             polypts = self.get_polygon_points(x)
-            polysmp,polybnd = dtg2.triangulate(*polypts,
-                hmin = hmin,refine = ref,smooth = smo)
+
+            #eb,ibs = polypts
+            #olysmp,polybnd = dtg2.triangulate(eb,ibs,hmin,ref,smo)
+
+            eb,ibs = polypts
+            polysmp,polybnd =\
+                dtg2.triangulate_nonplanar(eb,ibs,hmin,ref,smo,
+                           dpv.vector(0,0,1),dpv.vector(0,0,0))
+
             smps.extend(polysmp)
             bnds.extend(polybnd)
+        self.simplices = smps
+        self.ghostbnds = bnds
+
+    # 
+    def tetrahedralize(self):
         self.simplices = smps
         self.ghostbnds = bnds
 
@@ -703,10 +715,6 @@ class piecewise_linear_complex(db.base):
             t1,t2,t3 = smp
             s._triangle(t3,t2,t1)
         return s
-
-    def tetrahedralize(self):
-        tetra = dth.tetrahedralization(self)
-        self.covers['tetra'] = tetra
 
 def model_plc(points = None,edges = None,polygons = None,polyhedra = None):
     plc = piecewise_linear_complex()

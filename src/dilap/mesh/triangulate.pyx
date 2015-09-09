@@ -322,6 +322,65 @@ cdef void plot_triangulation(triangulation data,ax = None):
         tps = data.points.get_points(t1,t2,t3)
         ax = dtl.plot_polygon_xy(tps,ax,center = True)
 
+# given a loop of points, add them to a triangulation 
+# and return the line segments which bound the loop
+cdef list loop_location(triangulation data,tuple loop):
+    cdef list bnd = []
+    cdef int lcnt = len(loop)
+    cdef int x
+    for x in range(lcnt):
+        p1,p2 = loop[x-1],loop[x]
+        point_location(data,p1.xy())
+        bnd.append((p1,p2))
+    return bnd
+
+# locate each loop associated with polygon
+cdef list polygon_location(triangulation data,tuple ebnd,tuple ibnds):
+    cdef list bnd = []
+    cdef int icnt = len(ibnds)
+    cdef int ix
+    bnd.extend(loop_location(data,ebnd))
+    for ix in range(icnt):
+        bnd.extend(loop_location(data,ibnds[ix]))
+    return bnd
+
+# what if i want nonplanar polygon triangulations
+# apply a depth procedure and a given plane which "will work"
+# rotate to the xy plane and measure the depth of each input point
+# before rotating back, provide new points with a depth interpolated 
+# from its neighbors
+cdef tuple triangulate_nonplanar_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth,dpv.vector pn,dpv.vector p0):
+    cdef dpq.quaternion prot = dpr.q_to_xy_c(pn)
+    cdef list depths = []
+    dpr.rotate_polygon_c((ebnd,ibnds),prot)
+    data = triangulation(p0,pn)
+    initialize(data,list(ebnd))
+    plcedges = polygon_location(data,ebnd,ibnds)
+    cover_polygon(data,ebnd,ibnds)
+    ghost_border(data,plcedges)              
+
+    #constrain_delaunay(data)
+    #if refine:refine_chews_first(data,hmin)
+    #if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
+
+    prot.flip()
+    for p in data.points.ps:p.rotate(prot)
+    dpr.rotate_polygon_c((ebnd,ibnds),prot)
+
+    smps = []
+    for tx in range(data.tricnt):
+        tri = data.triangles[tx]
+        if tri is None:continue
+        smp = tuple([data.points.ps[px] for px in tri])
+        smps.append(smp)
+    gsts = []
+    for gdx in range(data.ghostcnt):
+        gst = data.ghosts[gdx]
+        if gst is None:continue
+        gpair = data.points.get_points(gst[0],gst[1])
+        gsts.append(gpair)
+    return smps,gsts
+
 # given poly, a tuple containing vectors representing a polygon
 # provide a list of simplices which triangulates the polygon
 # poly contains an exterior bound and da tuple of interior bounds
@@ -385,6 +444,14 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
         gpair = data.points.get_points(gst[0],gst[1])
         gsts.append(gpair)
     return smps,gsts
+
+# given poly, a tuple containing vectors representing a polygon
+# provide a list of simplices which triangulates the polygon
+# poly contains an exterior bound and da tuple of interior bounds
+# bounds are ordered loops of points with no duplicates
+# bounds are possibly concave; interior bounds represent holes
+cpdef tuple triangulate_nonplanar(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth,dpv.vector pn,dpv.vector p0):
+    return triangulate_nonplanar_c(ebnd,ibnds,hmin,refine,smooth,pn,p0)
 
 # given poly, a tuple containing vectors representing a polygon
 # provide a list of simplices which triangulates the polygon

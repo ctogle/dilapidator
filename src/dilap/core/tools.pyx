@@ -302,6 +302,9 @@ cdef list rotate_coords_c(list ps,dpq.quaternion q):
         p.rotate(q)
     return ps
 
+### UNTESTED
+### UNTESTED
+### UNTESTED
 # rotate a list of segments by a quaternion q
 cdef list rotate_segments_c(list segments,dpq.quaternion q):
     cdef int slen = len(segments)
@@ -403,19 +406,29 @@ cdef tuple rotate_z_polygon_c(tuple polygon,float a):
         for ix in range(ilen):
             ibnd[ix].rotate_z(a)
     return polygon
+### UNTESTED
+### UNTESTED
+### UNTESTED
 
 ###############################################################################
 ###############################################################################
 
-
-
-#### EVERYTHING ABOVE IS TESTED TO SOME EXTENT
-#### EVERYTHING ABOVE IS TESTED TO SOME EXTENT
-#### EVERYTHING ABOVE IS TESTED TO SOME EXTENT
 
 ###############################################################################
 ### DISORGANIZED!!
 ###############################################################################
+
+### UNTESTED
+### UNTESTED
+### UNTESTED
+
+# given a vector, return a quaternion that rotates it to coincide with zhat
+cdef dpq.quaternion q_to_xy_c(dpv.vector v):
+    cdef dpq.quaternion prot
+    if v.near(dpv.nzhat):prot = dpq.q_from_av_c(PI,dpv.xhat)
+    elif not v.near(dpv.zhat):prot = dpq.q_from_uu_c(v,dpv.zhat)
+    else:prot = dpq.zero_c()
+    return prot
 
 # return a vector normal to the plane containing c1,c2,c3
 # returns 0 if c1,c2,c3 are colinear
@@ -523,21 +536,20 @@ cdef tuple circumscribe_tri_c(dpv.vector p1,dpv.vector p2,dpv.vector p3):
     cdef dpv.vector cp1 = p1.xy()
     cdef dpv.vector cp2 = p2.xy()
     cdef dpv.vector cp3 = p3.xy()
-    cdef dpv.vector e1 = dpv.v1_v2_c(cp3,cp1)
-    cdef dpv.vector e2 = dpv.v1_v2_c(cp3,cp2)
-    cdef float th = angle_between_c(e1,e2)
-    cdef float cr = dpv.distance_c(cp1,cp2)/(2*numpy.sin(th))
+    cdef dpv.vector e1 = dpv.v1_v2_xy_c(cp3,cp1)
+    cdef dpv.vector e2 = dpv.v1_v2_xy_c(cp3,cp2)
+    cdef float th = angle_between_xy_c(e1,e2)
+    cdef float cr = dpv.distance_xy_c(cp1,cp2)/(2*numpy.sin(th))
     cdef dpv.vector cp = e2.copy().scale_u(
         e1.magnitude2())-e1.copy().scale_u(e2.magnitude2())
-    cdef dpv.vector fp = p3+cp.cross(e1.cross(e2)).scale_u(
+    cdef dpv.vector fp = cp3+cp.cross(e1.cross(e2)).scale_u(
                     1.0/(2.0*(e1.cross(e2).magnitude2())))
     return fp,cr
 
 # given line segment s1, line segment s2
 # does s1 overlap the interior or s2?
 # a segment is a tuple of two points
-cdef bint segments_intersect_c(dpv.vector s11,dpv.vector s12,
-            dpv.vector s21,dpv.vector s22,float err = 0.001):
+cdef bint segments_intersect_c(dpv.vector s11,dpv.vector s12,dpv.vector s21,dpv.vector s22):
     cdef dpv.vector n1 = dpv.v1_v2_c(s11,s12).rotate_z(PI2)
     cdef dpv.vector n2 
     cdef dpv.vector2d proj1
@@ -552,7 +564,7 @@ cdef bint segments_intersect_c(dpv.vector s11,dpv.vector s12,
     proj22 = s22.x*n1.x + s22.y*n1.y + s22.z*n1.z
     proj1 = dpv.vector2d(min(proj11,proj12),max(proj11,proj12))
     proj2 = dpv.vector2d(min(proj21,proj22),max(proj21,proj22))
-    if proj1.x - proj2.x > err and proj2.y - proj1.x > err:
+    if proj1.x - proj2.x > epsilon and proj2.y - proj1.x > epsilon:
         n2 = dpv.v1_v2_c(s21,s22).rotate_z(PI2)
         proj11 = s11.x*n2.x + s11.y*n2.y + s11.z*n2.z
         proj12 = s12.x*n2.x + s12.y*n2.y + s12.z*n2.z
@@ -560,7 +572,7 @@ cdef bint segments_intersect_c(dpv.vector s11,dpv.vector s12,
         proj22 = s22.x*n2.x + s22.y*n2.y + s22.z*n2.z
         proj1 = dpv.vector2d(min(proj11,proj12),max(proj11,proj12))
         proj2 = dpv.vector2d(min(proj21,proj22),max(proj21,proj22))
-        if proj2.x - proj1.x > err and proj1.y - proj2.x > err:return 1
+        if proj2.x - proj1.x > epsilon and proj1.y - proj2.x > epsilon:return 1
     return 0
 
 # calculate the barycentric coordinates of the point pt for the triangle abc
@@ -577,7 +589,11 @@ cdef tuple barycentric_xy_c(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c
     cdef float dot02 = v0x*v2x + v0y*v2y
     cdef float dot11 = v1x*v1x + v1y*v1y
     cdef float dot12 = v1x*v2x + v1y*v2y
-    cdef float invdenom = 1.0 / (dot00 * dot11 - dot01 * dot01)
+    cdef float denom = (dot00 * dot11 - dot01 * dot01)
+    #if denom == 0:
+    #    print('holla',a.__str__(),b.__str__(),c.__str__(),pt.__str__())
+    #    raise ValueError
+    cdef float invdenom = 1.0 / denom
     cdef float u = (dot11 * dot02 - dot01 * dot12) * invdenom
     cdef float v = (dot00 * dot12 - dot01 * dot02) * invdenom
     return u,v
@@ -586,10 +602,13 @@ cdef tuple barycentric_xy_c(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c
 # assume all points are in the xy plane 
 cdef bint intriangle_xy_c(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c):
     cdef float u,v
+    if b.near(c):
+        print('holla')
+        raise ValueError
     u,v = barycentric_xy_c(pt,a,b,c)
-    if u > 0 or abs(u) < 0.001:
-        if v > 0 or abs(v) < 0.001:
-            if 1-u-v > 0 or abs(1-u-v) < 0.001:
+    if u > 0 or abs(u) < epsilon:
+        if v > 0 or abs(v) < epsilon:
+            if 1-u-v > 0 or abs(1-u-v) < epsilon:
                 return 1
     return 0
 
@@ -752,7 +771,7 @@ cdef list pts_to_convex_xy_c(list pts):
 
 # move the points of a convex (or star) polygon along local normals
 cdef list inflate_c(list convex,float radius):
-    cdef list enorms = dpv.edge_normals_xy_c(convex)
+    cdef list enorms = normals_c(convex,dpv.zhat)
     cdef int ccnt = len(convex)
     cdef int cdx
     cdef dpv.vector lead
@@ -972,6 +991,11 @@ cpdef list rotate_coords(list coords,dpq.quaternion q):
     '''rotate a list of vectors by a quaternion'''
     return rotate_coords_c(coords,q)
 
+# given a vector, return a quaternion that rotates it to coincide with zhat
+cpdef dpq.quaternion q_to_xy(dpv.vector v):
+    '''provide a quaternion which rotates a vector onto zhat'''
+    return q_to_xy_c(v)
+
 # return a vector normal to the plane containing c1,c2,c3
 # returns 0 if c1,c2,c3 are colinear
 cpdef dpv.vector normal(dpv.vector c1,dpv.vector c2,dpv.vector c3):
@@ -1025,10 +1049,9 @@ cpdef tuple circumscribe_tri(dpv.vector p1,dpv.vector p2,dpv.vector p3):
 # given line segment s1, line segment s2
 # does s1 overlap the interior or s2?
 # a segment is a tuple of two points
-cpdef bint segments_intersect(dpv.vector s11,dpv.vector s12,
-            dpv.vector s21,dpv.vector s22,float err = 0.001):
+cpdef bint segments_intersect(dpv.vector s11,dpv.vector s12,dpv.vector s21,dpv.vector s22):
     '''determine if two line segments intersect or not'''
-    return segments_intersect_c(s11,s12,s21,s22,err)
+    return segments_intersect_c(s11,s12,s21,s22)
 
 # calculate the barycentric coordinates of the point pt for the triangle abc
 # assume all points are in the xy plane

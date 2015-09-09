@@ -4,6 +4,10 @@ import dilap.core.quaternion as dpq
 import dilap.core.tools as dpr
 import dilap.core.model as dmo
 
+import dilap.mesh.tools as dtl
+
+import dilap.graph.graph as dgg
+
 #import dilap.core.tmesh as dtm
 
 import matplotlib.pyplot as plt
@@ -114,24 +118,24 @@ class lsystem(db.base):
     def rho_up(self,p,d):self.rho = dpr.clamp(2.0*self.rho,self.minrho,self.maxrho)
     def rho_down(self,p,d):self.rho = dpr.clamp(0.5*self.rho,self.minrho,self.maxrho) 
     def polar_up(self,p,d):
-        if d.near(dpv.zhat) or d.near(dpv.nzhat):qv = dpv.yhat
-        else:qv = d.cross(dpv.zhat)
+        if d.near(dpv.z()) or d.near(dpv.nz()):qv = dpv.y()
+        else:qv = d.cross(dpv.z())
         d.rotate(dpq.q_from_av(-self.polar,qv))
     def polar_down(self,p,d):
-        if d.near(dpv.zhat) or d.near(dpv.nzhat):qv = dpv.yhat
-        else:qv = d.cross(dpv.zhat)
+        if d.near(dpv.z()) or d.near(dpv.nz()):qv = dpv.y()
+        else:qv = d.cross(dpv.z())
         d.rotate(dpq.q_from_av(-self.polar,qv))
-    def azimuthal_up(self,p,d):d.rotate(dpq.q_from_av(self.azimuthal,dpv.zhat))
-    def azimuthal_down(self,p,d):d.rotate(dpq.q_from_av(-self.azimuthal,dpv.zhat))
+    def azimuthal_up(self,p,d):d.rotate(dpq.q_from_av(self.azimuthal,dpv.z()))
+    def azimuthal_down(self,p,d):d.rotate(dpq.q_from_av(-self.azimuthal,dpv.z()))
 
-    def azimuthal_flip(self,p,d):d.rotate(dpq.q_from_av(numpy.pi,dpv.zhat))
+    def azimuthal_flip(self,p,d):d.rotate(dpq.q_from_av(numpy.pi,dpv.z()))
 
-    def pitch_up(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.xhat))
-    def pitch_down(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.nxhat))
-    def yaw_up(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.zhat))
-    def yaw_down(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.nzhat))
-    def roll_up(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.yhat))
-    def roll_down(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.nyhat))
+    def pitch_up(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.x()))
+    def pitch_down(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.nx()))
+    def yaw_up(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.z()))
+    def yaw_down(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.nz()))
+    def roll_up(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.y()))
+    def roll_down(self,p,d):d.rotate(dpq.q_from_av(self.angle,dpv.ny()))
 
     def randdirrot(self,p,d):
         which = random.choice(['-','<','/','+','>','\\'])
@@ -142,7 +146,7 @@ class lsystem(db.base):
         self.angle = dpr.clamp(newangle,self.minangle,self.maxangle)
     # wobble d such that it stays with tolerance of a radial xy projection
     def wobblerot(self,p,d):
-        polar = numpy.arcsin(d.cross(dpv.zhat).magnitude())
+        polar = numpy.arcsin(d.cross(dpv.z()).magnitude())
         azimuthal = dpv.angle_from_xaxis(d)
         if random.random() < 0.1:self.azimuthal_flip(p,d)
         elif random.random() < 0.5:self.azimuthal_up(p,d)
@@ -258,8 +262,11 @@ class ltree(lsystem):
                 nps.append(e2)
             nes.append((e1x,e2x))
 
-        m = dtm.meshme(nps,None,None,None,nes,[])
-        smod = m.skeleton()
+        #m = dtm.meshme(nps,None,None,None,nes,[])
+        m = dtl.box(5,5,5)
+        m.triangulate()
+        #smod = m.skeleton()
+        smod = m.pelt()
         self.model = smod
         draw()
 
@@ -277,7 +284,7 @@ def draw():
 def test():
     import dilap.construct as dlc
     p = dpv.zero()
-    d = dpv.zhat.copy()
+    d = dpv.z()
 
     #pythagoras_tree()._realize(p,d)
     #dragon_curve()._realize(p,d)

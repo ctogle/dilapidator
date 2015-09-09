@@ -31,6 +31,19 @@ cdef class pointset:
             self.pcnt += 1
         return range(pxs,self.pcnt)
 
+    def new_point(self,np):
+        x = self.find_point(np)
+        if x is None:return self.add_point(np)
+        else:return x
+
+    def new_points(self,*nps):
+        xs = self.find_points(*nps)
+        nxs = []
+        for x in range(len(nps)):
+            if xs[x] is None:nxs.append(self.add_point(nps[x]))
+            else:nxs.append(xs[x])
+        else:return nxs
+
     # given a point p, return the index of a point that is near p
     # or return None if no such point exists in self.ps
     def find_point(self,p):

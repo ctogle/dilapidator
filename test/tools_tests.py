@@ -2,6 +2,8 @@ import dilap.core.tools as dpr
 import dilap.core.vector as dpv
 import dilap.core.quaternion as dpq
 
+import dilap.mesh.tools as dtl
+
 import unittest,numpy
 
 #python3 -m unittest discover -v ./ "*tests.py"
@@ -131,6 +133,16 @@ class test_tools(unittest.TestCase):
         meth = dpr.distance_to_line
         self.assertEqual(dpr.isnear(meth(p3,p2,p1,pn),1.0),1)
 
+    def test_distance_to_border(self):
+        p1 = dpv.vector(-2,-2,0)
+        p2 = dpv.vector( 2,-2,0)
+        p3 = dpv.vector( 2, 2,0)
+        p4 = dpv.vector(-2, 2,0)
+        tp = dpv.vector( 1, 0,0)
+        pn = dpv.vector( 0, 0,1)
+        ps = [p1,p2,p3,p4]
+        self.assertTrue(dpr.isnear(dpr.distance_to_border(tp,ps),1))
+        
     def test_tangents(self):
         p1 = dpv.vector(1,0,0)
         p2 = dpv.vector(0,0,0)
@@ -168,16 +180,42 @@ class test_tools(unittest.TestCase):
         cps = [p1.rotate(q),p2.rotate(q),p3.rotate(q)]
         self.assertEqual(rps,cps)
 
-    def test_distance_to_border(self):
-        p1 = dpv.vector(-2,-2,0)
-        p2 = dpv.vector( 2,-2,0)
-        p3 = dpv.vector( 2, 2,0)
-        p4 = dpv.vector(-2, 2,0)
-        tp = dpv.vector( 1, 0,0)
-        pn = dpv.vector( 0, 0,1)
-        ps = [p1,p2,p3,p4]
-        self.assertTrue(dpr.isnear(dpr.distance_to_border(tp,ps),1))
-        
+    def test_intriangle(self):
+        t1 = dpv.vector(0,0,0)
+        t2 = dpv.vector(1,0,0)
+        t3 = dpv.vector(0,1,0)
+        self.assertTrue(dpr.intriangle_xy(dpv.vector(0,0,0),t1,t2,t3))
+        self.assertTrue(dpr.intriangle_xy(dpv.vector(1,0,0),t1,t2,t3))
+        self.assertTrue(dpr.intriangle_xy(dpv.vector(0,1,0),t1,t2,t3))
+        self.assertTrue(dpr.intriangle_xy(dpv.vector(0.5,0.5,0),t1,t2,t3))
+        self.assertTrue(dpr.intriangle_xy(dpv.vector(0.5,0,0),t1,t2,t3))
+        self.assertTrue(dpr.intriangle_xy(dpv.vector(0,0.5,0),t1,t2,t3))
+        self.assertTrue(dpr.intriangle_xy(dpv.vector(0.75,0.25,0),t1,t2,t3))
+        self.assertFalse(dpr.intriangle_xy(dpv.vector(1,1,0),t1,t2,t3))
+        pt = dpv.vector(-22.847272872924805, -22.847267150878906, 0.0)
+        t1 = dpv.vector(-21.464466094970703, -28.53553009033203, 0.0)
+        t2 = dpv.vector(-17.15900993347168, -24.230073928833008, 0.0)
+        t3 = dpv.vector(-24.230077743530273, -17.159006118774414, 0.0)
+        self.assertTrue(dpr.intriangle_xy(pt,t1,t2,t3))
+
+    def test_segments_intersect(self):
+        p1,p2 = dpv.vector(-10,0,0),dpv.vector(10,0,0)
+        p3,p4 = dpv.vector(-5,0,0),dpv.vector(5,0,0)
+        isect1 = dpr.segments_intersect(p1,p2,p3,p4)
+        #isect2 = dtl.segments_intersect(p1,p2,p4,p3)
+        #isect3 = dtl.segments_intersect(p2,p1,p4,p3)
+        #isect4 = dtl.segments_intersect(p2,p1,p3,p4)
+        self.assertEqual(isect1,1)
+
+    def test_segments_intersect_at(self):
+        p1,p2 = dpv.vector(-10,0,0),dpv.vector(10,0,0)
+        p3,p4 = dpv.vector(-5,0,0),dpv.vector(5,0,0)
+        isect1 = dtl.segments_intersect_at(p1,p2,p3,p4)
+        #isect2 = dtl.segments_intersect_at(p1,p2,p4,p3)
+        #isect3 = dtl.segments_intersect_at(p2,p1,p4,p3)
+        #isect4 = dtl.segments_intersect_at(p2,p1,p3,p4)
+        self.assertTrue(type(isect1) == type(()))
+
 if __name__ == '__main__':
     unittest.main()
 

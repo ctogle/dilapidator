@@ -9,6 +9,7 @@ import dilap.infrastructure.graphregion as grg
 import dilap.infrastructure.infragraph as ifg
 import dilap.generate.landscape as dls
 import dilap.generate.city as dcy
+import dilap.foliage.plant as dflg
 
 import dilap.generate.lot as dlt
 import dilap.primitive.cylinder as dcyl
@@ -84,10 +85,11 @@ class area(dgc.context):
     def place_lots(self):
         bfootprints = []
         for prt in self.lfootprints:
-            dlot = dlt.lot(boundary = prt).generate(7)
-            for s in dlot.structures:
-                bfootprints.append(tuple(b.copy() for b in s.boundary))
-            self._consume(dlot)
+            #dlot = dlt.lot(boundary = prt).generate(7)
+            #for s in dlot.structures:
+            #    bfootprints.append(tuple(b.copy() for b in s.boundary))
+            #self._consume(dlot)
+            pass
         bnd,holes = self.boundary
         self.boundary = (bnd,holes+tuple(bfootprints))
         
@@ -105,6 +107,11 @@ class area(dgc.context):
         tpelt = tplc.pelt()
         tnode = self._node_wrap(tpelt)
         self._nodes_to_graph(tnode)
+
+        plantmodel = dflg.plant().model()
+        plantnode = self._node_wrap(plantmodel)
+        self._nodes_to_graph(plantnode)
+
         return self
 
 

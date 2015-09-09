@@ -93,36 +93,43 @@ def tetra():
         y = x+1 if x < 7 else 0
         plc.add_edge(x,y)
 
+
+
+    print('input plc')
     plc.plot()
     plt.show()
+    print('begin tetra')
     plc.tetrahedralize()
-
-    pdb.set_trace()
-
+    print('end tetra')
+    print('output plc')
     plc.plot()
     plt.show()
 
 def triang():
 
     #pts = dpr.dice_edges(dpr.square(50,10),2)
-    hpts = [dpv.vector(5,-2,0)]
+    hpts = [dpv.vector(5,-2,3)]
     hpts.append(hpts[-1].copy().translate(dpv.vector(0,5,0)))
     hpts.append(hpts[-1].copy().translate(dpv.vector(-10,0,0)))
     hpts.append(hpts[-1].copy().translate(dpv.vector(0,-3,0)))
     hpts.append(hpts[-1].copy().translate(dpv.vector(5,0,0)))
     hpts.append(hpts[-1].copy().translate(dpv.vector(0,-2,0)))
-    hpts2 = [h.copy().translate_x(-12) for h in hpts]
-    pts = dpr.inflate([h.copy().translate_x(-6) for h in hpts],14)
+    hpts2 = [h.copy().translate_x(-12).translate_z(-6) for h in hpts]
+    pts = dpr.inflate([h.copy().translate_x(-6).translate_z(-3) for h in hpts],14)
 
     #pts  = dpv.translate_coords(dpr.square(50,10),dpv.vector(-30,-12,0))
     pts2 = dpv.translate_coords(dpr.square(30,10),dpv.vector(30,20,0))
     pts3 = dpv.translate_coords(dpr.square(20,10),dpv.vector(-30,-20,0))
 
-    pts2.insert(1,dpv.vector(20,15,0))
+    pts2.insert(1,dpv.vector(25,15,0))
+    pts2.insert(1,dpv.vector(25,20,0))
     pts2.insert(1,dpv.vector(20,20,0))
-    pts2.insert(1,dpv.vector(18,20,0))
-    pts2.insert(1,dpv.vector(18,15,0))
+    pts2.insert(1,dpv.vector(20,15,0))
     #pts2 = dpr.point_ring(100,16)
+
+    ax = dtl.plot_axes_xy()
+    ax = dtl.plot_points_xy(pts2,ax,number = True)
+    plt.show()
 
     points = []
     edges = []
@@ -132,87 +139,23 @@ def triang():
     #polygons = [(pts,()),(pts2,())]
     polyhedra = []
 
-    plc = pwc.piecewise_linear_complex()
+    plc = pwc.piecewise_linear_complex(
+        refine = True,smooth = False)
     plc.add_points(*points)
     plc.add_edges(*edges)
     plc.add_polygons(*polygons)
     #plc.add_polyhedra(*polyhedra)
-    #plc.triangulate_xy()
-
-    #plc.translate_polygon(2,dpv.vector(0,0,10))
-    plc.extrude_polygon(2,dpv.vector(0,0,10))
-
     plc.triangulate()
 
     #ax = plc.plot_xy()
     ax = plc.plot()
     plt.show()
 
-    #pelt = plc.covers['tri'].pelt()
-
     '''#
     pelt = pwc.model_plc(polygons = polygons)
     dlc.build(pelt)
 
     '''#
-
-def intriangle_test():
-
-    def show(ins):
-        print('inside:',ins)
-        ax = dtl.plot_axes_xy()
-        ax = dtl.plot_polygon_xy([t1,t2,t3],ax)
-        ax = dtl.plot_point_xy(pt,ax)
-        plt.show()
-
-    t1 = dpv.vector(0,0,0)
-    t2 = dpv.vector(1,0,0)
-    t3 = dpv.vector(0,1,0)
-
-    pt = dpv.vector(0,0,0)
-    ins = dpr.intriangle(pt,t1,t2,t3)
-    if not ins == True:show(ins)
-
-    pt = dpv.vector(1,0,0)
-    ins = dpr.intriangle(pt,t1,t2,t3)
-    if not ins == True:show(ins)
-
-    pt = dpv.vector(0,1,0)
-    ins = dpr.intriangle(pt,t1,t2,t3)
-    if not ins == True:show(ins)
-
-    pt = dpv.vector(0.5,0.5,0)
-    ins = dpr.intriangle(pt,t1,t2,t3)
-    if not ins == True:show(ins)
-
-    pt = dpv.vector(0.5,0,0)
-    ins = dpr.intriangle(pt,t1,t2,t3)
-    if not ins == True:show(ins)
-
-    pt = dpv.vector(0,0.5,0)
-    ins = dpr.intriangle(pt,t1,t2,t3)
-    if not ins == True:show(ins)
-
-    pt = dpv.vector(0.75,0.25,0)
-    ins = dpr.intriangle(pt,t1,t2,t3)
-    if not ins == True:show(ins)
-
-    pt = dpv.vector(1,1,0)
-    ins = dpr.intriangle(pt,t1,t2,t3)
-    if not ins == False:show(ins)
-
-    pt = dpv.vector(-22.847272872924805, -22.847267150878906, 0.0)
-    t1 = dpv.vector(-21.464466094970703, -28.53553009033203, 0.0)
-    t2 = dpv.vector(-17.15900993347168, -24.230073928833008, 0.0)
-    t3 = dpv.vector(-24.230077743530273, -17.159006118774414, 0.0)
-
-    ins = dpr.intriangle(pt,t1,t2,t3)
-    #ins = dpr.inside(pt,[t1,t2,t3])
-    #ins = dpv.distance_to_border_xy(pt,[t1,t2,t3])
-    if not ins == True:show(ins)
-
-    print('barrry',dpr.barycentric(pt,t1,t2,t3))
-    pdb.set_trace()
 
 def sub_v_v1v2_test():
     one = dpv.vector(100,0,0)
@@ -315,8 +258,8 @@ def break_polygontest():
 #pls.test()
 #afmtest()
 #tetra()
-#triang()
-cont()
+triang()
+#cont()
 #csgtest()
 #break_polygontest()
 #containmenttest()

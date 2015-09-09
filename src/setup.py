@@ -7,13 +7,14 @@ import os,numpy,appdirs
 
 core_modules = []
 ext_modules = [
-    Extension('dilap.core.vector'     ,['dilap/core/vector.pyx','dilap/core/vector.pxd']), 
-    Extension('dilap.core.quaternion' ,['dilap/core/quaternion.pyx','dilap/core/quaternion.pxd']), 
-    Extension('dilap.core.bbox'       ,['dilap/core/bbox.pyx']), 
-    Extension('dilap.core.ray'        ,['dilap/core/ray.pyx']), 
-    Extension('dilap.core.tools'      ,['dilap/core/tools.pyx','dilap/core/tools.pxd']), 
-    Extension('dilap.core.pointset'   ,['dilap/core/pointset.pyx']), 
-    Extension('dilap.mesh.triangulate',['dilap/mesh/triangulate.pyx']), 
+    Extension('dilap.core.vector'        ,['dilap/core/vector.pyx','dilap/core/vector.pxd']), 
+    Extension('dilap.core.quaternion'    ,['dilap/core/quaternion.pyx','dilap/core/quaternion.pxd']), 
+    Extension('dilap.core.bbox'          ,['dilap/core/bbox.pyx']), 
+    Extension('dilap.core.ray'           ,['dilap/core/ray.pyx']), 
+    Extension('dilap.core.tools'         ,['dilap/core/tools.pyx','dilap/core/tools.pxd']), 
+    Extension('dilap.core.pointset'      ,['dilap/core/pointset.pyx']), 
+    Extension('dilap.mesh.triangulate'   ,['dilap/mesh/triangulate.pyx']), 
+    Extension('dilap.mesh.tetrahedralize',['dilap/mesh/tetrahedralize.pyx']), 
             ]
 
 resourcesdir = os.path.join(appdirs.user_data_dir(),'dilap_resources')
@@ -30,6 +31,7 @@ pkgs = [
     'dilap',
     'dilap.io',
     'dilap.core',
+    'dilap.graph',
     'dilap.mesh',
     'dilap.primitive',
     'dilap.generate',

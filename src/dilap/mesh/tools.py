@@ -3,7 +3,6 @@ import dilap.core.vector as dpv
 import dilap.core.quaternion as dpq
 import dilap.core.bbox as dpb
 import dilap.core.profiler as dprf
-import dilap.mesh.triangulate as dtg
 
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -48,9 +47,10 @@ def plot_points_xy(points,ax = None,ms = None,number = False):
         if number:plot_point_xy_annotate(points[pdx],ax,str(pdx+1))
     return ax
 
-def plot_points(points,ax = None,ms = None):
+def plot_points(points,ax = None,ms = None,marker = None):
     if ax is None:ax = plot_axes()
-    if ms is None:ms = ['o']*len(points)
+    if marker is None:marker = 'o'
+    if ms is None:ms = [marker]*len(points)
     for pdx in range(len(points)):plot_point(points[pdx],ax,ms[pdx])  
     return ax
 

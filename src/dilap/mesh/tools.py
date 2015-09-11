@@ -226,7 +226,7 @@ def line_intersects_polygon_at(l1,l2,py,intins):
         dpv.rotate_coords(isects,prot)
         return
     else:
-        print('actuallyinsssssisects',isects)
+        #print('actuallyinsssssisects',isects)
         actuallyintins = dpr.inconcave_xy(dpv.midpoint(*isects),eb)
 
         '''#
@@ -325,7 +325,7 @@ def segments_intersect_at(s11,s12,s21,s22,include_endpoints = False):
         u = dpr.near(dpr.near(       qmpcr.z/rcs.z,0),1)
         t = dpr.near(dpr.near(qmp.cross(s).z/rcs.z,0),1)
         if (u == 0 or u == 1) and (t == 0 or t == 1):
-            print('ENDPOINT')
+            #print('ENDPOINT')
             if include_endpoints:
                 return q + s.scale_u(u)
             return
@@ -586,9 +586,7 @@ def segment_split_polygon(s1,s2,py,plot = False):
     #pysegs = polygon_segments(py)+[(s1,s2)]
         
     ebn = dpr.polygon_normal(eb)
-    if       ebn.near(dpv.nz()):prot = dpq.q_from_av(dpr.PI,dpv.x())
-    elif not ebn.near(dpv.z() ):prot = dpq.q_from_uu(ebn,dpv.z())
-    else:                       prot = dpq.zero()
+    prot = dpr.q_to_xy(ebn)
     dpr.rotate_segments(pysegs,prot)
     dpr.rotate_coords(list(lnsegs[0]),prot)
 
@@ -623,7 +621,7 @@ def segment_split_polygon(s1,s2,py,plot = False):
     rightof = segments_rightofline(pysegs,l1far,l2far)
 
     if len(leftof) == 0 or len(rightof) == 0:
-        print('maybe??')
+        #print('maybe??')
         prot.flip()
         dpr.rotate_segments(pysegs,prot)
         #dpr.rotate_coords(list(lnsegs[0]),prot)
@@ -821,7 +819,7 @@ def intersections(segments):
             #isect = segments_intersect_at(x1,x2,y1,y2,include_endpoints)
             #isect = segments_intersect_at(x1,x2,y1,y2,True)
             isect = segments_intersect_at(x1,x2,y1,y2)
-            print('isectttt',isect)
+            #print('isectttt',isect)
             if isect is None:continue
             elif type(isect) == type(()):
                 i1,i2 = isect
@@ -1017,9 +1015,7 @@ def segments_leftofline(segments,l1,l2):
         ori1 = dpr.orient2d(s1,l1,l2)
         ori2 = dpr.orient2d(s2,l1,l2)
 
-        print('oriririe left',ori1,ori2)
-
-        #if ori1 > 0 or ori2 > 0:
+        #print('oriririe left',ori1,ori2)
         if (ori1 > 0 or ori2 > 0):
             leftof.append((s1,s2))
         elif (ori1 == 0 and ori2 == 0):
@@ -1044,7 +1040,7 @@ def segments_rightofline(segments,l1,l2):
         s1,s2 = segments[x]
         ori1 = dpr.orient2d(s1,l1,l2)
         ori2 = dpr.orient2d(s2,l1,l2)
-        print('orieeright',ori1,ori2)
+        #print('orieeright',ori1,ori2)
         #if (ori1 < 0 or ori2 < 0) or (ori1 == 0 and ori2 == 0):
         #    rightof.append((s1,s2))
 
@@ -1076,7 +1072,7 @@ def segments_inpolygon(segments,py):
         for ex in range(len(eb)):
             ep1,ep2 = eb[ex-1],eb[ex]
             isect = segments_intersect_at(i1,i2,ep1,ep2)
-            if not isect is None:eisect = False
+            if not isect is None:eisect = True
         if eisect or dpr.inconcave_xy(dpv.midpoint(i1,i2),eb):
             inpoly.append((i1,i2))
     return inpoly
@@ -1162,15 +1158,12 @@ def polygon_difference(p1,p2):
     if len(loops) == 0:
         print('FAILED TO MAKE LOOPS?!')
         pdb.set_trace()
-    if len(loops) > 1:
+    elif len(loops) == 1:loop,holes = tuple(loops[0]),(p1[1]+p2[1])
+    elif len(loops) > 1:
         ct = containment(loops[0],loops[1])
-        print('cocknballs',ct)
         if   ct == -1:loop,holes = tuple(loops[0]),(tuple(loops[1]),)
         elif ct ==  1:loop,holes = tuple(loops[1]),(tuple(loops[0]),)
-        #else:loop,holes = tuple(loops[0]),(p1[1]+p2[1])
         else:loop,holes = tuple(loops[0]),(p1[1]+p2[1])
-
-        #pdb.set_trace()
 
     #diffr = (construct_loops(p1inp2+p2inp1),(p1[1]+p2[1]))
     diffr = (loop,holes)

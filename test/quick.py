@@ -114,8 +114,8 @@ def triang():
     hpts.append(hpts[-1].copy().translate(dpv.vector(0,-3,0)))
     hpts.append(hpts[-1].copy().translate(dpv.vector(5,0,0)))
     hpts.append(hpts[-1].copy().translate(dpv.vector(0,-2,0)))
-    hpts2 = [h.copy().translate_x(-12).translate_z(-6) for h in hpts]
-    pts = dpr.inflate([h.copy().translate_x(-6).translate_z(-3) for h in hpts],14)
+    hpts2 = [h.copy().translate_x(-12).translate_z(0) for h in hpts]
+    pts = dpr.inflate([h.copy().translate_x(-6).translate_z(0) for h in hpts],14)
 
     #pts  = dpv.translate_coords(dpr.square(50,10),dpv.vector(-30,-12,0))
     pts2 = dpv.translate_coords(dpr.square(30,10),dpv.vector(30,20,0))
@@ -206,6 +206,8 @@ def csgtest():
     #plc2.translate(dpv.vector(0,0,-3.0))
     #plc2.rotate(dpq.q_from_av(dpr.PI/6.0,dpv.x()))
     #plc2.translate(dpv.vector(0,0, 3.0))
+    #plc1.triangulate()
+    #plc2.triangulate()
 
     print('union input')
     ax = dtl.plot_axes()
@@ -213,9 +215,9 @@ def csgtest():
     ax = plc2.plot(ax)
     plt.show()
 
-    #plc3 = pwc.union(plc1,plc2)
+    plc3 = pwc.union(plc1,plc2)
     #plc3 = pwc.intersection(plc1,plc2)
-    plc3 = pwc.difference(plc1,plc2)
+    #plc3 = pwc.difference(plc1,plc2)
 
     print('union output')
     ax = dtl.plot_axes()
@@ -258,8 +260,8 @@ def break_polygontest():
 #pls.test()
 #afmtest()
 #tetra()
-triang()
-#cont()
+#triang()
+cont()
 #csgtest()
 #break_polygontest()
 #containmenttest()

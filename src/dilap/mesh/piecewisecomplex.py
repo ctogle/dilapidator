@@ -24,7 +24,7 @@ def inpolyhedron(point,triangles):
 
     isects = dry.intersect_hits(pray,triangles)
 
-    print('inininin',len(triangles),isects)
+    #print('inininin',len(triangles),isects)
 
     '''#
     for x in range(len(triangles)):
@@ -45,7 +45,7 @@ def inpolyhedron(point,triangles):
 
     ins = ins or len(isects) % 2 > 0
 
-    print('insideeee',ins,len(isects))
+    #print('insideeee',ins,len(isects))
     '''#
     ax = dtl.plot_axes()
     for x in range(len(triangles)):
@@ -65,12 +65,7 @@ def polygons_outcomplex(p1s,plc2):
     tris = plc2.simplices
     outpolyhedron = []
     for x in range(len(p1s)):
-
-        pcom = dpv.center_of_mass(list(p1s[x][0]))
-        #point = p1s[x][0][0].copy()
-        #point.translate(dpv.v1_v2(point,pcom).scale_u(0.1))
-        point = pcom
-
+        point = dpv.center_of_mass(list(p1s[x][0]))
         if not inpolyhedron(point,tris):outpolyhedron.append(p1s[x])
     return outpolyhedron
 
@@ -81,15 +76,53 @@ def polygons_incomplex(p1s,plc2):
     tris = plc2.simplices
     outpolyhedron = []
     for x in range(len(p1s)):
-
-        #point = dpv.center_of_mass(list(p1s[x][0]))
-        pcom = dpv.center_of_mass(list(p1s[x][0]))
-        #point = p1s[x][0][0].copy()
-        #point.translate(dpv.v1_v2(point,pcom).scale_u(0.1))
-        point = pcom
-
+        point = dpv.center_of_mass(list(p1s[x][0]))
         if inpolyhedron(point,tris):outpolyhedron.append(p1s[x])
     return outpolyhedron
+
+# given a polygon, modify as possible to 
+# verify triangulation can be performed
+def clean_polygon(eb,ibs):
+    clean = False
+    neb = eb[:]
+    #nibs = [ib[:] for ib in ibs]
+
+    flag = False
+
+    while not clean:
+        icnt = len(ibs)
+        nibs = []
+        if icnt == 0:clean = True
+        else:
+            for x in range(icnt):
+                ib = ibs[x]
+                isect = dpr.concaves_intersect(neb,ib)
+                ins = dpr.inconcave_xy(ib[0],neb)
+                if isect:
+                    neb = dtl.polygon_difference((neb,()),(ib,()))[0]
+
+                    print('polygon hole intersects boundary',x)
+                    ax = dtl.plot_axes()
+                    ax = dtl.plot_polygon_full((neb,()),ax)
+                    plt.show()
+                    flag = True
+
+                    break
+                elif ins:nibs.append(ib)
+                else:print('polygon hole found outside of boundary',x)
+
+                print('wtf',x,icnt)
+
+                if x == icnt - 1:clean = True
+
+    if flag:
+        tns = [dpv.distance(neb[t-1],neb[t]) for t in range(len(neb))]
+        print('exit CLEANPOLYGON',tns)
+        ax = dtl.plot_axes()
+        ax = dtl.plot_polygon_full((neb,nibs),ax)
+        plt.show()
+
+    return neb,nibs
 
 # given a poly and a set of other polygons, return pieces of the input 
 # polygon upon consideration their intersections
@@ -99,16 +132,7 @@ def break_polygon(py,p2s,subop = 'union'):
     pieces = []
 
     while broken:
-        print('prepop',len(broken))
         piece = broken.pop(0)
-
-        '''#
-        print('PEACE!!!!!')
-        ax = dtl.plot_axes()
-        dtl.plot_polygon_full(piece,ax,lw = 4.0)
-        plt.show()
-        '''#
-
         eb1,ibs1 = piece
         ebn1 = dpr.polygon_normal(eb1)
 
@@ -157,7 +181,7 @@ def break_polygon(py,p2s,subop = 'union'):
                     intins = subop == 'difference'
                     #intins = dpr.inconcave_xy(dpv.midpoint(pli1,pli2),eb2)
 
-                    print('inis',subop,intins)
+                    #print('inis',subop,intins)
                     breakersect = dtl.line_intersects_polygon_at(
                                         pli1,pli2,breaker,intins)
                     if not breakersect is None:
@@ -209,7 +233,6 @@ def break_polygon(py,p2s,subop = 'union'):
 # given the bounding polygons of two polyhedrons, break p1s based 
 # upon the intersection with p2s into properly nonintersecting polygons
 def break_complex(p1s,p2s,subop = 'union'):
-    print('entry to break complex',len(p1s),len(p2s))
     broken = []
     for x in range(len(p1s)):
         py = p1s[x]
@@ -221,25 +244,13 @@ def break_complex(p1s,p2s,subop = 'union'):
 # representing nonintersecting proper polygons to construct a plc
 # representing the union,intersection,difference of the two input plcs
 def break_complexes(plc1,plc2,subop = 'union'):
-    p1s = []
-    for px in range(plc1.polygoncount):
-
-        #if not px == 5:continue
-        #if not px == 3:continue
-        #if px == 0 or px == 1:continue
-
-        p1s.append(plc1.get_polygon_points(px))
-    p2s = []
-    for px in range(plc2.polygoncount):
-
-        #if px == 0 or px == 1:continue
-        #if px in [0,2,3,4,5]:continue
-        #if not px == 3:continue
-
-        p2s.append(plc2.get_polygon_points(px))
+    p1s,p2s = [],[]
+    for px in range(plc1.polygoncount):p1s.append(plc1.get_polygon_points(px))
+    for px in range(plc2.polygoncount):p2s.append(plc2.get_polygon_points(px))
     p1s = [x for x in p1s if not x is None]
     p2s = [x for x in p2s if not x is None]
 
+    '''#
     print('before breaking something!!!!!')
     print('before breaking something!!!!!')
     print('before breaking something!!!!!')
@@ -247,9 +258,11 @@ def break_complexes(plc1,plc2,subop = 'union'):
     for s in p1s:dtl.plot_polygon_full(s,ax)
     for s in p2s:dtl.plot_polygon_full(s,ax)
     plt.show()
+    '''#
 
     p1seg = break_complex(p1s,p2s,subop)
 
+    '''#
     print('after breaking something!!!!!')
     print('after breaking something!!!!!')
     print('after breaking something!!!!!')
@@ -258,17 +271,20 @@ def break_complexes(plc1,plc2,subop = 'union'):
     for s in p1s:dtl.plot_polygon_full(s,ax)
     for s in p2s:dtl.plot_polygon_full(s,ax)
     plt.show()
+    '''#
 
     p2seg = break_complex(p2s,p1s,subop)
 
+    '''#
     print('after breaking another!!!!!')
     print('after breaking another!!!!!')
     print('after breaking another!!!!!')
     ax = dtl.plot_axes()
-    for s in p1seg:dtl.plot_polygon_full(s,ax,lw = 4.0)
+    for s in p2seg:dtl.plot_polygon_full(s,ax,lw = 4.0)
     for s in p1s:dtl.plot_polygon_full(s,ax)
     for s in p2s:dtl.plot_polygon_full(s,ax)
     plt.show()
+    '''#
 
     return p1seg,p2seg
 
@@ -301,8 +317,6 @@ def difference(plc1,plc2):
     else:p1seg,p2seg = broken
     p1inp2 = polygons_outcomplex(p1seg,plc2)
     p2inp1 = polygons_incomplex(p2seg,plc1)
-    #p1inp2 = p1seg
-    #p2inp1 = p2seg
     diffr = piecewise_linear_complex()
     diffr.add_polygons(*(p1inp2+p2inp1))
     return diffr
@@ -563,8 +577,19 @@ class piecewise_linear_complex(db.base):
 
         es,erng = self.edges,range(self.edgecount)
         unfinished = [es[x] for x in erng if x in polyes]
+
+        ax = dtl.plot_axes()
+        for u in unfinished:
+            vu,vv = self.points.get_points(*u)
+            ax = dtl.plot_edges([vu,vv],ax)
+        plt.show()
+
         hmin = min([elengs[x] for x in elengs if x in unfinished])
+
         print('hmin:',hmin)
+        if hmin < 0.1:
+            print('hmin probelm?',hmin)
+            pdb.set_trace()
 
         while unfinished:
             unfin = unfinished.pop(0)
@@ -649,6 +674,8 @@ class piecewise_linear_complex(db.base):
         for px in range(self.polygoncount):
             polybs = self.get_polygon_points(px)
             eb,ibs = polybs
+            neb,nibs = clean_polygon(eb,ibs)
+            '''#
             neb = eb[:]
             nibs = []
             for ib in ibs:
@@ -659,6 +686,7 @@ class piecewise_linear_complex(db.base):
                     #neb = repair_boundary(eb,ib)
                 elif ins:nibs.append(ib)
                 else:print('polygon hole found outside of boundary',px)
+            '''#
 
             #r = self.radius()
             #ax = dtl.plot_axes(x = r)
@@ -680,24 +708,23 @@ class piecewise_linear_complex(db.base):
     # iterate over each polygon, adding simplices which properly cover
     # a simplex is a tuple of indices pointing to self.points
     def triangulate(self):
-        #self.clean_polygons()
+        self.clean_polygons()
         self.subdivide_edges()
         smps,bnds = [],[]
         ref,smo = self.refine,self.smooth
         for x in range(self.polygoncount):
             if self.polygons[x] is None:continue
-            #hmin = self.chew1_subdivide_polygon(x)
             if ref:hmin = self.chew1_subdivide_polygon(x)
             else:hmin = 1.0
             polypts = self.get_polygon_points(x)
+            eb,ibs = polypts
+
+            polysmp,polybnd = dtg2.triangulate(eb,ibs,hmin,ref,smo)
 
             #eb,ibs = polypts
-            #olysmp,polybnd = dtg2.triangulate(eb,ibs,hmin,ref,smo)
-
-            eb,ibs = polypts
-            polysmp,polybnd =\
-                dtg2.triangulate_nonplanar(eb,ibs,hmin,ref,smo,
-                           dpv.vector(0,0,1),dpv.vector(0,0,0))
+            #polysmp,polybnd =\
+            #    dtg2.triangulate_nonplanar(eb,ibs,hmin,ref,smo,
+            #               dpv.vector(0,0,1),dpv.vector(0,0,0))
 
             smps.extend(polysmp)
             bnds.extend(polybnd)

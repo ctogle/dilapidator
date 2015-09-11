@@ -46,7 +46,7 @@ cdef class triangulation:
         if o1 == -1 or o2 == -1:return 1
         if o1 == -2 or o2 == -2:return 1
         up,vp,op1,op2 = self.points.get_points(u,v,o1,o2)
-        if dpr.segments_intersect_c(up,vp,op1,op2):
+        if dpr.segments_intersect_noncolinear_c(up,vp,op1,op2):
             if dpr.incircle_c(up,vp,op1,op2) > 0:return 0
             if dpr.incircle_c(vp,up,op2,op1) > 0:return 0
         return 1
@@ -247,6 +247,8 @@ cdef void ghost_border(triangulation data,list edges):
         if plce is None:continue
         plce1,plce2 = plce
         e1,e2 = data.points.find_points(plce1,plce2)
+        if e1 is None or e2 is None:
+            print('ghost ghost!',plce)
         eadj = data.adjacent(e1,e2)
         if eadj == -1:data.add_ghost(e1,e2)
         eadj = data.adjacent(e2,e1)
@@ -330,8 +332,10 @@ cdef list loop_location(triangulation data,tuple loop):
     cdef int x
     for x in range(lcnt):
         p1,p2 = loop[x-1],loop[x]
-        point_location(data,p1.xy())
-        bnd.append((p1,p2))
+        #point_location(data,p1.xy())
+        #bnd.append((p1.xy(),p2.xy()))
+        point_location(data,p1.copy())
+        bnd.append((p1.copy(),p2.copy()))
     return bnd
 
 # locate each loop associated with polygon
@@ -389,23 +393,8 @@ cdef tuple triangulate_nonplanar_c(tuple ebnd,tuple ibnds,float hmin,bint refine
 cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
     p0 = ebnd[0].copy()
     pn = dpr.polygon_normal_c(ebnd)
-    if pn.near(dpv.nzhat):prot = dpq.q_from_av_c(numpy.pi,dpv.xhat)
-    elif not pn.near(dpv.zhat):prot = dpq.q_from_uu_c(pn,dpv.zhat)
-    else:prot = dpq.zero_c()
-
-    #print('prot',prot.__str__(),pn.__str__())
-    #import matplotlib.pyplot as plt
-    #import dilap.mesh.tools as dtl
-    #ax = dtl.plot_axes()
-    #dtl.plot_polygon(list(ebnd),ax)
-
-    #move points to xy plane, move back post triangulation
-    for ep in ebnd:ep.rotate(prot)
-    for ib in ibnds:
-        for ip in ib:ip.rotate(prot)
-
-    #dtl.plot_polygon(list(ebnd),ax)
-    #plt.show()
+    prot = dpr.q_to_xy_c(pn)
+    dpr.rotate_polygon_c((ebnd,ibnds),prot)
 
     data = triangulation(p0,pn)
     initialize(data,list(ebnd))
@@ -427,9 +416,7 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
 
     prot.flip()
     for p in data.points.ps:p.rotate(prot)
-    for ep in ebnd:ep.rotate(prot)
-    for ib in ibnds:
-        for ip in ib:ip.rotate(prot)
+    dpr.rotate_polygon_c((ebnd,ibnds),prot)
 
     smps = []
     for tx in range(data.tricnt):

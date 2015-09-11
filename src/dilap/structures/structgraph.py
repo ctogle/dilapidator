@@ -105,18 +105,22 @@ class graph(dgr.graph):
         plc1 = dtl.box(15,15,10)
         #plc2 = dtl.box(5,4,4).translate(dpv.vector(4,0,0))
         plc2 = dtl.box(14,14,6).translate(dpv.vector(0,0,5))
+        plc3 = dtl.box(12,14,6).translate(dpv.vector(0,5,5))
         #plc2 = dtl.box(8,3,2).translate(dpv.vector(0,0,1))
 
         #plc2 = dtl.icosphere(2,1)
         #plc2.translate(dpv.vector(0,0,5.0))
 
+        '''#
         print('union input')
         ax = dtl.plot_axes()
         ax = plc1.plot(ax)
         ax = plc2.plot(ax)
         plt.show()
+        '''#
 
-        plc3 = pwc.union(plc1,plc2)
+        plc4 = pwc.union(plc1,plc2)
+        plc5 = pwc.union(plc4,plc3)
         #plc3 = pwc.difference(plc1,plc2)
         #plc3 = pwc.intersection(plc1,plc2)
         #plc2 = dtl.box(20,12,5).translate(dpv.vector(0,10,46.5))
@@ -124,8 +128,7 @@ class graph(dgr.graph):
         #plc3 = pwc.difference(plc1,plc2)
 
         print('union output')
-        ax = dtl.plot_axes()
-        ax = plc3.plot(ax)
+        ax = plc5.plot()
         plt.show()
 
         '''#
@@ -139,10 +142,9 @@ class graph(dgr.graph):
         '''#
 
         pys = []
-        for px in range(plc3.polygoncount):
-            pys.append(plc3.get_polygon_points(px))
+        for px in range(plc5.polygoncount):
+            pys.append(plc5.get_polygon_points(px))
         mpolys = pys
-
         #mpolys.extend(self.model_rooms())
         #mpolys.extend(self.model_walls())
         #mpolys.extend(self.model_corners())

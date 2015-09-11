@@ -19,7 +19,7 @@ threePI = PI*3.0
 threePI2 = PI*3.0/2.0
 threePI4 = PI*3.0/4.0
 
-epsilon = 0.001
+epsilon = 0.01
 
 __doc__ = '''General purpose tool functions...'''
 
@@ -450,7 +450,8 @@ cdef dpv.vector polygon_normal_c(tuple poly):
         c1c2 = dpv.v1_v2_c(c1,c2)
         c2c3 = dpv.v1_v2_c(c2,c3)
         cang = angle_between_c(c1c2,c2c3)
-        if cang > 0.1 and cang < PI-0.1:pn = c1c2.cross(c2c3)
+        if cang > 0.1 and cang < PI-0.1:
+            pn = c1c2.cross(c2c3).normalize()
         x += 1
     return pn.normalize()
 
@@ -549,31 +550,27 @@ cdef tuple circumscribe_tri_c(dpv.vector p1,dpv.vector p2,dpv.vector p3):
 # given line segment s1, line segment s2
 # does s1 overlap the interior or s2?
 # a segment is a tuple of two points
-cdef bint segments_intersect_c(dpv.vector s11,dpv.vector s12,dpv.vector s21,dpv.vector s22):
-    cdef dpv.vector n1 = dpv.v1_v2_c(s11,s12).rotate_z(PI2)
-    cdef dpv.vector n2 
-    cdef dpv.vector2d proj1
-    cdef dpv.vector2d proj2
-    cdef float proj11
-    cdef float proj12
-    cdef float proj21
-    cdef float proj22
-    proj11 = s11.x*n1.x + s11.y*n1.y + s11.z*n1.z
-    proj12 = s12.x*n1.x + s12.y*n1.y + s12.z*n1.z
-    proj21 = s21.x*n1.x + s21.y*n1.y + s21.z*n1.z
-    proj22 = s22.x*n1.x + s22.y*n1.y + s22.z*n1.z
-    proj1 = dpv.vector2d(min(proj11,proj12),max(proj11,proj12))
-    proj2 = dpv.vector2d(min(proj21,proj22),max(proj21,proj22))
-    if proj1.x - proj2.x > epsilon and proj2.y - proj1.x > epsilon:
-        n2 = dpv.v1_v2_c(s21,s22).rotate_z(PI2)
-        proj11 = s11.x*n2.x + s11.y*n2.y + s11.z*n2.z
-        proj12 = s12.x*n2.x + s12.y*n2.y + s12.z*n2.z
-        proj21 = s21.x*n2.x + s21.y*n2.y + s21.z*n2.z
-        proj22 = s22.x*n2.x + s22.y*n2.y + s22.z*n2.z
-        proj1 = dpv.vector2d(min(proj11,proj12),max(proj11,proj12))
-        proj2 = dpv.vector2d(min(proj21,proj22),max(proj21,proj22))
-        if proj2.x - proj1.x > epsilon and proj1.y - proj2.x > epsilon:return 1
-    return 0
+cdef bint segments_intersect_noncolinear_c(dpv.vector s11,dpv.vector s12,dpv.vector s21,dpv.vector s22):
+    p,q = s11,s21
+    r = dpv.v1_v2_c(s11,s12)
+    s = dpv.v1_v2_c(s21,s22)
+    qmp = q-p
+    rcs = r.cross(s)
+    rcsmag = rcs.magnitude()
+    qmpcr = qmp.cross(r)
+    qmpcrmag = qmpcr.magnitude()
+    rmag2 = r.magnitude2()
+    if isnear_c(rcsmag,0) and isnear_c(qmpcrmag,0):return 0
+    elif isnear_c(rcsmag,0) and not isnear_c(qmpcrmag,0):return 0
+    elif not isnear_c(rcs.z,0):
+        u = near_c(near_c(       qmpcr.z/rcs.z,0),1)
+        t = near_c(near_c(qmp.cross(s).z/rcs.z,0),1)
+        if (u == 0 or u == 1) and (t == 0 or t == 1):
+            #if include_endpoints:return 1
+            #else:return 0
+            return 0
+        if not inrange_c(u,0,1) or not inrange_c(t,0,1):return 0
+        else:return 1
 
 # calculate the barycentric coordinates of the point pt for the triangle abc
 # assume all points are in the xy plane 
@@ -688,7 +685,7 @@ cdef bint concaves_contains_c(tuple p1,tuple p2):
     for px in range(p1cnt):
         if isegsectfound:break
         for py in range(p2cnt):
-            if segments_intersect_c(p1[px-1],p1[px],p2[py-1],p2[py]):
+            if segments_intersect_noncolinear_c(p1[px-1],p1[px],p2[py-1],p2[py]):
                 isegsectfound = 1
                 break
     return 1-isegsectfound
@@ -705,7 +702,7 @@ cdef bint concaves_intersect_c(tuple p1,tuple p2):
     for px in range(p1cnt):
         if isegsectfound:break
         for py in range(p2cnt):
-            if segments_intersect_c(p1[px-1],p1[px],p2[py-1],p2[py]):
+            if segments_intersect_noncolinear_c(p1[px-1],p1[px],p2[py-1],p2[py]):
                 isegsectfound = 1
                 break
     return isegsectfound
@@ -1049,9 +1046,9 @@ cpdef tuple circumscribe_tri(dpv.vector p1,dpv.vector p2,dpv.vector p3):
 # given line segment s1, line segment s2
 # does s1 overlap the interior or s2?
 # a segment is a tuple of two points
-cpdef bint segments_intersect(dpv.vector s11,dpv.vector s12,dpv.vector s21,dpv.vector s22):
+cpdef bint segments_intersect_noncolinear(dpv.vector s11,dpv.vector s12,dpv.vector s21,dpv.vector s22):
     '''determine if two line segments intersect or not'''
-    return segments_intersect_c(s11,s12,s21,s22)
+    return segments_intersect_noncolinear_c(s11,s12,s21,s22)
 
 # calculate the barycentric coordinates of the point pt for the triangle abc
 # assume all points are in the xy plane

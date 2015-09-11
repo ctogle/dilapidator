@@ -216,7 +216,7 @@ class graph(db.base):
             lp1d = dpv.distance(lp[-1],tip)
             lpt = lp[0] if lp0d < lp1d else lp[-1]
             s1,s2 = tiptail(le.rpts,ne.rpts)
-            segsect = dpr.segments_intersect(s1,s2,lpt,tip)
+            segsect = dpr.segments_intersect_noncolinear(s1,s2,lpt,tip)
             if not segsect:return lpt
         def connect_end(lp,lpt):
             d1,d2 = dpv.distance(lp[0],lpt),dpv.distance(lp[-1],lpt)

@@ -25,16 +25,13 @@ class structure(db.base):
     # return a local space model representing this structure
     def model(self,t,q):
         self.plc.add_polygons(*self.graph.model())
-
-        ax = self.graph.plot()
-        ax = self.plc.plot(ax)
-        plt.show()
-
-        if not self.plc.polygons:self.plc.add_polygons((self.boundary,()))
+        #if not self.plc.polygons:self.plc.add_polygons((self.boundary,()))
+        self.plc.add_polygons((self.boundary,()))
         self.plc.triangulate()
         pelt = self.plc.pelt()
         pelt._project_uv_flat()
-        pelt.rotate(q).translate(t)
+        #pelt.rotate(q).translate(t)
+        #pelt.translate(t).rotate(q)
         return pelt
 
 

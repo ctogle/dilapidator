@@ -198,14 +198,12 @@ class test_tools(unittest.TestCase):
         t3 = dpv.vector(-24.230077743530273, -17.159006118774414, 0.0)
         self.assertTrue(dpr.intriangle_xy(pt,t1,t2,t3))
 
-    def test_segments_intersect(self):
+    def test_segments_intersect_noncolinear(self):
         p1,p2 = dpv.vector(-10,0,0),dpv.vector(10,0,0)
         p3,p4 = dpv.vector(-5,0,0),dpv.vector(5,0,0)
-        isect1 = dpr.segments_intersect(p1,p2,p3,p4)
-        #isect2 = dtl.segments_intersect(p1,p2,p4,p3)
-        #isect3 = dtl.segments_intersect(p2,p1,p4,p3)
-        #isect4 = dtl.segments_intersect(p2,p1,p3,p4)
-        self.assertEqual(isect1,1)
+        p5,p6 = dpv.vector(-5,-2,0),dpv.vector(5,2,0)
+        self.assertEqual(dpr.segments_intersect_noncolinear(p1,p2,p3,p4),0)
+        self.assertEqual(dpr.segments_intersect_noncolinear(p2,p1,p5,p6),1)
 
     def test_segments_intersect_at(self):
         p1,p2 = dpv.vector(-10,0,0),dpv.vector(10,0,0)

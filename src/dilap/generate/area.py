@@ -85,18 +85,22 @@ class area(dgc.context):
     def place_lots(self):
         bfootprints = []
         for prt in self.lfootprints:
-            #dlot = dlt.lot(boundary = prt).generate(7)
-            #for s in dlot.structures:
-            #    bfootprints.append(tuple(b.copy() for b in s.boundary))
-            #self._consume(dlot)
-            pass
+            dlot = dlt.lot(boundary = prt).generate(7)
+            for s in dlot.structures:
+                bfootprints.append(tuple(b.copy() for b in s.boundary))
+            self._consume(dlot)
         bnd,holes = self.boundary
         self.boundary = (bnd,holes+tuple(bfootprints))
+        #print('area placed lots:')
+        #ax = dtl.plot_axes()
+        #ax = dtl.plot_polygon_full(self.boundary,ax)
+        #plt.show()
         
     def generate(self):
         self.populate()
         self.place_lots()
-        tplc = pwc.piecewise_linear_complex(refine = True,smooth = False)
+        #tplc = pwc.piecewise_linear_complex(refine = True,smooth = False)
+        tplc = pwc.piecewise_linear_complex(refine = False,smooth = False)
         tplc.add_polygons(self.boundary)
 
         ax = dtl.plot_axes()
@@ -108,9 +112,9 @@ class area(dgc.context):
         tnode = self._node_wrap(tpelt)
         self._nodes_to_graph(tnode)
 
-        plantmodel = dflg.plant().model()
-        plantnode = self._node_wrap(plantmodel)
-        self._nodes_to_graph(plantnode)
+        #plantmodel = dflg.plant().model()
+        #plantnode = self._node_wrap(plantmodel)
+        #self._nodes_to_graph(plantnode)
 
         return self
 

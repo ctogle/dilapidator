@@ -82,6 +82,9 @@ def prf_lstest():
 def afmtest():
     dlc.build(tms.afmtest())
 
+
+
+
 def tetra():
     pts = dpr.dice_edges(dpr.square(5,5),1)
     pts.extend([d.copy().translate_z(10) for d in pts])
@@ -114,8 +117,8 @@ def triang():
     hpts.append(hpts[-1].copy().translate(dpv.vector(0,-3,0)))
     hpts.append(hpts[-1].copy().translate(dpv.vector(5,0,0)))
     hpts.append(hpts[-1].copy().translate(dpv.vector(0,-2,0)))
-    hpts2 = [h.copy().translate_x(-12).translate_z(0) for h in hpts]
-    pts = dpr.inflate([h.copy().translate_x(-6).translate_z(0) for h in hpts],14)
+    hpts2 = [h.copy().translate_x(-12).translate_z(-6) for h in hpts]
+    pts = dpr.inflate([h.copy().translate_x(-6).translate_z(-3) for h in hpts],14)
 
     #pts  = dpv.translate_coords(dpr.square(50,10),dpv.vector(-30,-12,0))
     pts2 = dpv.translate_coords(dpr.square(30,10),dpv.vector(30,20,0))
@@ -166,36 +169,6 @@ def sub_v_v1v2_test():
     for x in range(1000000):
         three = dpv.v1_v2(one,two)
 
-def mergetest():
-    #left = dpr.square(0.5,8)
-    #lefth = dpr.square(0.25,2)
-    #right = [x.translate_x(0.5) for x in dpr.square(0.5,5)]
-    #righth = [x.translate_x(0.5) for x in dpr.square(0.25,2)]
-    #dpr.rotate_polygon((tuple(left),(tuple(lefth),)),dpq.q_from_av(dpr.PI/2.0,dpv.x()))
-    #dpr.rotate_polygon((tuple(right),(tuple(righth),)),dpq.q_from_av(dpr.PI/2.0,dpv.x()))
-    mpolys = dstl.post(dpv.vector(0,0,0),4,0.5,8.0)
-    #mtest = dstl.merge_two_polygons((tuple(left),()),(tuple(right),()))
-    mtest = dstl.merge_polygons(mpolys)
-    #mtest = dstl.merge_polygons(
-    #    ((tuple(left),(tuple(lefth),)),
-    #    (tuple(right),(tuple(righth),))))[0]
-    print('mtest',mtest)
-    ax = dtl.plot_axes()
-    for m in mtest:ax = dtl.plot_polygon_full(m,ax)
-    #ax = dtl.plot_polygon_xy(left,ax)
-    #ax = dtl.plot_polygon_xy(right,ax)
-    plt.show()
-
-def isecttest():
-    p1,p2 = dpv.vector(-10,0,0),dpv.vector(10,0,0)
-    p3,p4 = dpv.vector(-5,0,0),dpv.vector(5,0,0)
-    isect1 = dtl.segments_intersect_at(p1,p2,p3,p4)
-    isect2 = dtl.segments_intersect_at(p1,p2,p4,p3)
-    isect3 = dtl.segments_intersect_at(p2,p1,p4,p3)
-    isect4 = dtl.segments_intersect_at(p2,p1,p3,p4)
-    print('isect',isect1,isect2,isect3,isect4)
-    pdb.set_trace()
-    
 def csgtest():
     plc1 = dtl.box(5,5,5)
     #plc2 = dtl.icosphere(2,1)

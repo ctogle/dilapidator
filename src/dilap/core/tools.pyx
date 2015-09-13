@@ -19,7 +19,7 @@ threePI = PI*3.0
 threePI2 = PI*3.0/2.0
 threePI4 = PI*3.0/4.0
 
-epsilon = 0.01
+epsilon = 0.0001
 
 __doc__ = '''General purpose tool functions...'''
 
@@ -180,6 +180,12 @@ cdef bint insegment_xy_c(dpv.vector p,dpv.vector s1,dpv.vector s2):
         if (s1.y <= p.y and p.y <= s2.y):return 1
         if (s1.y >= p.y and p.y >= s2.y):return 1
     return 0
+
+# determine if a point lies on the interior of a line segment or its endpoints
+cdef bint onsegment_xy_c(dpv.vector p,dpv.vector s1,dpv.vector s2):
+    if not orient2d_c(p,s1,s2) == 0:return 0
+    if p.near(s1) or p.near(s2):return 1
+    else:return insegment_xy(p,s1,s2)
 
 # return the signed area of the triangle created 
 # by the vectors a-c,b-c
@@ -543,7 +549,7 @@ cdef tuple circumscribe_tri_c(dpv.vector p1,dpv.vector p2,dpv.vector p3):
     cdef float cr = dpv.distance_xy_c(cp1,cp2)/(2*numpy.sin(th))
     cdef dpv.vector cp = e2.copy().scale_u(
         e1.magnitude2())-e1.copy().scale_u(e2.magnitude2())
-    cdef dpv.vector fp = cp3+cp.cross(e1.cross(e2)).scale_u(
+    cdef dpv.vector fp = p3+cp.cross(e1.cross(e2)).scale_u(
                     1.0/(2.0*(e1.cross(e2).magnitude2())))
     return fp,cr
 
@@ -561,6 +567,38 @@ cdef bint segments_intersect_noncolinear_c(dpv.vector s11,dpv.vector s12,dpv.vec
     qmpcrmag = qmpcr.magnitude()
     rmag2 = r.magnitude2()
     if isnear_c(rcsmag,0) and isnear_c(qmpcrmag,0):return 0
+    elif isnear_c(rcsmag,0) and not isnear_c(qmpcrmag,0):return 0
+    elif not isnear_c(rcs.z,0):
+        u = near_c(near_c(       qmpcr.z/rcs.z,0),1)
+        t = near_c(near_c(qmp.cross(s).z/rcs.z,0),1)
+        if (u == 0 or u == 1) and (t == 0 or t == 1):
+            #if include_endpoints:return 1
+            #else:return 0
+            return 0
+        if not inrange_c(u,0,1) or not inrange_c(t,0,1):return 0
+        else:return 1
+
+# given line segment s1, line segment s2
+# does s1 overlap the interior or s2?
+# a segment is a tuple of two points
+cdef bint segments_intersect_interior_c(dpv.vector s11,dpv.vector s12,dpv.vector s21,dpv.vector s22):
+    p,q = s11,s21
+    r = dpv.v1_v2_c(s11,s12)
+    s = dpv.v1_v2_c(s21,s22)
+    qmp = q-p
+    rcs = r.cross(s)
+    rcsmag = rcs.magnitude()
+    qmpcr = qmp.cross(r)
+    qmpcrmag = qmpcr.magnitude()
+    rmag2 = r.magnitude2()
+    if isnear_c(rcsmag,0) and isnear_c(qmpcrmag,0):
+        t0 = near_c(near_c(dpv.dot_c(qmp,r)/rmag2,0),1)
+        t1 = near_c(near_c(t0 + dpv.dot_c(s,r)/rmag2,0),1)
+        if near_c(dpv.dot_c(s,r),0) < 0:t0,t1 = t1,t0
+        if inrange_c(t0,0,1) or inrange_c(t1,0,1):return 1
+        elif inrange_c(0,t0,t1) and inrange_c(1,t0,t1):return 1
+        elif (t0 == 0 and t1 == 1) or (t0 == 1 and t1 == 0):return 1
+        else:return 0
     elif isnear_c(rcsmag,0) and not isnear_c(qmpcrmag,0):return 0
     elif not isnear_c(rcs.z,0):
         u = near_c(near_c(       qmpcr.z/rcs.z,0),1)
@@ -599,9 +637,6 @@ cdef tuple barycentric_xy_c(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c
 # assume all points are in the xy plane 
 cdef bint intriangle_xy_c(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c):
     cdef float u,v
-    if b.near(c):
-        print('holla')
-        raise ValueError
     u,v = barycentric_xy_c(pt,a,b,c)
     if u > 0 or abs(u) < epsilon:
         if v > 0 or abs(v) < epsilon:
@@ -649,6 +684,24 @@ cdef bint inconvex_c(dpv.vector pt,tuple poly):
     return 0
 #####
 
+# determine if the point pt is inside the concave polygon poly or on its boundary
+cdef bint onconcave_xy_c(dpv.vector pt,tuple py):
+    cdef int wn = 0
+    cdef int px
+    cdef int pcnt = len(py)
+    cdef float read
+    for px in range(pcnt):
+        read = orient2d_c(pt,py[px-1],py[px])
+        if read == 0:
+            if onsegment_xy_c(pt,py[px-1],py[px]):return 1
+        if py[px-1].y <= pt.y:
+            if py[px].y > pt.y:
+                if read > 0:wn += 1
+        else:
+            if py[px].y <= pt.y:
+                if read < 0:wn -= 1
+    return not wn == 0
+
 # determine if the point pt is inside the concave polygon poly
 cdef bint inconcave_xy_c(dpv.vector pt,tuple poly):
     return not winding_c(pt,poly) == 0
@@ -671,24 +724,18 @@ cdef int winding_c(dpv.vector pt,tuple py):
     return wn
 
 # given concave polygon p1, concave polygon p2
-# does p1 overlap the interior p2?
+# does p1 contain the entire interior of p2?
 # a polygon is a tuple of points
 # NOTE: this assumes com(p2) is inside p2!
 cdef bint concaves_contains_c(tuple p1,tuple p2):
-    cdef bint isegsectfound = 0
-    cdef int p1cnt = len(p1)
     cdef int p2cnt = len(p2)
     cdef int px
-    cdef int py
     cdef dpv.vector i2 = dpv.com(list(p2))
     if not inconcave_xy_c(i2,p1):return 0
-    for px in range(p1cnt):
-        if isegsectfound:break
-        for py in range(p2cnt):
-            if segments_intersect_noncolinear_c(p1[px-1],p1[px],p2[py-1],p2[py]):
-                isegsectfound = 1
-                break
-    return 1-isegsectfound
+    for px in range(p2cnt):
+        if not onconcave_xy_c(p2[px],p1):
+            return 0
+    return 1
 
 # given concave polygon p1, concave polygon p2
 # determine if facets of p1 intersect facets of p2
@@ -702,7 +749,8 @@ cdef bint concaves_intersect_c(tuple p1,tuple p2):
     for px in range(p1cnt):
         if isegsectfound:break
         for py in range(p2cnt):
-            if segments_intersect_noncolinear_c(p1[px-1],p1[px],p2[py-1],p2[py]):
+            #if segments_intersect_noncolinear_c(p1[px-1],p1[px],p2[py-1],p2[py]):
+            if segments_intersect_interior_c(p1[px-1],p1[px],p2[py-1],p2[py]):
                 isegsectfound = 1
                 break
     return isegsectfound
@@ -934,6 +982,11 @@ cpdef float angle_from_xaxis_xy(dpv.vector v):
     '''find the angle between the xy projection of a vector and the x axis'''
     return angle_from_xaxis_xy_c(v)
 
+# determine if a point lies on the interior of a line segment or its endpoints
+cpdef bint onsegment_xy(dpv.vector p,dpv.vector s1,dpv.vector s2):
+    '''determine if a point lies on the interior of a line segment or its endpoints'''
+    return onsegment_xy_c(p,s1,s2)
+
 # determine if a point p lies on the interior of a line segment s1,s2
 cpdef bint insegment_xy(dpv.vector p,dpv.vector s1,dpv.vector s2):
     '''determine if a point lies on the interior of a line segment'''
@@ -1076,6 +1129,11 @@ cpdef bint intriangle(dpv.vector pt,dpv.vector a,dpv.vector b,dpv.vector c):
 cpdef bint inconvex(dpv.vector pt,tuple poly):
     '''determine if a pt lies within a convex polygon'''
     return inconvex_c(pt,poly)
+
+# determine if the point pt is inside the concave polygon poly or on its boundary
+cpdef bint onconcave_xy(dpv.vector pt,tuple poly):
+    '''determine if a point is inside a concave polygon or on its boundary'''
+    return onconcave_xy_c(pt,poly)
 
 # determine if the point pt is inside the concave polygon poly
 cpdef bint inconcave_xy(dpv.vector pt,tuple poly):

@@ -281,9 +281,6 @@ cdef class vector:
 
     # return a copy of self in basis of [b1,b2,b3]
     cpdef vector in_basis(self,vector b1,vector b2,vector b3):
-        #cdef float bx = self.dot(b1)/b1.magnitude2()
-        #cdef float by = self.dot(b2)/b2.magnitude2()
-        #cdef float bz = self.dot(b3)/b3.magnitude2()
         cdef float bx = dot_c(self,b1)/b1.magnitude2()
         cdef float by = dot_c(self,b2)/b2.magnitude2()
         cdef float bz = dot_c(self,b3)/b3.magnitude2()
@@ -304,9 +301,6 @@ cdef class vector:
         cdef float row3y = 2*(q.y*q.z + q.w*q.x)
         cdef float row3z = q.w**2 - q.x**2 - q.y**2 + q.z**2
         cdef vector row3 = vector(row3x,row3y,row3z)
-        #cdef float rotx = row1.dot(self)
-        #cdef float roty = row2.dot(self)
-        #cdef float rotz = row3.dot(self)
         cdef float rotx = dot_c(row1,self)
         cdef float roty = dot_c(row2,self)
         cdef float rotz = dot_c(row3,self)
@@ -526,65 +520,6 @@ cdef vector2d project_coords_c(list coords, vector axis):
 
 cpdef vector2d project_coords(list coords, vector axis):
     return project_coords_c(coords,axis)
-
-'''#
-cdef list edge_tangents_c(list verts):
-    cdef list tangs = []
-    cdef int vcnt = len(verts)
-    cdef int vdx
-    cdef vector v1
-    cdef vector v2
-    cdef float dx
-    cdef float dy
-    cdef float dv
-    cdef vector tang
-    for vdx in range(1,vcnt):
-        v1,v2 = verts[vdx-1],verts[vdx]
-        tang = v1_v2(v1,v2).normalize()
-        tangs.append(tang)
-    return tangs
-
-cpdef list edge_tangents(list verts):
-    return edge_tangents_c(verts)
-
-cdef list edge_normals_xy_c(list verts):
-    cdef list norms = []
-    cdef int vcnt = len(verts)
-    cdef int vdx
-    cdef vector v1
-    cdef vector v2
-    cdef float dx
-    cdef float dy
-    cdef float dv
-    cdef vector norm
-    for vdx in range(vcnt):
-        v1,v2 = verts[vdx-1],verts[vdx]
-        dx = v2.x - v1.x
-        dy = v2.y - v1.y
-        dv = sqrt(dx**2 + dy**2)
-        norm = vector(dy/dv,-dx/dv,0)
-        norms.append(norm)
-    norms.append(norms.pop(0))
-    return norms
-
-cpdef list edge_normals_xy(list verts):
-    return edge_normals_xy_c(verts)
-
-cdef float distance_to_border_xy_c(vector pt,list border):
-    edgenorms = edge_normals_xy_c(border)
-    dists = []
-    for edx in range(len(border)):
-        e1 = border[edx-1]
-        e2 = border[edx]
-        norm = edgenorms[edx-1]
-        dists.append(dpr.distance_to_line(pt,e1,e2,norm))
-    dists.append(dists.pop(0))
-    distance = min(dists)
-    return distance
-
-cpdef float distance_to_border_xy(vector pt,list border):
-    return distance_to_border_xy_c(pt,border)
-'''#
 
 #########################################################################
 ### spline interpolation business
@@ -955,36 +890,6 @@ cdef bint overlap_c(vector2d rng1,vector2d rng2):
     if   rng1.y < rng2.x:return 0
     elif rng2.y < rng1.x:return 0
     else:return 1
-
-'''#
-# return 1 if a separating axis IS found
-# return 0 if none are found
-cdef bint separating_axis_c(list bb1,list bb2):
-    cdef list ns1 = edge_normals_xy(bb1)
-    cdef list ns2 = edge_normals_xy(bb2)
-    cdef int egcnt1 = len(ns1)
-    cdef int egcnt2 = len(ns2)
-    cdef vector edgenorm
-    cdef int egdx
-    cdef vector2d proj1
-    cdef vector2d proj2
-    for egdx in range(egcnt1):
-        edgenorm = <vector>ns1[egdx]
-        proj1 = <vector2d>project_coords_c(bb1,edgenorm)
-        proj2 = <vector2d>project_coords_c(bb2,edgenorm)
-        #if not <bint>overlap_c(proj1,proj2):return 1
-        if not <bint>overlap_nonlimit_c(proj1,proj2):return 1
-    for egdx in range(egcnt2):
-        edgenorm = <vector>ns2[egdx]
-        proj1 = <vector2d>project_coords_c(bb1,edgenorm)
-        proj2 = <vector2d>project_coords_c(bb2,edgenorm)
-        #if not <bint>overlap_c(proj1,proj2):return 1
-        if not <bint>overlap_nonlimit_c(proj1,proj2):return 1
-    return 0
-
-cpdef bint separating_axis(list bb1,list bb2):
-    return separating_axis_c(bb1,bb2)
-'''#
 
 cdef list lowest_x_c(list pts):
     cdef int pcnt = len(pts)

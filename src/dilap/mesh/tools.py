@@ -78,14 +78,14 @@ def plot_edges(points,ax = None,lw = 1.0,center = False):
     return ax
 
 def plot_polygon_xy(points,ax = None,center = False,lw = 1.0):
-    epts = points[:]
+    epts = list(points[:])
     epts.append(points[0])
     ax = plot_edges_xy(epts,ax,lw = lw)
     if center:plot_point_xy(dpv.center_of_mass(points),ax,marker = 's')
     return ax
 
 def plot_polygon(points,ax = None,center = False,lw = 1.0):
-    epts = points[:]
+    epts = list(points[:])
     epts.append(points[0])
     ax = plot_edges(epts,ax,lw = lw)
     if center:plot_point(dpv.center_of_mass(points),ax,marker = 's')
@@ -287,7 +287,7 @@ def segments_intersect_at(s11,s12,s21,s22,include_endpoints = False):
     rcs = r.cross(s)
     rcsmag = rcs.magnitude()
     qmpcr = qmp.cross(r)
-    qmpcrmag = qmpcr.magnitude()
+    qmpcrmag = qmpcr.magnitude()                    
     rmag2 = r.magnitude2()
     if dpr.isnear(rcsmag,0) and dpr.isnear(qmpcrmag,0):
 
@@ -819,16 +819,12 @@ def intersections(segments):
             #isect = segments_intersect_at(x1,x2,y1,y2,include_endpoints)
             #isect = segments_intersect_at(x1,x2,y1,y2,True)
             isect = segments_intersect_at(x1,x2,y1,y2)
-            #print('isectttt',isect)
             if isect is None:continue
             elif type(isect) == type(()):
                 i1,i2 = isect
                 newpoint(i1,ipts)
                 newpoint(i2,ipts)
             else:newpoint(isect,ipts)
-    if len(ipts) == 3:
-        print('WHOOOOOP')
-        pdb.set_trace()
     return ipts
 
 # given a set of edge segments and a set of points, return a new set
@@ -926,7 +922,7 @@ def construct_loops(segments,plot = False):
             loops.append([])
 
     if min([len(l) for l in loops]) < 3:
-      print('HALT\n'*20,len(segments))
+      print('HALT\n'*5,len(segments))
       ax = plot_axes()
       for l in loops:plot_edges(l,ax)
       plt.show()

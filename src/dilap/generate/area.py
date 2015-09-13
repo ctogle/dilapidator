@@ -89,6 +89,7 @@ class area(dgc.context):
             for s in dlot.structures:
                 bfootprints.append(tuple(b.copy() for b in s.boundary))
             self._consume(dlot)
+            #pass
         bnd,holes = self.boundary
         self.boundary = (bnd,holes+tuple(bfootprints))
         #print('area placed lots:')
@@ -99,13 +100,8 @@ class area(dgc.context):
     def generate(self):
         self.populate()
         self.place_lots()
-        #tplc = pwc.piecewise_linear_complex(refine = True,smooth = False)
-        tplc = pwc.piecewise_linear_complex(refine = False,smooth = False)
+        tplc = pwc.piecewise_linear_complex(refine = True,smooth = False)
         tplc.add_polygons(self.boundary)
-
-        ax = dtl.plot_axes()
-        tplc.plot(ax)
-        plt.show()
 
         dprf.profile_function(tplc.triangulate)
         tpelt = tplc.pelt()

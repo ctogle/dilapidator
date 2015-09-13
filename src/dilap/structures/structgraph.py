@@ -2,6 +2,7 @@ import dilap.core.base as db
 import dilap.core.vector as dpv
 import dilap.core.tools as dpr
 import dilap.core.graph as dgr
+import dilap.graph.twomanifold as tmg
 
 import dilap.mesh.tools as dtl
 import dilap.mesh.pointset as dps
@@ -18,7 +19,7 @@ import pdb
 
 
 
-class graph(dgr.graph):
+class graph(tmg.twomanifold_graph):
 
     nodeclass = gnd.node
     edgeclass = geg.edge
@@ -119,8 +120,8 @@ class graph(dgr.graph):
         plt.show()
         '''#
 
-        plc4 = pwc.union(plc1,plc2)
-        plc5 = pwc.union(plc4,plc3)
+        #plc4 = pwc.union(plc1,plc2)
+        plc5 = pwc.union(plc1,plc3)
         #plc3 = pwc.difference(plc1,plc2)
         #plc3 = pwc.intersection(plc1,plc2)
         #plc2 = dtl.box(20,12,5).translate(dpv.vector(0,10,46.5))

@@ -22,6 +22,11 @@ cdef class triangulation:
             if gst is None:continue
             gx1,gx2,gx3 = gst
             g1,g2 = self.points.get_points(gx1,gx2)
+
+            if dpr.insegment_xy_c(up,g1,g2):
+                return gdx
+
+            '''#
             dx = g2.x - g1.x
             dy = g2.y - g1.y
             dv = math.sqrt(dx**2 + dy**2)
@@ -36,6 +41,7 @@ cdef class triangulation:
                     prj2 = -g2.x*ny + g2.y*nx
                     if dpr.near_c(prj3,prj2) <= prj2:
                         return gdx
+            '''#
         return -1
 
     # given the indices of the endpoints of an edge, 
@@ -97,6 +103,8 @@ cdef class triangulation:
     # u is the vertex to insert. vwx is a positively oriented triangle whose
     # circumcircle encloses u
     cdef void insert_vertex(self,int u,int v,int w,int x):
+
+        vu,vv,vw,vx = self.points.get_points(u,v,w,x)
         self.delete_triangle(v,w,x)
         self.dig_cavity(u,v,w)
         self.dig_cavity(u,w,x)
@@ -162,7 +170,7 @@ cdef void initialize(triangulation data,list bnd):
     b1,b2,b3 = bnd[0],bnd[1],bnd[2]
     bnorm,btang = dpr.normal_c(b1,b2,b3),dpr.tangent_c(b1,b2,b3)
     convexcom = dpv.com(bnd)
-    convexrad = max([dpv.distance_c(cx,convexcom) for cx in bnd])+100
+    convexrad = max([dpv.distance_c(cx,convexcom) for cx in bnd])+1000
     c01delta = dpv.vector(-1,-1,0).normalize().scale_u(convexrad)
     c02delta = dpv.vector( 1,-1,0).normalize().scale_u(convexrad)
     c03delta = dpv.vector( 0, 1,0).normalize().scale_u(convexrad)
@@ -204,6 +212,8 @@ cdef list point_location(triangulation data,dpv.vector y):
         if dpr.intriangle_xy_c(y,vu,vv,vw):
             data.insert_vertex(nv,u,v,w)
             return [x for x in range(pretricnt,data.tricnt)]
+
+    print('SEARCHING FOR GHOST VERTEX LOCATION')
 
     for gdx in range(data.ghostcnt-1,-1,-1):
         ghost = data.ghosts[gdx]
@@ -398,21 +408,13 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
 
     data = triangulation(p0,pn)
     initialize(data,list(ebnd))
-    plcedges = []
-    for px in range(len(ebnd)):
-        p1,p2 = ebnd[px-1],ebnd[px]
-        point_location(data,p1.copy())
-        plcedges.append((p1,p2))
-    for ib in ibnds:
-        for px in range(len(ib)):
-            p1,p2 = ib[px-1],ib[px]
-            point_location(data,p1.copy())
-            plcedges.append((p1,p2))
+    plcedges = polygon_location(data,ebnd,ibnds)
+
     cover_polygon(data,ebnd,ibnds)
     ghost_border(data,plcedges)              
     constrain_delaunay(data)
     if refine:refine_chews_first(data,hmin)
-    if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
+    #if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
 
     prot.flip()
     for p in data.points.ps:p.rotate(prot)

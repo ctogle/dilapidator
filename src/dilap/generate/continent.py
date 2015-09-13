@@ -24,61 +24,37 @@ class continent(dgc.context):
     def __init__(self,*args,**kwargs):
         dgc.context.__init__(self,*args,**kwargs)
         self._def('sealevel',-0.5,**kwargs)
-        self.define()
 
-    def define(self):
+    def layout_infrastructure(self):
         #g = ifg.graph()
         #g = ifg.hairpin()
-        g = ifg.circle()
+        #g = ifg.circle()
         #g = ifg.newcastle()
         #g = ifg.eight()
-        #g = ifg.clover()
+        g = ifg.clover()
         #g = ifg.ramp()
 
         g._update()
         self.igraph = g
 
-        cityseed = dpv.vector(0,0,150)
-        self.cityseeds = [cityseed]
-        #self.cityseeds.append(dpv.vector(250,250,100))
-
+    # first generate the graph of infrastructure
+    # this also yields area polygons and for the infrastructure area
+    # this covers the entire ground of the continent
+    #
+    # construction of the road happens within the bounds of the infrastructure polygons
+    # construction of each area happens within their respective bounds
     def generate(self,worn = 0):
-        '''#
-        cities = []
-        tpts = []
-        hpts = []
-        rpts = []
-
-        for cd in self.cityseeds:
-            cities.append(dcy.city().generate(cd,self.igraph,worn))
-        for cy in cities:
-            self._consume(cy)
-            tpts.extend(cy._terrain_points())
-            hpts.extend(cy._hole_points())
-            rpts.extend(cy._region_points())
-        '''#
-        
-        #lscape = dls.landscape(controls = tpts,holes = hpts,regions = rpts)
-        #lscape.generate(worn)
-        #self._consume(lscape.generate(worn))
-        #tplc = pwc.piecewise_linear_complex()
-        #tplc.add_polygons(*self.igraph.tpolygons)
-        #dprf.profile_function(tplc.triangulate)
-
-        for tpoly in self.igraph.tpolygons[1:]:
+        self.layout_infrastructure()
+        for tpoly in self.igraph.tpolygons:
             tarea = dar.area(boundary = tpoly)
             self._consume(tarea.generate())
 
-        rplc = pwc.piecewise_linear_complex()
+        rplc = pwc.piecewise_linear_complex(refine = True,smooth = True)
         rplc.add_polygons(*self.igraph.rpolygons)
-        #rplc.triangulate()
-        #rpelt = rplc.pelt()
-        #rnode = self._node_wrap(rpelt)
-        #self._nodes_to_graph(rnode)
-
-        #opelt = dtl.facade().pelt()
-        #onode = self._node_wrap(opelt)
-        #self._nodes_to_graph(onode)
+        rplc.triangulate()
+        rpelt = rplc.pelt()
+        rnode = self._node_wrap(rpelt)
+        self._nodes_to_graph(rnode)
 
         # add water models to scenegraph
         '''#

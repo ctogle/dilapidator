@@ -328,12 +328,6 @@ class graph(db.base):
         convexbnd = dpr.pts_to_convex_xy(rpts)
         convexbnd = dpr.inflate(convexbnd,50)
         eloops = self._edge_loop_boundaries()
-
-        #ax = dtl.plot_axes_xy()
-        #dtl.plot_edges_xy(eloops['king'][0],ax)
-        #for loop in eloops['interiors']:dtl.plot_edges_xy(loop,ax)
-        #plt.show()
-
         self.tpolygons = [(tuple(convexbnd),(tuple(eloops['king'][0]),))]+\
                               [(tuple(i),()) for i in eloops['interiors']]
         self.rpolygons = [(eloops['king'][0],tuple(eloops['interiors']))]

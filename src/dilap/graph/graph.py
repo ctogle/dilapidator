@@ -354,7 +354,7 @@ def btest():
 
 
 
-class graph(db.base):
+class twomanifold_graph(db.base):
 
     def plot(self,ax = None):
         if ax is None:ax = dtl.plot_axes()

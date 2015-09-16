@@ -62,9 +62,12 @@ class dilap_run(bpy.types.Operator):
 
     # execute() is called by blender when running the operator.
     def execute(self,context):
-        dilaps = [dld.dilapidors['ivy']()]
-        dcx = dlc.contextualizer[self.dcontext](sys.modules[__name__],dilaps)
-        dlc.realize(dcx,self.years)
+
+        #dilaps = [dld.dilapidors['ivy']()]
+        #dcx = dlc.contextualizer[self.dcontext](sys.modules[__name__],dilaps)
+        #dlc.realize(dcx,self.years)
+        dlc.teststage(io = sys.modules[__name__])
+
         return {'FINISHED'}
 
 class dilap_purge(bpy.types.Operator):

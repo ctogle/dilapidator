@@ -33,6 +33,8 @@ pkgs = [
     'dilap.core',
     'dilap.graph',
     'dilap.mesh',
+    'dilap.radial_edge',
+    'dilap.topology',
     'dilap.primitive',
     'dilap.generate',
     'dilap.degenerate',

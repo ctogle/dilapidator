@@ -22,26 +22,8 @@ cdef class triangulation:
             if gst is None:continue
             gx1,gx2,gx3 = gst
             g1,g2 = self.points.get_points(gx1,gx2)
-
             if dpr.insegment_xy_c(up,g1,g2):
                 return gdx
-
-            '''#
-            dx = g2.x - g1.x
-            dy = g2.y - g1.y
-            dv = math.sqrt(dx**2 + dy**2)
-            nx =  dy/dv
-            ny = -dx/dv
-            prj1 = g1.x*nx + g1.y*ny
-            prj3 = up.x*nx + up.y*ny
-            if dpr.isnear_c(prj1,prj3):
-                prj1 = -g1.x*ny + g1.y*nx
-                prj3 = -up.x*ny + up.y*nx
-                if dpr.near_c(prj3,prj1) >= prj1:
-                    prj2 = -g2.x*ny + g2.y*nx
-                    if dpr.near_c(prj3,prj2) <= prj2:
-                        return gdx
-            '''#
         return -1
 
     # given the indices of the endpoints of an edge, 
@@ -89,8 +71,8 @@ cdef class triangulation:
         o1 = self.adjacent(u,v)
         o2 = self.adjacent(v,u)
         vs = self.points.get_points(u,v,o1,o2)
-        tcp1,tcr1 = dpr.circumscribe_tri_c(vs[0],vs[1],vs[2])
-        tcp2,tcr2 = dpr.circumscribe_tri_c(vs[1],vs[0],vs[3])
+        #tcp1,tcr1 = dpr.circumscribe_tri_c(vs[0],vs[1],vs[2])
+        #tcp2,tcr2 = dpr.circumscribe_tri_c(vs[1],vs[0],vs[3])
         #if tcp1.near(tcp2) and dpr.isnear_c(tcr1,tcr2):
         #    print('4way!',tcp1,tcp2,tcr1,tcr2,u,v,o1,o2)
         #    #return ()
@@ -103,7 +85,6 @@ cdef class triangulation:
     # u is the vertex to insert. vwx is a positively oriented triangle whose
     # circumcircle encloses u
     cdef void insert_vertex(self,int u,int v,int w,int x):
-
         vu,vv,vw,vx = self.points.get_points(u,v,w,x)
         self.delete_triangle(v,w,x)
         self.dig_cavity(u,v,w)
@@ -213,8 +194,6 @@ cdef list point_location(triangulation data,dpv.vector y):
             data.insert_vertex(nv,u,v,w)
             return [x for x in range(pretricnt,data.tricnt)]
 
-    print('SEARCHING FOR GHOST VERTEX LOCATION')
-
     for gdx in range(data.ghostcnt-1,-1,-1):
         ghost = data.ghosts[gdx]
         if ghost is None:continue
@@ -223,6 +202,30 @@ cdef list point_location(triangulation data,dpv.vector y):
         if not dpr.orient2d_c(vu,vv,y) < 0:
             data.insert_ghost_vertex(nv,u,v,w)
             return [x for x in range(pretricnt,data.tricnt)]
+
+# given a loop of points, add them to a triangulation 
+# and return the line segments which bound the loop
+cdef list loop_location(triangulation data,tuple loop):
+    cdef list bnd = []
+    cdef int lcnt = len(loop)
+    cdef int x
+    for x in range(lcnt):
+        p1,p2 = loop[x-1],loop[x]
+        #point_location(data,p1.xy())
+        #bnd.append((p1.xy(),p2.xy()))
+        point_location(data,p1.copy())
+        bnd.append((p1.copy(),p2.copy()))
+    return bnd
+
+# locate each loop associated with polygon
+cdef list polygon_location(triangulation data,tuple ebnd,tuple ibnds):
+    cdef list bnd = []
+    cdef int icnt = len(ibnds)
+    cdef int ix
+    bnd.extend(loop_location(data,ebnd))
+    for ix in range(icnt):
+        bnd.extend(loop_location(data,ibnds[ix]))
+    return bnd
 
 # given the exterior bound and interior bounds (holes) of a concave polygon
 # remove triangles which are not part of the cover of the polygon
@@ -257,8 +260,6 @@ cdef void ghost_border(triangulation data,list edges):
         if plce is None:continue
         plce1,plce2 = plce
         e1,e2 = data.points.find_points(plce1,plce2)
-        if e1 is None or e2 is None:
-            print('ghost ghost!',plce)
         eadj = data.adjacent(e1,e2)
         if eadj == -1:data.add_ghost(e1,e2)
         eadj = data.adjacent(e2,e1)
@@ -334,30 +335,6 @@ cdef void plot_triangulation(triangulation data,ax = None):
         tps = data.points.get_points(t1,t2,t3)
         ax = dtl.plot_polygon_xy(tps,ax,center = True)
 
-# given a loop of points, add them to a triangulation 
-# and return the line segments which bound the loop
-cdef list loop_location(triangulation data,tuple loop):
-    cdef list bnd = []
-    cdef int lcnt = len(loop)
-    cdef int x
-    for x in range(lcnt):
-        p1,p2 = loop[x-1],loop[x]
-        #point_location(data,p1.xy())
-        #bnd.append((p1.xy(),p2.xy()))
-        point_location(data,p1.copy())
-        bnd.append((p1.copy(),p2.copy()))
-    return bnd
-
-# locate each loop associated with polygon
-cdef list polygon_location(triangulation data,tuple ebnd,tuple ibnds):
-    cdef list bnd = []
-    cdef int icnt = len(ibnds)
-    cdef int ix
-    bnd.extend(loop_location(data,ebnd))
-    for ix in range(icnt):
-        bnd.extend(loop_location(data,ibnds[ix]))
-    return bnd
-
 # what if i want nonplanar polygon triangulations
 # apply a depth procedure and a given plane which "will work"
 # rotate to the xy plane and measure the depth of each input point
@@ -414,7 +391,7 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
     ghost_border(data,plcedges)              
     constrain_delaunay(data)
     if refine:refine_chews_first(data,hmin)
-    #if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
+    if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
 
     prot.flip()
     for p in data.points.ps:p.rotate(prot)

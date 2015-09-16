@@ -85,6 +85,9 @@ def afmtest():
 
 
 
+
+
+
 def tetra():
     pts = dpr.dice_edges(dpr.square(5,5),1)
     pts.extend([d.copy().translate_z(10) for d in pts])
@@ -160,15 +163,6 @@ def triang():
 
     '''#
 
-def sub_v_v1v2_test():
-    one = dpv.vector(100,0,0)
-    two = dpv.vector(0,100,100)
-    
-    #for x in range(1000000):
-    #    three = one - two
-    for x in range(1000000):
-        three = dpv.v1_v2(one,two)
-
 def csgtest():
     plc1 = dtl.box(5,5,5)
     #plc2 = dtl.icosphere(2,1)
@@ -197,28 +191,6 @@ def csgtest():
     ax = plc3.plot(ax)
     plt.show()
 
-def containmenttest():
-    p = dpv.vector(2.5,0,0)
-    py = tuple(dpr.square(5,5))
-
-    wn = dpr.winding(p,py)
-    ins = dpr.inconcave_xy(p,py)
-    print('wtfman',wn,ins)
-
-def break_polygontest():
-    pts1 = dpv.translate_coords(dpr.square(30,10),dpv.vector( 0,0,0))
-    pts2 = dpv.translate_coords(dpr.square(20,10),dpv.vector( 0,0,0))
-    dpv.rotate_coords(pts2,dpq.q_from_av(dpr.PI2,dpv.y()))
-
-    broken = pwc.break_polygon((tuple(pts1),()),[(tuple(pts2),())])
-    print('brokenarrow',broken)
-
-
-
-#prf.profile_function(sub_v_v1v2_test)
-
-#pdb.set_trace()
-
 #cube()
 #cone()
 #stonehenge()
@@ -230,18 +202,13 @@ def break_polygontest():
 #prf_houselot()
 #prf_cont()
 #prf_lstest()
-#pls.test()
-#afmtest()
+
 #tetra()
 #triang()
-cont()
-#csgtest()
-#break_polygontest()
-#containmenttest()
-#mergetest()
-#isecttest()
-#intriangle_test()
-#facade()
+#cont()
+csgtest()
+
+
 
 
 

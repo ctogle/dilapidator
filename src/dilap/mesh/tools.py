@@ -924,6 +924,7 @@ def construct_loops(segments,plot = False):
     if min([len(l) for l in loops]) < 3:
       print('HALT\n'*5,len(segments))
       ax = plot_axes()
+      for l in segments:plot_edges(l,ax,lw = 3)
       for l in loops:plot_edges(l,ax)
       plt.show()
       pdb.set_trace()
@@ -1008,6 +1009,16 @@ def segments_leftofline(segments,l1,l2):
     tangs = 0
     for x in range(len(segments)):
         s1,s2 = segments[x]
+
+        '''#
+        ssect = segments_intersect_at(s1,s2,l1,l2)
+        if ssect is None:continue
+        elif type(ssect) == type(()):
+            leftof.append((s1,s2))
+            tangs += 1
+        else:leftof.append((s1,s2))
+        '''#
+
         ori1 = dpr.orient2d(s1,l1,l2)
         ori2 = dpr.orient2d(s2,l1,l2)
 

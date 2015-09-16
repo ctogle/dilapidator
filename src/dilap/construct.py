@@ -16,6 +16,11 @@ import dilap.generate.lot as dlot
 #import dilap.generate.street as dstr
 import dilap.generate.continent as dct
 
+import dilap.mesh.piecewisecomplex as pwc
+import dilap.mesh.tools as dtl
+
+import matplotlib.pyplot as plt
+
 import pdb
 
 iotypes = dio.iotypes
@@ -28,6 +33,7 @@ iotypes = dio.iotypes
 # build all models in world space using iotype io
 def build(mods,consume = False,io = None):
     if io is None:io = di.fetch_info()['exporter']
+    elif type(io) is type(''):io = iotypes[io]
     if not type(mods) is type([]):mods = [mods]
     for mdx in range(len(mods)):
         m = mods[mdx]
@@ -37,7 +43,8 @@ def build(mods,consume = False,io = None):
         consumenode = dsg.node(children = mods,consumption = True)
         mods = [consumenode]
     sgr = dsg.sgraph(nodes = mods)
-    sgr.graph(iotypes[io])
+    #sgr.graph(iotypes[io])
+    sgr.graph(io)
 
 def realize(context,years = 0):
     context.generate(worn = years)
@@ -149,5 +156,20 @@ contextualizer = {
 }
 
 ###############################################################################
+
+def teststage(**kwargs):
+    plc1 = dtl.box(5,5,5)
+    plc2 = dtl.box(5,5,5).translate(dpv.vector(2.5,2.5,2.5))
+    #plc3 = pwc.union(plc1,plc2)
+    plc3 = dtl.box(5,5,5)
+
+    print('teststage plot')
+    ax = dtl.plot_axes()
+    ax = plc3.plot(ax)
+    plt.show()
+
+    print('build cube now')
+    build(cube(10),**kwargs)
+
 
                                                                                   

@@ -7,6 +7,10 @@ import os,numpy,appdirs
 
 core_modules = []
 ext_modules = [
+    Extension('dilap.geometry.vec3'        ,['dilap/geometry/vec3.pyx',    'dilap/geometry/vec3.pxd']), 
+    Extension('dilap.geometry.quat'        ,['dilap/geometry/quat.pyx',    'dilap/geometry/quat.pxd']), 
+    Extension('dilap.geometry.pointset'    ,['dilap/geometry/pointset.pyx','dilap/geometry/pointset.pxd']), 
+
     Extension('dilap.core.vector'        ,['dilap/core/vector.pyx','dilap/core/vector.pxd']), 
     Extension('dilap.core.quaternion'    ,['dilap/core/quaternion.pyx','dilap/core/quaternion.pxd']), 
     Extension('dilap.core.bbox'          ,['dilap/core/bbox.pyx']), 
@@ -28,6 +32,8 @@ for rpath in os.walk(resourcesrcd):
         resourcefils.append(rfi)
 
 pkgs = [
+    'dilap.geometry',
+
     'dilap',
     'dilap.io',
     'dilap.core',

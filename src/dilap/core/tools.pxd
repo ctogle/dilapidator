@@ -1,8 +1,11 @@
 cimport dilap.core.vector as dpv
 cimport dilap.core.quaternion as dpq
 
-cdef bint isnear_c(float a,float b,float c = ?)
-cdef float near_c(float a,float b,float c = ?)
+cdef float epsilon_c
+cdef float epsilonsq_c
+
+cdef bint isnear_c(float a,float b)
+cdef float near_c(float a,float b)
 cdef bint cyclic_permutation_c(seq1,seq2)
 cdef float rad_c(float deg)
 cdef float deg_c(float rad)

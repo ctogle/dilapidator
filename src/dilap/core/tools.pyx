@@ -19,7 +19,10 @@ threePI = PI*3.0
 threePI2 = PI*3.0/2.0
 threePI4 = PI*3.0/4.0
 
-epsilon = 0.0001
+epsilon   = 0.0001
+epsilonsq = epsilon*epsilon
+cdef float epsilon_c   = 0.0001
+cdef float epsilonsq_c = epsilon*epsilon
 
 __doc__ = '''General purpose tool functions...'''
 
@@ -33,14 +36,20 @@ __doc__ = '''General purpose tool functions...'''
 
 # if a is within c of b, return True
 # else return False
-cdef bint isnear_c(float a,float b,float c = epsilon):
-    if abs(a-b) < c:return 1
+cdef bint isnear_c(float a,float b):
+    #if abs(a-b) < epsilon:return 1
+    cdef d = a-b
+    d *= d
+    if d < epsilonsq_c:return 1
     else:return 0
 
 # if a is within c of b, return b
 # else return a
-cdef float near_c(float a,float b,float c = epsilon):
-    if abs(a-b) < c:return b
+cdef float near_c(float a,float b):
+    #if abs(a-b) < c:return b
+    cdef d = a-b
+    d *= d
+    if d < epsilonsq_c:return b
     else:return a
 
 # convert an angle from degrees to radians
@@ -63,8 +72,8 @@ cdef float clamp_periodic_c(float v,float f,float c):
     else:return v                                  
 
 # is a on the interior of (a,b) given an error of d
-cdef bint inrange_c(float a,float b,float c,float d = epsilon):
-    cdef float r = near_c(near_c(a,b,d),c,d)
+cdef bint inrange_c(float a,float b,float c):
+    cdef float r = near_c(near_c(a,b),c)
     #cdef bint inr = r >= b and r <= c
     cdef bint inr = r > b and r < c
     return inr
@@ -907,15 +916,15 @@ cdef float insphere_c(dpv.vector a,dpv.vector b,dpv.vector c,dpv.vector d,dpv.ve
 
 # if a is within c of b, return b
 # else return a
-cpdef float near(float a,float b,float c = 0.01):
+cpdef float near(float a,float b):
     '''effectively round a to b if within a neighborhood c'''
-    return near_c(a,b,c)
+    return near_c(a,b)
 
 # if a is within c of b, return True
 # else return False
-cpdef bint isnear(float a,float b,float c = 0.01):
+cpdef bint isnear(float a,float b):
     '''determine if a is within a neighborhood c of b'''
-    return isnear_c(a,b,c)
+    return isnear_c(a,b)
 
 # convert an angle from degrees to radians
 cpdef float rad(float deg):
@@ -938,9 +947,9 @@ cpdef float clamp_periodic(float v,float f,float c):
     return clamp_periodic_c(v,f,c)
 
 # is a on the interior of (a,b) given an error of d
-cpdef bint inrange(float a,float b,float c,float d = 0.01):
+cpdef bint inrange(float a,float b,float c):
     '''determine if a value is on an open interval'''
-    return inrange_c(a,b,c,d)
+    return inrange_c(a,b,c)
 
 # return the shortest angular distance between two angles
 cpdef float adist(float a1,float a2):

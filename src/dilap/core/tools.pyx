@@ -8,7 +8,7 @@ cimport dilap.core.quaternion as dpq
 #cimport dilap.core.ray as dr
 #import dilap.core.ray as dr
 
-import math,numpy
+import sys,math,numpy
 import matplotlib.pyplot as plt
 
 PI = numpy.pi
@@ -23,6 +23,9 @@ epsilon   = 0.0001
 epsilonsq = epsilon*epsilon
 cdef float epsilon_c   = 0.0001
 cdef float epsilonsq_c = epsilon*epsilon
+
+maxfloat = sys.float_info.max
+cdef float maxfloat_c = maxfloat
 
 __doc__ = '''General purpose tool functions...'''
 

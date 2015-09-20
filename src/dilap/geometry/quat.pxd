@@ -31,7 +31,13 @@ cdef class quat:
     cdef quat flp_c(self)
     cdef quat scl_c(self,float s)
     cdef quat cnj_c(self)
+    cdef quat inv_c(self)
+    cdef quat add_c(self,quat o)
+    cdef quat sub_c(self,quat o)
+    cdef quat mul_c(self,quat o)
     cdef quat rot_c(self,quat o)
+    cdef float dot_c(self,quat o)
+    cdef quat slerp_c(self,quat o,float ds)
 
     cpdef quat av(self,float a,vec3 v)
     cpdef quat uu(self,vec3 x,vec3 y)
@@ -43,7 +49,13 @@ cdef class quat:
     cpdef quat flp(self)
     cpdef quat scl(self,float s)
     cpdef quat cnj(self)
+    cpdef quat inv(self)
+    cpdef quat add(self,quat o)
+    cpdef quat sub(self,quat o)
+    cpdef quat mul(self,quat o)
     cpdef quat rot(self,quat o)
+    cpdef float dot(self,quat o)
+    cpdef quat slerp(self,quat o,float ds)
 
 
 

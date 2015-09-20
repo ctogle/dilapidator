@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 
 import unittest,numpy,math
 
+import pdb
+
 #python3 -m unittest discover -v ./ "*tests.py"
 
 class test_quat(unittest.TestCase):
@@ -118,8 +120,38 @@ class test_quat(unittest.TestCase):
         self.assertTrue(q1.cnj() is q1)
         self.assertFalse(q2.cp().cnj() == q2)
         self.assertFalse(q3.cnj() == q4)
+               
+    #def test_inv(self):
+    #def test_add(self):
+    #def test_sub(self):
 
-    #def test_rot(self):pass
+    def test_mul(self):
+        a1,v1 = dpr.PI4,vec3(0,0,1)
+        a2,v2 = dpr.threePI4,vec3(0,0,1)
+        q1,q2 = quat(1,0,0,0).av(a1,v1),quat(1,1,1,0).av(a2,v1)
+        q3 = quat(0,1,0,0).av(a1+a2,v2)
+        self.assertTrue(q1.mul(q2) == q3)
+        self.assertFalse(q1.mul(q2) is q1)
+
+    def test_rot(self):
+        a1,v1 = dpr.PI4,vec3(0,0,1)
+        a2,v2 = dpr.PI2,vec3(0,0,1)
+        q1,q2 = quat(1,0,0,0).av(a1,v1),quat(1,1,1,0).av(a1,v1)
+        q3 = quat(0,1,0,0).av(a2,v2)
+        self.assertTrue(q1.rot(q2) == q3)
+        self.assertTrue(q1.rot(q2) is q1)
+
+    def test_dot(self):
+        a1,v1 = dpr.PI4,vec3(0,0,1)
+        a2,v2 = dpr.PI2,vec3(0,1,0)
+        q1,q2 = quat(1,0,0,0).av(a1,v1),quat(1,1,1,0).av(a1,v1)
+        q3 = quat(0,1,0,0).av(a2,v2)
+        q4 = quat(0,1,0,0).av(0,v1)
+        self.assertTrue(dpr.isnear(q1.dot(q2),q1.mag2()))
+        self.assertFalse(dpr.isnear(q1.dot(q3),0))
+        self.assertTrue(dpr.isnear(q3.dot(q4),q3.w))
+
+    #def test_slerp(self):
 
 if __name__ == '__main__':
     unittest.main()

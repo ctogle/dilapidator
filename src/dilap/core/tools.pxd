@@ -4,6 +4,8 @@ cimport dilap.core.quaternion as dpq
 cdef float epsilon_c
 cdef float epsilonsq_c
 
+cdef float maxfloat_c
+
 cdef bint isnear_c(float a,float b)
 cdef float near_c(float a,float b)
 cdef bint cyclic_permutation_c(seq1,seq2)

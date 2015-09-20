@@ -9,6 +9,8 @@ core_modules = []
 ext_modules = [
     Extension('dilap.geometry.vec3'        ,['dilap/geometry/vec3.pyx',    'dilap/geometry/vec3.pxd']), 
     Extension('dilap.geometry.quat'        ,['dilap/geometry/quat.pyx',    'dilap/geometry/quat.pxd']), 
+    Extension('dilap.geometry.ray3'        ,['dilap/geometry/ray3.pyx',    'dilap/geometry/ray3.pxd']), 
+    Extension('dilap.geometry.tform'       ,['dilap/geometry/tform.pyx',   'dilap/geometry/tform.pxd']), 
     Extension('dilap.geometry.pointset'    ,['dilap/geometry/pointset.pyx','dilap/geometry/pointset.pxd']), 
 
     Extension('dilap.core.vector'        ,['dilap/core/vector.pyx','dilap/core/vector.pxd']), 

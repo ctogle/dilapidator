@@ -17,6 +17,8 @@ stuff = 'hi'
 
 
 
+__doc__ = '''dilapidator\'s implementation of a pointset'''
+# dilapidators implementation of a pointset
 cdef class pointset:
 
     ###########################################################################

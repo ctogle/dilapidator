@@ -57,7 +57,8 @@ def plot_points(points,ax = None,ms = None,marker = None):
 def plot_edges_xy(points,ax = None,mk = None,lw = 1.0,center = False):
     if ax is None:ax = plot_axes_xy()
     if mk is None:mk = '+'
-    pts = [p.to_tuple() for p in points]
+    #pts = [p.to_tuple() for p in points]
+    pts = [p.__iter__() for p in points]
     xs,ys,zs = zip(*pts)
     ax.plot(xs,ys,marker = mk,lw = lw)
     if center:
@@ -68,7 +69,8 @@ def plot_edges_xy(points,ax = None,mk = None,lw = 1.0,center = False):
 
 def plot_edges(points,ax = None,lw = 1.0,center = False):
     if ax is None:ax = plot_axes()
-    pts = [p.to_tuple() for p in points]
+    #pts = [p.to_tuple() for p in points]
+    pts = [p.__iter__() for p in points]
     xs,ys,zs = zip(*pts)
     ax.plot(xs,ys,zs,marker = '+',lw = lw)
     if center:
@@ -130,6 +132,16 @@ def plot_circle_xy(c,r,ax = None,center = False):
 def plot_circle(c,r,ax = None,center = False):
     circ = dpv.translate_coords(dpr.point_ring(r,32),c)
     ax = plot_polygon(circ,ax,center)
+    return ax
+
+def plot_ray_xy(r,ax = None):
+    ax = plot_point_xy(r.o,ax,marker = 's')
+    ax = plot_edges_xy((r.o,r.o.cp().trn(r.d.cp().scl(100))),ax,lw = 2.0)
+    return ax
+
+def plot_ray(r,ax = None):
+    ax = plot_point(r.o,ax,marker = 's')
+    ax = plot_edges((r.o,r.o.cp().trn(r.d.cp().scl(100))),ax,lw = 2.0)
     return ax
 
 ###############################################################################

@@ -5,9 +5,6 @@ cimport dilap.core.tools as dpr
 
 from dilap.geometry.quat cimport quat
 
-#cimport dilap.core.quaternion as dpq
-#from dilap.core.quaternion cimport quaternion as quat
-
 from libc.math cimport sqrt
 from libc.math cimport cos
 from libc.math cimport sin
@@ -28,6 +25,7 @@ stuff = 'hi'
 
 
 
+__doc__ = '''dilapidator\'s implementation of a vector in R3'''
 # dilapidators implementation of a vector in R3
 cdef class vec3:
 
@@ -39,8 +37,9 @@ cdef class vec3:
     def __iter__(self):yield self.x;yield self.y;yield self.z
     def __add__(self,o):return vec3(self.x+o.x,self.y+o.y,self.z+o.z)
     def __sub__(self,o):return vec3(self.x-o.x,self.y-o.y,self.z-o.z)
-    def __mul__(self,o):return vec3(self.x*o.x,self.y*o.y,self.z*o.z)
+    def __mul__(self,o):return self.cp().mul(o)
     def __is_equal(self,o):return self.isnear(o)
+    # could use <,> for lexicographic ordering?
     def __richcmp__(x,y,op):
         if op == 2:return x.__is_equal(y)
         else:assert False
@@ -111,8 +110,15 @@ cdef class vec3:
     # project into a plane and return self
     cdef vec3 prj_c(self,vec3 r,vec3 n):
         cdef float d = (self.x-r.x)*n.x+(self.y-r.y)*n.y+(self.z-r.z)*n.z
-        cdef vec3 pj = n.cp().scl(-d)
+        cdef vec3 pj = n.cp_c().scl_c(-d)
         return self.trn_c(pj)
+
+    # 1-1 multiplication by vec3 o
+    cdef vec3 mul_c(self,vec3 o):
+        #cdef vec3 n = vec3(self.x*o.x,self.y*o.y,self.z*o.z)
+        #return n
+        self.x *= o.x;self.y *= o.y;self.z *= o.z
+        return self
 
     # is vec3 o within an open ball of raidus e centered at self
     cdef bint inneighborhood_c(self,vec3 o,float e):
@@ -257,10 +263,10 @@ cdef class vec3:
 
     # return a vector at the midpoint between self and vec3 o
     cdef vec3 mid_c(self,vec3 o):
-        return self.lterp_c(o,0.5)
+        return self.lerp_c(o,0.5)
 
     # linearly interpolate between self and vec3 o proportionally to ds
-    cdef vec3 lterp_c(self,vec3 o,float ds):
+    cdef vec3 lerp_c(self,vec3 o,float ds):
         cdef float dx = self.x + (o.x - self.x)*ds
         cdef float dy = self.y + (o.y - self.y)*ds
         cdef float dz = self.z + (o.z - self.z)*ds
@@ -317,6 +323,11 @@ cdef class vec3:
     cpdef vec3 prj(self,vec3 r,vec3 n):
         '''project this point into a plane'''
         return self.prj_c(r,n)
+
+    # 1-1 multiplication by vec3 o
+    cpdef vec3 mul(self,vec3 o):
+        '''1-1 multiplication by another vector'''
+        return self.mul_c(o)
 
     # is vec3 o within an open ball of raidus e centered at self
     cpdef bint inneighborhood(self,vec3 o,float e):
@@ -426,9 +437,9 @@ cdef class vec3:
         return self.mid_c(o)
 
     # linearly interpolate between self and vec3 o proportionally to ds
-    cpdef vec3 lterp(self,vec3 o,float ds):
+    cpdef vec3 lerp(self,vec3 o,float ds):
         '''create a new point linearly interpolated between this point and another'''
-        return self.lterp_c(o,ds)
+        return self.lerp_c(o,ds)
 
     ###########################################################################
 

@@ -10,6 +10,8 @@ from libc.math cimport sqrt
 from libc.math cimport cos
 from libc.math cimport sin
 from libc.math cimport tan
+from libc.math cimport acos
+from libc.math cimport asin
 from libc.math cimport hypot
 import numpy as np
 
@@ -24,6 +26,7 @@ stuff = 'hi'
 
 
 
+__doc__ = '''dilapidator\'s implementation of a quaternion in R3'''
 # dilapidators implementation of a quaternion in R3
 cdef class quat:
 
@@ -33,22 +36,9 @@ cdef class quat:
 
     def __str__(self):return 'quat:'+str(tuple(self))
     def __iter__(self):yield self.w;yield self.x;yield self.y;yield self.z
-
-    # should return a new quat representing rot by self and then o
-    #def __add__(self,o):return vec3(self.x+o.x,self.y+o.y,self.z+o.z)
-
-    # should return a new quat representing rot by self and then o-inv
-    #def __sub__(self,o):return vec3(self.x-o.x,self.y-o.y,self.z-o.z)
-
-    # should return a new quat representing this one rotated by o
-    #def __mul__(self,o):return vec3(self.x*o.x,self.y*o.y,self.z*o.z)
-    #cpdef quaternion multiply(self, quaternion q):
-    #    self.w = self.w*q.w - (self.x*q.x + self.y*q.y + self.z*q.z)
-    #    self.x = self.w*q.x + q.w*self.x + (self.y*q.z - self.z*q.y)
-    #    self.y = self.w*q.y + q.w*self.y + (self.z*q.x - self.x*q.z)
-    #    self.z = self.w*q.z + q.w*self.z + (self.x*q.y - self.y*q.x)
-    #    return self
-
+    def __mul__(self,o):return self.mul_c(o)
+    def __add__(self,o):return self.add_c(o)
+    def __sub__(self,o):return self.sub_c(o)
     def __is_equal(self,o):return self.isnear(o)
     def __richcmp__(x,y,op):
         if op == 2:return x.__is_equal(y)
@@ -142,23 +132,67 @@ cdef class quat:
         self.z *= -1.0
         return self
 
+    # compute the inverse of self and return 
+    cdef quat inv_c(self):
+        cdef m = self.mag2_c()
+        cdef quat n = self.cp_().cnj_c().scl_c(1/m)
+        return n
+
+    # given quat o, return self + o
+    cdef quat add_c(self,quat o):
+        cdef quat n = quat(self.w+o.w,self.x+o.x,self.y+o.y,self.z+o.z)
+        return n
+
+    # given quat o, return self - o
+    cdef quat sub_c(self,quat o):
+        cdef quat n = quat(self.w-o.w,self.x-o.x,self.y-o.y,self.z-o.z)
+        return n
+
+    # given quat o, rotate self so that self represents
+    # a rotation by self and then q (q * self)
+    cdef quat mul_c(self,quat o):
+        cdef float nw = o.w*self.w - o.x*self.x - o.y*self.y - o.z*self.z
+        cdef float nx = o.w*self.x + o.x*self.w + o.y*self.z - o.z*self.y
+        cdef float ny = o.w*self.y - o.x*self.z + o.y*self.w + o.z*self.x
+        cdef float nz = o.w*self.z + o.x*self.y - o.y*self.x + o.z*self.w
+        if dpr.isnear_c(self.mag_c(),0):nw,nx,ny,nz = o.__iter__()
+        cdef quat n = quat(nw,nx,ny,nz)
+        return n
+
     # given quat o, rotate self so that self represents
     # a rotation by self and then q (q * self)
     cdef quat rot_c(self,quat o):
-        print('MUST IMPLEMENT QUAT ROT')
-        raise NotImplemented
-        '''#
-        cdef rotw = q.w*self.w - q.x*self.x - q.y*self.y - q.z*self.z
-        cdef rotx = q.w*self.x + q.x*self.w + q.y*self.z - q.z*self.y
-        cdef roty = q.w*self.y - q.x*self.z + q.y*self.w + q.z*self.x
-        cdef rotz = q.w*self.z + q.x*self.y - q.y*self.x + q.z*self.w
-        if self.magnitude() < 0.1:rotw,rotx,roty,rotz = q.to_tuple()
-        self.w = rotw
-        self.x = rotx
-        self.y = roty
-        self.z = rotz
-        '''#
+        cdef quat qres = self.mul_c(o)
+        self.w,self.x,self.y,self.z = qres.__iter__()
         return self
+
+    # return the dot product of self and quat o
+    cdef float dot_c(self,quat o):
+        return self.w*o.w + self.x*o.x + self.y*o.y + self.z*o.z
+
+    # spherically linearly interpolate between 
+    # self and quat o proportionally to ds
+    cdef quat slerp_c(self,quat o,float ds):
+        cdef float hcosth = self.dot_c(o)
+        # will need to flip result direction if hcosth < 0????
+        if dpr.isnear_c(abs(hcosth),1.0):return self.cp_c()
+        cdef float hth    = acos(hcosth)
+        cdef float hsinth = sqrt(1.0 - hcosth*hcosth)
+        cdef float nw,nx,ny,nz,a,b
+        if dpr.isnear_c(hsinth,0): 
+            nw = (self.w*0.5 + o.w*0.5)
+            nx = (self.x*0.5 + o.x*0.5)
+            ny = (self.y*0.5 + o.y*0.5)
+            nz = (self.z*0.5 + o.z*0.5)
+        else:
+            a = sin((1-ds)*hth)/hsinth
+            b = sin((  ds)*hth)/hsinth
+            nw = (self.w*a + o.w*b)
+            nx = (self.x*a + o.x*b)
+            ny = (self.y*a + o.y*b)
+            nz = (self.z*a + o.z*b)
+        cdef quat n = quat(nw,nx,ny,nz)
+        return n
 
     ###########################################################################
 
@@ -218,11 +252,43 @@ cdef class quat:
         '''conjugate this quaternion'''
         return self.cnj_c()
 
+    # compute the inverse of self and return 
+    cpdef quat inv(self):
+        '''compute the inverse of this quaternion'''
+        return self.inv_c()
+
+    # given quat o, return self + o
+    cpdef quat add(self,quat o):
+        '''compute the addition of this quaternion and another'''
+        return self.add_c(o)
+
+    # given quat o, return self - o
+    cpdef quat sub(self,quat o):
+        '''compute the subtraction of this quaternion and another'''
+        return self.sub_c(o)
+
+    # given quat o, rotate self so that self represents
+    # a rotation by self and then q (q * self)
+    cpdef quat mul(self,quat o):
+        '''rotate this quaternion by another quaternion'''
+        return self.mul_c(o)
+
     # given quat o, rotate self so that self represents
     # a rotation by self and then q (q * self)
     cpdef quat rot(self,quat o):
         '''rotate this quaternion by another quaternion'''
         return self.rot_c(o)
+
+    # return the dot product of self and quat o
+    cpdef float dot(self,quat o):
+        '''compute the dot product of this quaternion and another'''
+        return self.dot_c(o)
+
+    # spherically linearly interpolate between 
+    # self and quat o proportionally to ds
+    cpdef quat slerp(self,quat o,float ds):
+        '''create a new quat interpolated between this quat and another'''
+        return self.slerp_c(o,ds)
 
     ###########################################################################
 

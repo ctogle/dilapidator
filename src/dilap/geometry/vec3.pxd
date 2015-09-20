@@ -29,6 +29,7 @@ cdef class vec3:
     cdef float dot_c(self,vec3 o)
     cdef vec3 crs_c(self,vec3 o)
     cdef vec3 prj_c(self,vec3 r,vec3 n)
+    cdef vec3 mul_c(self,vec3 o)
     cdef bint inneighborhood_c(self,vec3 o,float e)
     cdef bint isnear_c(self,vec3 o)
     cdef bint isnearxy_c(self,vec3 o)
@@ -50,7 +51,7 @@ cdef class vec3:
     cdef vec3 flp_c(self)
     cdef vec3 tov_c(self,vec3 o)
     cdef vec3 mid_c(self,vec3 o)
-    cdef vec3 lterp_c(self,vec3 o,float ds)
+    cdef vec3 lerp_c(self,vec3 o,float ds)
 
     cpdef vec3 cp(self)
     cpdef vec3 cpxy(self)
@@ -61,6 +62,7 @@ cdef class vec3:
     cpdef float dot(self,vec3 o)
     cpdef vec3 crs(self,vec3 o)
     cpdef vec3 prj(self,vec3 r,vec3 n)
+    cpdef vec3 mul(self,vec3 o)
     cpdef bint inneighborhood(self,vec3 o,float e)
     cpdef bint isnear(self,vec3 o)
     cpdef bint isnearxy(self,vec3 o)
@@ -82,7 +84,7 @@ cdef class vec3:
     cpdef vec3 flp(self)
     cpdef vec3 tov(self,vec3 o)
     cpdef vec3 mid(self,vec3 o)
-    cpdef vec3 lterp(self,vec3 o,float ds)
+    cpdef vec3 lerp(self,vec3 o,float ds)
 
 # functions to quickly generate R3 basis vectors and their flips
 cdef vec3 x_c()

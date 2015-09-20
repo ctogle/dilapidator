@@ -11,6 +11,16 @@ import matplotlib.pyplot as plt
 
 import pdb
 
+
+
+'''
+could use an lsystem to generate the topology of a tree and use 
+some traversing function to place the branches in a properly 
+distributed manner
+'''
+
+
+
 # a plant combines an lsystem with a tetrahedralization
 # to represent an organic object such as a tree
 class plant(db.base):

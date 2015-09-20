@@ -9,30 +9,17 @@ import numpy
 
 
 def test():
-    one = v3.vec3(1,1,0)
-    two = dpv.vector(1,1,0)
-    a = dpr.PI2
-    q = dpq.q_from_av(a,dpv.vector(1,0,0))
+    v3_1 = v3.vec3(1,1,1)
+    v3_2 = v3.vec3(10,8,6)
+
+    dpv_1 = dpv.vector(1,1,1)
+    dpv_2 = dpv.vector(10,8,6)
 
     for x in range(100000000):
-        #one = (1,1,0)
-        #one = v3.vec3(1,1,0)
-        #one = numpy.zeros((3),dtype = numpy.float)
-        #q = dpq.q_from_av(a,dpv.vector(1,0,0))
-        #one.xrot(a)
-        #one.qrot(q)
-        two.rotate(q)
+        #three = v3_1.crs(v3_2)
+        three = dpv.cross(dpv_1,dpv_2)
 
-def test2():
-    x,y = 10,13
-
-    for z in range(100000000):
-        #w = x-y
-        #w2 = w*w
-
-        w = abs(x-y)
-
-test2()
+test()
 
 
 

@@ -14,14 +14,14 @@ import unittest,numpy,math
 class test_pointset(unittest.TestCase):
 
     def test_gpscp(self):pass
-    def test_gps(self):pass
-    def test_ap(self):pass
-    def test_aps(self):pass
-    def test_np(self):pass
-    def test_nps(self):pass
-    def test_fp(self):pass
-    def test_fps(self):pass
-    def test_disjoint(self):pass
+    #def test_gps(self):pass
+    #def test_ap(self):pass
+    #def test_aps(self):pass
+    #def test_np(self):pass
+    #def test_nps(self):pass
+    #def test_fp(self):pass
+    #def test_fps(self):pass
+    #def test_disjoint(self):pass
 
 if __name__ == '__main__':
     unittest.main()

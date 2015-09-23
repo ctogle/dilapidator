@@ -208,6 +208,7 @@ cdef class vec3:
 
     # rotate by a quaternion q and return self
     cdef vec3 rot_c(self,quat q):
+        if dpr.isnear_c(q.w,0):return self
         cdef float row1x = q.w**2 + q.x**2 - q.y**2 - q.z**2
         cdef float row1y = 2*(q.x*q.y - q.w*q.z)
         cdef float row1z = 2*(q.x*q.z + q.w*q.y)
@@ -217,36 +218,40 @@ cdef class vec3:
         cdef float row3x = 2*(q.x*q.z - q.w*q.y)
         cdef float row3y = 2*(q.y*q.z + q.w*q.x)
         cdef float row3z = q.w**2 - q.x**2 - q.y**2 + q.z**2
-        self.x = self.x*row1x + self.y*row1y + self.z*row1z
-        self.y = self.x*row2x + self.y*row2y + self.z*row2z
-        self.z = self.x*row3x + self.y*row3y + self.z*row3z
+        cdef float nx = self.x*row1x + self.y*row1y + self.z*row1z
+        cdef float ny = self.x*row2x + self.y*row2y + self.z*row2z
+        cdef float nz = self.x*row3x + self.y*row3y + self.z*row3z
+        self.x = nx;self.y = ny;self.z = nz
         return self
 
     # rotate around the x axis by an angle a and return self
-    # NOTE: this is slower than using qrot with the appropriate quaternion
+    # NOTE: this is slower than using rot with the appropriate quaternion
     cdef vec3 xrot_c(self,float a):
         cdef float ca = cos(a)
         cdef float sa = sin(a)
-        self.y = ca*self.y - sa*self.z
-        self.z = sa*self.y + ca*self.z
+        cdef float ny = ca*self.y - sa*self.z
+        cdef float nz = sa*self.y + ca*self.z
+        self.y = ny;self.z = nz
         return self
 
     # rotate around the y axis by an angle a and return self
-    # NOTE: this is slower than using qrot with the appropriate quaternion
+    # NOTE: this is slower than using rot with the appropriate quaternion
     cdef vec3 yrot_c(self,float a):
         cdef float ca = cos(a)
         cdef float sa = sin(a)
-        self.x = ca*self.x - sa*self.z
-        self.z = sa*self.x + ca*self.z
+        cdef float nx =  ca*self.x + sa*self.z
+        cdef float nz = -sa*self.x + ca*self.z
+        self.x = nx;self.z = nz
         return self
 
     # rotate around the z axis by an angle a and return self
-    # NOTE: this is slower than using qrot with the appropriate quaternion
+    # NOTE: this is slower than using rot with the appropriate quaternion
     cdef vec3 zrot_c(self,float a):
         cdef float ca = cos(a)
         cdef float sa = sin(a)
-        self.x = ca*self.x - sa*self.y
-        self.y = sa*self.x + ca*self.y
+        cdef float nx = ca*self.x - sa*self.y
+        cdef float ny = sa*self.x + ca*self.y
+        self.x = nx;self.y = ny
         return self
 
     # flip the direction of and return self
@@ -402,7 +407,7 @@ cdef class vec3:
     # rotate by a quaternion q and return self
     cpdef vec3 rot(self,quat q):
         '''rotate by a quaternion and return self'''
-        return self.qrot_c(q)
+        return self.rot_c(q)
 
     # rotate around the x axis by an angle a and return self
     cpdef vec3 xrot(self,float a):
@@ -410,13 +415,13 @@ cdef class vec3:
         return self.xrot_c(a)
 
     # rotate around the y axis by an angle a and return self
-    # NOTE: this is slower than using qrot with the appropriate quaternion
+    # NOTE: this is slower than using rot with the appropriate quaternion
     cpdef vec3 yrot(self,float a):
         '''rotate around the y axis by an angle and return self'''
         return self.yrot_c(a)
 
     # rotate around the z axis by an angle a and return self
-    # NOTE: this is slower than using qrot with the appropriate quaternion
+    # NOTE: this is slower than using rot with the appropriate quaternion
     cpdef vec3 zrot(self,float a):
         '''rotate around the z axis by an angle and return self'''
         return self.zrot_c(a)

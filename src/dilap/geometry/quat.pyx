@@ -36,9 +36,9 @@ cdef class quat:
 
     def __str__(self):return 'quat:'+str(tuple(self))
     def __iter__(self):yield self.w;yield self.x;yield self.y;yield self.z
-    def __mul__(self,o):return self.mul_c(o)
-    def __add__(self,o):return self.add_c(o)
-    def __sub__(self,o):return self.sub_c(o)
+    def __mul__(self,o):return self.mul(o)
+    def __add__(self,o):return self.add(o)
+    def __sub__(self,o):return self.sub(o)
     def __is_equal(self,o):return self.isnear(o)
     def __richcmp__(x,y,op):
         if op == 2:return x.__is_equal(y)
@@ -151,11 +151,14 @@ cdef class quat:
     # given quat o, rotate self so that self represents
     # a rotation by self and then q (q * self)
     cdef quat mul_c(self,quat o):
-        cdef float nw = o.w*self.w - o.x*self.x - o.y*self.y - o.z*self.z
-        cdef float nx = o.w*self.x + o.x*self.w + o.y*self.z - o.z*self.y
-        cdef float ny = o.w*self.y - o.x*self.z + o.y*self.w + o.z*self.x
-        cdef float nz = o.w*self.z + o.x*self.y - o.y*self.x + o.z*self.w
-        if dpr.isnear_c(self.mag_c(),0):nw,nx,ny,nz = o.__iter__()
+        cdef float nw,nx,ny,nz
+        if dpr.isnear_c(self.w,0):nw,nx,ny,nz = o.__iter__()
+        elif dpr.isnear_c(o.w,0):nw,nx,ny,nz = self.__iter__()
+        else:
+            nw = o.w*self.w - o.x*self.x - o.y*self.y - o.z*self.z
+            nx = o.w*self.x + o.x*self.w + o.y*self.z - o.z*self.y
+            ny = o.w*self.y - o.x*self.z + o.y*self.w + o.z*self.x
+            nz = o.w*self.z + o.x*self.y - o.y*self.x + o.z*self.w
         cdef quat n = quat(nw,nx,ny,nz)
         return n
 

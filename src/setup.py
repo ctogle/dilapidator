@@ -35,14 +35,14 @@ for rpath in os.walk(resourcesrcd):
 
 pkgs = [
     'dilap.geometry',
+    'dilap.topology',
+    'dilap.modeling',
 
     'dilap',
     'dilap.io',
     'dilap.core',
     'dilap.graph',
     'dilap.mesh',
-    'dilap.radial_edge',
-    'dilap.topology',
     'dilap.primitive',
     'dilap.generate',
     'dilap.degenerate',

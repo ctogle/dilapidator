@@ -1,44 +1,71 @@
-from dilap.geometry.vec3 import vec3 
-
 import dilap.core.tools as dpr
+
+from dilap.geometry.vec3 import vec3 
+from dilap.geometry.quat import quat
 
 import dilap.mesh.tools as dtl
 import matplotlib.pyplot as plt
 
-import unittest,numpy,math
+import unittest,numpy,math,random
 
 #python3 -m unittest discover -v ./ "*tests.py"
 
 class test_vec3(unittest.TestCase):
 
+    # given a vec3, an op, and a res, verify that the op
+    # does not return an independent object, and that the result is correct
+    # NOTE: this is for methods which return vec3 objects
+    def same(self,op,one,res,*args,**kwargs):
+        self.assertTrue(one is one)
+        opres = one.__getattribute__(op)(*args,**kwargs)
+        self.assertTrue(opres is one)
+        self.assertEqual(one,res)
+
+    # given a vec3, an op, and a res, verify that the op
+    # does return an independent object, and that the result is correct
+    # NOTE: this is for methods which return vec3 objects
+    def diff(self,op,one,res,*args,**kwargs):
+        self.assertTrue(one is one)
+        opres = one.__getattribute__(op)(*args,**kwargs)
+        self.assertFalse(opres is one)
+        self.assertEqual(opres,res)
+
+    # given a vec3, an op, and a res, 
+    # verify that the op does return the correct result
+    # verify the op does not modify the input vector
+    def comp(self,op,one,res,*args,**kwargs):
+        cp = one.cp()
+        opres = one.__getattribute__(op)(*args,**kwargs)
+        self.assertTrue(dpr.isnear(opres,res))
+        self.assertEqual(one,cp)
+
+    def setUp(self):
+        self.origin = vec3(0,0,0)
+        self.one = vec3(1,1,1)
+        self.x = vec3(1,0,0)
+        self.y = vec3(0,1,0)
+        self.z = vec3(0,0,1)
+        self.basis = [self.x,self.y,self.z]
+        rd = random.random
+        self.r1 = vec3(rd()*10,rd()*10,rd()*10)
+        self.r2 = vec3(rd()*10,rd()*10,rd()*10)
+        self.r3 = vec3(rd()*10,rd()*10,rd()*10)
+        self.r4 = vec3(rd()*10,rd()*10,rd()*10)
+        self.rds = [self.r1,self.r2,self.r3,self.r4]
+        self.each = [self.origin,self.one]+self.basis+self.rds
+
     def test_cp(self):
-        v1,v2 = vec3(1,1,0),vec3(1,2,0)
-        self.assertTrue(v1 is v1)
-        self.assertFalse(v1 is v1.cp())
-        self.assertTrue(v1 == v1.cp())
-        self.assertFalse(v1 is v2)
-        self.assertFalse(v1 is v2.cp())
-        self.assertFalse(v1 == v2.cp())
+        for e in self.each:self.diff('cp',e,e)
 
     def test_cpxy(self):
-        v1,v2 = vec3(1,2,2),vec3(1,2,5)
-        self.assertTrue(v1 is v1)
-        self.assertFalse(v1 is v1.cpxy())
-        self.assertFalse(v1 == v1.cpxy())
-        self.assertTrue(v1.ztrn(-2) == v1.cpxy())
-        self.assertFalse(v1 is v2)
-        self.assertTrue(v1.cpxy() == v2.cpxy())
+        for e in self.each:self.diff('cpxy',e,vec3(e.x,e.y,0))
 
     def test_d(self):
-        v1,v2,v3,v4 = vec3(1,1,0),vec3(1,2,0),vec3(1,2,1),vec3(1,1,1)
-        self.assertEqual(dpr.isnear(v1.d(v1),0.0000000),1)
-        self.assertEqual(dpr.isnear(v1.d(v2),1.0000000),1)
-        self.assertEqual(dpr.isnear(v1.d(v2), v2.d(v1)),1)
-        self.assertEqual(dpr.isnear(v1.d(v2),1.0100000),0)
-        self.assertEqual(dpr.isnear(v1.d(v3),1.4142356),1)
-        self.assertEqual(dpr.isnear(v1.d(v3),1.0100000),0)
-        self.assertEqual(dpr.isnear(v1.d(v4),1.0000000),1)
-        self.assertEqual(dpr.isnear(v1.d(v4),1.0100000),0)
+        for e in self.each:self.comp('d',e,e.mag(),self.origin)
+        for e in self.each:self.comp('d',e,0,e)
+        self.comp('d',self.x,math.sqrt(2),self.y)
+        self.comp('d',self.y,math.sqrt(2),self.z)
+        self.comp('d',self.z,math.sqrt(2),self.x)
 
     def test_dxy(self):
         v1,v2,v3,v4 = vec3(1,1,0),vec3(1,1,2),vec3(1,2,1),vec3(1,2,4)
@@ -176,10 +203,32 @@ class test_vec3(unittest.TestCase):
         self.assertFalse(v2.nrm() is v3.nrm())
         self.assertFalse(v2.nrm() == v1.nrm())
 
-    #def test_trn(self):
-    #def test_xtrn(self):
-    #def test_ytrn(self):
-    #def test_ztrn(self):
+    def test_trn(self):
+        v1,v2 = vec3(-1,2,5),vec3(-12,24,60)
+        self.assertEqual(v1.cp().trn(v2),vec3(-13,26,65))
+        self.assertEqual(v2.cp().trn(v1),vec3(-13,26,65))
+        self.assertTrue(v1.trn(v2) is v1)
+
+    def test_xtrn(self):
+        v1 = vec3(-1,2,5)
+        self.assertEqual(v1.cp().xtrn(2),vec3(1,2,5))
+        self.assertEqual(v1.xtrn(2),vec3(1,2,5))
+        self.assertEqual(v1.xtrn(-5),vec3(-4,2,5))
+        self.assertTrue(v1.xtrn(2) is v1)
+
+    def test_ytrn(self):
+        v1 = vec3(-1,2,5)
+        self.assertEqual(v1.cp().ytrn(2),vec3(-1,4,5))
+        self.assertEqual(v1.ytrn(2),vec3(-1,4,5))
+        self.assertEqual(v1.ytrn(-5),vec3(-1,-1,5))
+        self.assertTrue(v1.ytrn(2) is v1)
+
+    def test_ztrn(self):
+        v1 = vec3(-1,2,5)
+        self.assertEqual(v1.cp().ztrn(2),vec3(-1,2,7))
+        self.assertEqual(v1.ztrn(2),vec3(-1,2,7))
+        self.assertEqual(v1.ztrn(-5),vec3(-1,2,2))
+        self.assertTrue(v1.ztrn(2) is v1)
 
     def test_scl(self):
         v1,v2 = vec3(-1,2,5),vec3(-12,24,60)
@@ -188,21 +237,48 @@ class test_vec3(unittest.TestCase):
         self.assertFalse(v1.scl(12) is v2)
         self.assertTrue(v1.scl(12) == v1)
 
-    #def test_xscl(self):
-    #def test_yscl(self):
-    #def test_zscl(self):
+    def test_xscl(self):
+        self.same('xscl',self.one,vec3(4,1,1),4)
+        self.same('xscl',self.origin,vec3(0,0,0),4)
+        self.same('xscl',self.z,vec3(0,0,1),4)
 
-    #def test_rot(self):
-    #    v1,v2 = vec3(0,2,0),vec3(-1,0,1)
+    def test_yscl(self):
+        self.same('yscl',self.one,vec3(1,4,1),4)
+        self.same('yscl',self.origin,vec3(0,0,0),4)
+        self.same('yscl',self.z,vec3(0,0,1),4)
 
-    #def test_xrot(self):
-    #    v1,v2 = vec3(0,2,0),vec3(-1,0,1)
+    def test_zscl(self):
+        self.same('zscl',self.one,vec3(1,1,4),4)
+        self.same('zscl',self.origin,vec3(0,0,0),4)
+        self.same('zscl',self.z,vec3(0,0,4),4)
 
-    #def test_yrot(self):
-    #    v1,v2 = vec3(0,2,0),vec3(-1,0,1)
+    def test_rot(self):
+        v1,v2 = vec3(0,2,0),vec3(-2,0,0)
+        q1 = quat(0,0,0,0).av(dpr.PI2,vec3(0,0,1))
+        q2 = quat(0,0,0,0).av(0,vec3(0,0,1))
+        self.assertEqual(v1.rot(q1),v2)
+        self.assertEqual(v1.cp().rot(q2),v1)
 
-    #def test_zrot(self):
-    #    v1,v2 = vec3(0,2,0),vec3(-1,0,1)
+    def test_xrot(self):
+        self.same('xrot',self.origin,vec3(0,0,0),dpr.PI2)
+        self.same('xrot',self.one,vec3(1,-1,1),dpr.PI2)
+        self.same('xrot',self.x,vec3(1,0,0),dpr.PI2)
+        self.same('xrot',self.y,vec3(0,0,1),dpr.PI2)
+        self.same('xrot',self.z,vec3(0,-1,0),dpr.PI2)
+
+    def test_yrot(self):
+        self.same('yrot',self.origin,vec3(0,0,0),dpr.PI2)
+        self.same('yrot',self.one,vec3(1,1,-1),dpr.PI2)
+        self.same('yrot',self.x,vec3(0,0,-1),dpr.PI2)
+        self.same('yrot',self.y,vec3(0,1,0),dpr.PI2)
+        self.same('yrot',self.z,vec3(1,0,0),dpr.PI2)
+
+    def test_zrot(self):
+        self.same('zrot',self.origin,vec3(0,0,0),dpr.PI2)
+        self.same('zrot',self.one,vec3(-1,1,1),dpr.PI2)
+        self.same('zrot',self.x,vec3(0,1,0),dpr.PI2)
+        self.same('zrot',self.y,vec3(-1,0,0),dpr.PI2)
+        self.same('zrot',self.z,vec3(0,0,1),dpr.PI2)
 
     def test_flp(self):
         v1,v2 = vec3(-1,-2,-5),vec3(1,2,5)

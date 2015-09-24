@@ -62,7 +62,7 @@ cdef class quat:
     cdef quat av_c(self,float a,vec3 v):
         cdef float a2 = a/2.0
         cdef float sa = sin(a2)
-        cdef float vm = v.mag()
+        cdef float vm = v.mag_c()
         self.w = cos(a2)
         self.x = v.x*sa/vm
         self.y = v.y*sa/vm
@@ -110,7 +110,7 @@ cdef class quat:
     cdef quat nrm_c(self):
         cdef float m = self.mag_c()
         if m == 0.0:return self
-        else:return self.scl_c(1.0/m)
+        else:return self.uscl_c(1.0/m)
 
     # flip the direction of and return self
     cdef quat flp_c(self):
@@ -118,7 +118,7 @@ cdef class quat:
         return self
 
     # multiply each component by a scalar of and return self
-    cdef quat scl_c(self,float s):
+    cdef quat uscl_c(self,float s):
         self.w *= s
         self.x *= s
         self.y *= s
@@ -135,7 +135,7 @@ cdef class quat:
     # compute the inverse of self and return 
     cdef quat inv_c(self):
         cdef m = self.mag2_c()
-        cdef quat n = self.cp_().cnj_c().scl_c(1/m)
+        cdef quat n = self.cp_().cnj_c().uscl_c(1/m)
         return n
 
     # given quat o, return self + o
@@ -246,9 +246,9 @@ cdef class quat:
         return self.flp_c()
 
     # multiply each component by a scalar of and return self
-    cpdef quat scl(self,float s):
+    cpdef quat uscl(self,float s):
         '''multiply components of this point by a scalar'''
-        return self.scl_c(s)
+        return self.uscl_c(s)
 
     # conjugate and return self
     cpdef quat cnj(self):

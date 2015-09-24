@@ -122,4 +122,21 @@ def build_model(mod,**kwargs):
     objpath = os.path.join(world_dir,ofile)
     with open(objpath,'w') as h:h.write(orep)
 
+'''#
+# create one model as one obj file
+def build_model2(mod,**kwargs):
+    orep,ofile = obj_from_model(mod)
+    mod.reps['obj'] = orep
+    objpath = os.path.join(world_dir,ofile)
+    with open(objpath,'w') as h:h.write(orep)
+'''#
+
+
+
+
+
+
+
+
+
 

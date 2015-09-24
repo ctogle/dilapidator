@@ -16,6 +16,9 @@ import dilap.generate.lot as dlot
 #import dilap.generate.street as dstr
 import dilap.generate.continent as dct
 
+from dilap.geometry.vec3 import vec3
+import dilap.modeling.model as dmo
+
 import dilap.mesh.piecewisecomplex as pwc
 import dilap.mesh.tools as dtl
 
@@ -157,7 +160,8 @@ contextualizer = {
 
 ###############################################################################
 
-def teststage(**kwargs):
+'''#
+def lastteststage(**kwargs):
     plc1 = dtl.box(5,5,5)
     plc2 = dtl.box(5,5,5).translate(dpv.vector(2.5,2.5,2.5))
     #plc3 = pwc.union(plc1,plc2)
@@ -170,6 +174,64 @@ def teststage(**kwargs):
 
     print('build cube now')
     build(cube(10),**kwargs)
+'''#
+
+def teststage(**kwargs):
+    mod = dmo.model()
+
+    gmesh = mod.agfxmesh()
+    v1  = gmesh.avert(*mod.avert(vec3(-1,-1,-1)))
+    v2  = gmesh.avert(*mod.avert(vec3( 1,-1,-1)))
+    v3  = gmesh.avert(*mod.avert(vec3( 1, 1,-1)))
+    v4  = gmesh.avert(*mod.avert(vec3(-1, 1,-1)))
+    v5  = gmesh.avert(*mod.avert(vec3(-1,-1, 1)))
+    v6  = gmesh.avert(*mod.avert(vec3( 1,-1, 1)))
+    v7  = gmesh.avert(*mod.avert(vec3( 1, 1, 1)))
+    v8  = gmesh.avert(*mod.avert(vec3(-1, 1, 1)))
+    f1  = gmesh.aface(v1,v3,v2) 
+    f2  = gmesh.aface(v1,v4,v3) 
+    f3  = gmesh.aface(v5,v6,v7) 
+    f4  = gmesh.aface(v5,v7,v8) 
+    f5  = gmesh.aface(v1,v2,v6) 
+    f6  = gmesh.aface(v1,v6,v5) 
+    f7  = gmesh.aface(v2,v3,v7) 
+    f8  = gmesh.aface(v2,v7,v6) 
+    f9  = gmesh.aface(v3,v4,v8) 
+    f10 = gmesh.aface(v3,v8,v7) 
+    f11 = gmesh.aface(v4,v1,v5) 
+    f12 = gmesh.aface(v4,v5,v8) 
+    mod.subdiv(gmesh)
+    mod.subdiv(gmesh)
+    mod.subdiv(gmesh)
+    mod.subdiv(gmesh)
+
+    ax = dtl.plot_axes()
+    for f in gmesh.faces:
+        ps = mod.gvps(gmesh,f)
+        ax = dtl.plot_polygon(ps,ax)
+    plt.show()
+
+    print('build2 cube now')
+    build2(mod,**kwargs)
+
+# given a model, output its representation in world space
+def build2(mod,io = None):
+    if io is None:io = di.fetch_info()['exporter']
+    elif type(io) is type(''):io = iotypes[io]
+    io.build_model2(mod)
+
+
+
+
+
+###############################################################################
+
+
+
+
+
+
 
 
                                                                                   
+

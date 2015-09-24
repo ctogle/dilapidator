@@ -103,15 +103,15 @@ class test_quat(unittest.TestCase):
         self.assertTrue(q3.flp() is q3)
         self.assertTrue(q4.flp() is q4)
 
-    def test_scl(self):
+    def test_uscl(self):
         q1,q2 = quat(1,0,0,0),quat(1,1,1,0)
         q3,q4 = quat(0,2,5,11),quat(0,1,2.5,5.5)
-        self.assertTrue(q1.cp().scl(1) == q1)
-        self.assertFalse(q1.cp().scl(3) == q1)
-        self.assertTrue(q2.cp().scl(1) == q2)
-        self.assertFalse(q2.cp().scl(3) == q2)
-        self.assertTrue(q3.cp().scl(0.5) == q4)
-        self.assertTrue(q1.scl(1) is q1)
+        self.assertTrue(q1.cp().uscl(1) == q1)
+        self.assertFalse(q1.cp().uscl(3) == q1)
+        self.assertTrue(q2.cp().uscl(1) == q2)
+        self.assertFalse(q2.cp().uscl(3) == q2)
+        self.assertTrue(q3.cp().uscl(0.5) == q4)
+        self.assertTrue(q1.uscl(1) is q1)
 
     def test_cnj(self):
         q1,q2 = quat(1,0,0,0),quat(1,1,1,0)

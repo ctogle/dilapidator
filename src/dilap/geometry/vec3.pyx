@@ -37,7 +37,7 @@ cdef class vec3:
     def __iter__(self):yield self.x;yield self.y;yield self.z
     def __add__(self,o):return vec3(self.x+o.x,self.y+o.y,self.z+o.z)
     def __sub__(self,o):return vec3(self.x-o.x,self.y-o.y,self.z-o.z)
-    def __mul__(self,o):return self.cp().mul(o)
+    def __mul__(self,o):return self.cp().scl(o)
     def __is_equal(self,o):return self.isnear(o)
     # could use <,> for lexicographic ordering?
     def __richcmp__(x,y,op):
@@ -110,15 +110,8 @@ cdef class vec3:
     # project into a plane and return self
     cdef vec3 prj_c(self,vec3 r,vec3 n):
         cdef float d = (self.x-r.x)*n.x+(self.y-r.y)*n.y+(self.z-r.z)*n.z
-        cdef vec3 pj = n.cp_c().scl_c(-d)
+        cdef vec3 pj = n.cp_c().uscl_c(-d)
         return self.trn_c(pj)
-
-    # 1-1 multiplication by vec3 o
-    cdef vec3 mul_c(self,vec3 o):
-        #cdef vec3 n = vec3(self.x*o.x,self.y*o.y,self.z*o.z)
-        #return n
-        self.x *= o.x;self.y *= o.y;self.z *= o.z
-        return self
 
     # is vec3 o within an open ball of raidus e centered at self
     cdef bint inneighborhood_c(self,vec3 o,float e):
@@ -160,7 +153,7 @@ cdef class vec3:
     cdef vec3 nrm_c(self):
         cdef float m = self.mag_c()
         if m == 0.0:return self
-        else:return self.scl_c(1.0/m)
+        else:return self.uscl_c(1.0/m)
 
     # translate self by vec3 o
     cdef vec3 trn_c(self,vec3 o):
@@ -184,8 +177,13 @@ cdef class vec3:
         self.z += d
         return self
 
+    # 1-1 multiplication by vec3 o
+    cdef vec3 scl_c(self,vec3 o):
+        self.x *= o.x;self.y *= o.y;self.z *= o.z
+        return self
+
     # multiply each component by a scalar of and return self
-    cdef vec3 scl_c(self,float s):
+    cdef vec3 uscl_c(self,float s):
         self.x *= s
         self.y *= s
         self.z *= s
@@ -256,7 +254,7 @@ cdef class vec3:
 
     # flip the direction of and return self
     cdef vec3 flp_c(self):
-        return self.scl_c(-1.0)
+        return self.uscl_c(-1.0)
 
     # return a vector point from self to vec3 o
     cdef vec3 tov_c(self,vec3 o):
@@ -329,11 +327,6 @@ cdef class vec3:
         '''project this point into a plane'''
         return self.prj_c(r,n)
 
-    # 1-1 multiplication by vec3 o
-    cpdef vec3 mul(self,vec3 o):
-        '''1-1 multiplication by another vector'''
-        return self.mul_c(o)
-
     # is vec3 o within an open ball of raidus e centered at self
     cpdef bint inneighborhood(self,vec3 o,float e):
         '''determine if a point lies in an open ball centered at this point'''
@@ -384,10 +377,15 @@ cdef class vec3:
         '''translate this point in the z direction by a distance'''
         return self.ztrn_c(d)
 
+    # 1-1 multiplication by vec3 o
+    cpdef vec3 scl(self,vec3 o):
+        '''1-1 multiplication by another vector'''
+        return self.scl_c(o)
+
     # multiply each component by a scalar of and return self
-    cpdef vec3 scl(self,float s):
+    cpdef vec3 uscl(self,float s):
         '''multiply components of this point by a scalar'''
-        return self.scl_c(s)
+        return self.uscl_c(s)
 
     # scale self.x by scalar s
     cpdef vec3 xscl(self,float s):

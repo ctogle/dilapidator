@@ -40,7 +40,7 @@ class test_polygonmesh(unittest.TestCase):
 
     def test_mask(self):
         tr = dmsh.polygonmesh()
-        print('woot for polygons!')
+        print('mask woot for polygonmesh!')
 
 if __name__ == '__main__':
     unittest.main()

@@ -71,7 +71,7 @@ cdef class tform:
             np.trn_c(parent.pos)
             #nr.rot_c(parent.rot)
             nr = parent.rot*nr
-            ns.mul_c(parent.scl)
+            ns.scl_c(parent.scl)
         cdef tform n = tform(np,nr,ns)
         return n
 

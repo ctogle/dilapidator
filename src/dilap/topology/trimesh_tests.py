@@ -21,6 +21,11 @@ class test_trimesh(unittest.TestCase):
         ux = self.uset.ap(vec3(0,0,0))
         return self.mesh.avert(px,nx,ux)
 
+    def assert_counts(self,vcnt,ecnt,fcnt):
+        self.assertEqual(self.mesh.vcnt(),vcnt)
+        self.assertEqual(self.mesh.ecnt(),ecnt)
+        self.assertEqual(self.mesh.fcnt(),fcnt)
+
     def quad(self):
         self.v1 = self.avert(vec3(-1,-1,-1))
         self.v2 = self.avert(vec3( 1,-1,-1))
@@ -28,6 +33,10 @@ class test_trimesh(unittest.TestCase):
         self.v4 = self.avert(vec3(-1, 1,-1))
         self.f1 = self.mesh.aface(self.v1,self.v2,self.v3) 
         self.f2 = self.mesh.aface(self.v1,self.v3,self.v4) 
+
+    def test_quad(self):
+        self.quad()
+        self.assert_counts(4,6,2)
 
     def cube(self):
         self.v1  = self.avert(vec3(-1,-1,-1))
@@ -51,10 +60,9 @@ class test_trimesh(unittest.TestCase):
         self.f11 = self.mesh.aface(self.v4,self.v1,self.v8) 
         self.f12 = self.mesh.aface(self.v4,self.v8,self.v7) 
 
-    def assert_counts(self,vcnt,ecnt,fcnt):
-        self.assertEqual(self.mesh.vcnt(),vcnt)
-        self.assertEqual(self.mesh.ecnt(),ecnt)
-        self.assertEqual(self.mesh.fcnt(),fcnt)
+    def test_cube(self):
+        self.cube()
+        self.assert_counts(8,36,12)
 
     def setUp(self):
         self.mesh = tmsh.trimesh()
@@ -64,28 +72,9 @@ class test_trimesh(unittest.TestCase):
 
     def test_init(self):
         self.assert_counts(0,0,0)
-
-    def test_avert(self):
-        self.v1 = self.avert(vec3(-1,-1,-1))
-        self.v2 = self.avert(vec3( 1,-1,-1))
-        self.v3 = self.avert(vec3( 1, 1,-1))
-        self.v4 = self.avert(vec3(-1, 1,-1))
-        self.assert_counts(4,0,0)
-
-    #def test_rvert(self):
-    #def test_aedge(self):
-    #def test_redge(self):
-
-    def test_aface(self):
-        self.v1 = self.avert(vec3(-1,-1,-1))
-        self.v2 = self.avert(vec3( 1,-1,-1))
-        self.v3 = self.avert(vec3( 1, 1,-1))
-        self.v4 = self.avert(vec3(-1, 1,-1))
-        fx = self.mesh.aface(self.v1,self.v2,self.v3)
-        self.assert_counts(4,3,1)
-
-    #def test_rface(self):
-    #def test_sface(self):
+    # NEED A TRULY COMPRREHENSIVE SET OF MASK TESTS...
+    #def test_mask(self):
+    # NEED A TRULY COMPRREHENSIVE SET OF MASK TESTS...
 
     def test_mask_v1(self):
         self.quad()
@@ -122,14 +111,99 @@ class test_trimesh(unittest.TestCase):
 
     #def test_vonb(self):
     #def test_eonb(self):
+    #def test_alphan(self):
 
-    def test_quad(self):
+    def test_avert(self):
+        self.v1 = self.avert(vec3(-1,-1,-1))
+        self.v2 = self.avert(vec3( 1,-1,-1))
+        self.v3 = self.avert(vec3( 1, 1,-1))
+        self.v4 = self.avert(vec3(-1, 1,-1))
+        self.assert_counts(4,0,0)
+
+    #def test_rvert(self):
+    #def test_aedge(self):
+
+    def test_redge(self):
+        self.quad()
+        self.mesh.redge((0,1),True)
+        self.assert_counts(3,3,1)
+        self.assertTrue((0,2) in self.mesh.edges)
+        self.assertTrue((2,3) in self.mesh.edges)
+        self.assertTrue((3,0) in self.mesh.edges)
+
+    def test_fedge(self):
         self.quad()
         self.assert_counts(4,6,2)
+        self.mesh.fedge(0,2)
+        #call twice to confirm nonexistent edge case
+        self.mesh.fedge(0,2)
+        self.assertTrue((1,3) in self.mesh.ef_rings)
+        self.assertTrue((3,1) in self.mesh.ef_rings)
+        self.assertFalse((0,2) in self.mesh.ef_rings)
+        self.assertFalse((2,0) in self.mesh.ef_rings)
+        self.assertFalse((0,1,2) in self.mesh.fs_mats)
+        self.assertFalse((0,2,3) in self.mesh.fs_mats)
+        self.assertTrue((3,0,1) in self.mesh.fs_mats)
+        self.assertTrue((1,2,3) in self.mesh.fs_mats)
+        self.assert_counts(4,6,2)
 
-    def test_cube(self):
-        self.cube()
-        self.assert_counts(8,36,12)
+    def test_aface(self):
+        self.v1 = self.avert(vec3(-1,-1,-1))
+        self.v2 = self.avert(vec3( 1,-1,-1))
+        self.v3 = self.avert(vec3( 1, 1,-1))
+        self.v4 = self.avert(vec3(-1, 1,-1))
+        fx = self.mesh.aface(self.v1,self.v2,self.v3)
+        self.assert_counts(4,3,1)
+
+    def test_rface(self):
+        self.quad()
+        self.mesh.rface(self.mesh.faces[self.f1])
+        self.assert_counts(3,3,1)
+        self.assertFalse((1,1,1) in self.mesh.verts)
+        self.assertFalse((0,1) in self.mesh.edges)
+        self.assertFalse((1,2) in self.mesh.edges)
+        self.assertFalse((2,0) in self.mesh.edges)
+        self.assertFalse((0,1,2) in self.mesh.faces)
+        self.mesh.rface(self.mesh.faces[self.f2])
+        self.assert_counts(0,0,0)
+
+    def test_rface_only(self):
+        self.quad()
+        self.mesh.rface(self.mesh.faces[self.f1],False,False)
+        self.assert_counts(4,6,1)
+        self.assertTrue((1,1,1) in self.mesh.verts)
+        self.assertTrue((0,1) in self.mesh.edges)
+        self.assertTrue((1,2) in self.mesh.edges)
+        self.assertTrue((2,0) in self.mesh.edges)
+        self.assertFalse((0,1,2) in self.mesh.faces)
+
+    def test_rface_eonly(self):
+        self.quad()
+        self.mesh.rface(self.mesh.faces[self.f1],False,True)
+        self.assert_counts(4,3,1)
+        self.assertTrue((1,1,1) in self.mesh.verts)
+        self.assertFalse((0,1) in self.mesh.edges)
+        self.assertFalse((1,2) in self.mesh.edges)
+        self.assertFalse((2,0) in self.mesh.edges)
+        self.assertFalse((0,1,2) in self.mesh.faces)
+
+    def test_rface_vonly(self):
+        self.quad()
+        self.mesh.rface(self.mesh.faces[self.f1],True,False)
+        self.assert_counts(1,0,0)
+        self.assertTrue((3,3,3) in self.mesh.verts)
+
+    def test_sface(self):
+        self.quad()
+        sv1 = self.avert(vec3(0.5,-0.5,-1))
+        sv2 = self.avert(vec3(0.5,-0.5,-1))
+        self.assert_counts(6,6,2)
+        self.mesh.sface(sv1,self.v1,self.v2,self.v3)
+        self.assert_counts(6,12,4)
+        self.mesh.sface(sv2,self.v1,self.v3,self.v4)
+        self.assert_counts(6,18,6)
+
+    #def test_connected(self):
 
 if __name__ == '__main__':
     unittest.main()

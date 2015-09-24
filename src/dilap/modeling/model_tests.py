@@ -1,8 +1,8 @@
 import dilap.core.tools as dpr
-from dilap.geometry.vec3 import vec3
-from dilap.geometry.pointset import pointset
 
-import dilap.topology.trimesh as tmsh
+from dilap.geometry.vec3 import vec3
+
+import dilap.modeling.model as dmo
 
 import dilap.mesh.tools as dtl
 import matplotlib.pyplot as plt
@@ -13,123 +13,139 @@ import pdb
 
 #python3 -m unittest discover -v ./ "*tests.py"
 
-class test_trimesh(unittest.TestCase):
+class test_model(unittest.TestCase):
 
-    def avert(self,p):
-        px = self.pset.ap(p)
-        nx = self.nset.ap(vec3(0,0,1))
-        ux = self.uset.ap(vec3(0,0,0))
-        return self.mesh.avert(px,nx,ux)
+    def plot(self,mesh):
+        ax = dtl.plot_axes()
+        for f in mesh.faces:
+            ps = self.mod.gvps(mesh,f)
+            ax = dtl.plot_polygon(ps,ax)
+        plt.show()
 
     def quad(self):
-        self.v1 = self.avert(vec3(-1,-1,-1))
-        self.v2 = self.avert(vec3( 1,-1,-1))
-        self.v3 = self.avert(vec3( 1, 1,-1))
-        self.v4 = self.avert(vec3(-1, 1,-1))
-        self.f1 = self.mesh.aface(self.v1,self.v2,self.v3) 
-        self.f2 = self.mesh.aface(self.v1,self.v3,self.v4) 
+        gmesh = self.mod.agfxmesh()
+        self.v1  = gmesh.avert(*self.mod.avert(vec3(-1,-1,-1)))
+        self.v2  = gmesh.avert(*self.mod.avert(vec3( 1,-1,-1)))
+        self.v3  = gmesh.avert(*self.mod.avert(vec3( 1, 1,-1)))
+        self.v4  = gmesh.avert(*self.mod.avert(vec3(-1, 1,-1)))
+        self.f1 = gmesh.aface(self.v1,self.v2,self.v3) 
+        self.f2 = gmesh.aface(self.v1,self.v3,self.v4) 
+        return gmesh
+
+    def dome(self):
+        gmesh = self.mod.agfxmesh()
+        self.v1  = gmesh.avert(*self.mod.avert(vec3(-1,-1,-1)))
+        self.v2  = gmesh.avert(*self.mod.avert(vec3( 1,-1,-1)))
+        self.v3  = gmesh.avert(*self.mod.avert(vec3( 1, 1,-1)))
+        self.v4  = gmesh.avert(*self.mod.avert(vec3(-1, 1,-1)))
+        self.v5  = gmesh.avert(*self.mod.avert(vec3(-1,-1, 1)))
+        self.v6  = gmesh.avert(*self.mod.avert(vec3( 1,-1, 1)))
+        self.v7  = gmesh.avert(*self.mod.avert(vec3( 1, 1, 1)))
+        self.v8  = gmesh.avert(*self.mod.avert(vec3(-1, 1, 1)))
+        self.f1  = gmesh.aface(self.v1,self.v3,self.v2) 
+        self.f2  = gmesh.aface(self.v1,self.v4,self.v3) 
+        self.f3  = gmesh.aface(self.v5,self.v6,self.v7) 
+        self.f4  = gmesh.aface(self.v5,self.v7,self.v8) 
+        self.f5  = gmesh.aface(self.v1,self.v2,self.v6) 
+        self.f6  = gmesh.aface(self.v1,self.v6,self.v5) 
+        self.f7  = gmesh.aface(self.v2,self.v3,self.v7) 
+        self.f8  = gmesh.aface(self.v2,self.v7,self.v6) 
+        self.f9  = gmesh.aface(self.v3,self.v4,self.v8) 
+        self.f10 = gmesh.aface(self.v3,self.v8,self.v7) 
+        return gmesh
 
     def cube(self):
-        self.v1  = self.avert(vec3(-1,-1,-1))
-        self.v2  = self.avert(vec3( 1,-1,-1))
-        self.v3  = self.avert(vec3( 1, 1,-1))
-        self.v4  = self.avert(vec3(-1, 1,-1))
-        self.v5  = self.avert(vec3(-1,-1, 1))
-        self.v6  = self.avert(vec3( 1,-1, 1))
-        self.v7  = self.avert(vec3( 1, 1, 1))
-        self.v8  = self.avert(vec3(-1, 1, 1))
-        self.f1  = self.mesh.aface(self.v1,self.v3,self.v2) 
-        self.f2  = self.mesh.aface(self.v1,self.v4,self.v3) 
-        self.f3  = self.mesh.aface(self.v5,self.v6,self.v7) 
-        self.f4  = self.mesh.aface(self.v5,self.v7,self.v8) 
-        self.f5  = self.mesh.aface(self.v1,self.v2,self.v5) 
-        self.f6  = self.mesh.aface(self.v1,self.v5,self.v4) 
-        self.f7  = self.mesh.aface(self.v2,self.v3,self.v6) 
-        self.f8  = self.mesh.aface(self.v2,self.v6,self.v5) 
-        self.f9  = self.mesh.aface(self.v3,self.v4,self.v7) 
-        self.f10 = self.mesh.aface(self.v3,self.v7,self.v6) 
-        self.f11 = self.mesh.aface(self.v4,self.v1,self.v8) 
-        self.f12 = self.mesh.aface(self.v4,self.v8,self.v7) 
+        gmesh = self.mod.agfxmesh()
+        self.v1  = gmesh.avert(*self.mod.avert(vec3(-1,-1,-1)))
+        self.v2  = gmesh.avert(*self.mod.avert(vec3( 1,-1,-1)))
+        self.v3  = gmesh.avert(*self.mod.avert(vec3( 1, 1,-1)))
+        self.v4  = gmesh.avert(*self.mod.avert(vec3(-1, 1,-1)))
+        self.v5  = gmesh.avert(*self.mod.avert(vec3(-1,-1, 1)))
+        self.v6  = gmesh.avert(*self.mod.avert(vec3( 1,-1, 1)))
+        self.v7  = gmesh.avert(*self.mod.avert(vec3( 1, 1, 1)))
+        self.v8  = gmesh.avert(*self.mod.avert(vec3(-1, 1, 1)))
+        self.f1  = gmesh.aface(self.v1,self.v3,self.v2) 
+        self.f2  = gmesh.aface(self.v1,self.v4,self.v3) 
+        self.f3  = gmesh.aface(self.v5,self.v6,self.v7) 
+        self.f4  = gmesh.aface(self.v5,self.v7,self.v8) 
+        self.f5  = gmesh.aface(self.v1,self.v2,self.v6) 
+        self.f6  = gmesh.aface(self.v1,self.v6,self.v5) 
+        self.f7  = gmesh.aface(self.v2,self.v3,self.v7) 
+        self.f8  = gmesh.aface(self.v2,self.v7,self.v6) 
+        self.f9  = gmesh.aface(self.v3,self.v4,self.v8) 
+        self.f10 = gmesh.aface(self.v3,self.v8,self.v7) 
+        self.f11 = gmesh.aface(self.v4,self.v1,self.v5) 
+        self.f12 = gmesh.aface(self.v4,self.v5,self.v8) 
+        return gmesh
 
-    def assert_counts(self,vcnt,ecnt,fcnt):
-        self.assertEqual(self.mesh.vcnt(),vcnt)
-        self.assertEqual(self.mesh.ecnt(),ecnt)
-        self.assertEqual(self.mesh.fcnt(),fcnt)
+    def polycube(self):
+        pmesh = self.mod.apolymesh()
+        gm = self.mod.gfx(pmesh)
+        
+        self.plot(gm)
+
+    def assert_tmcounts(self,mesh,vcnt,ecnt,fcnt):
+        self.assertEqual(mesh.vcnt(),vcnt)
+        self.assertEqual(mesh.ecnt(),ecnt)
+        self.assertEqual(mesh.fcnt(),fcnt)
+
+    def assert_pmcounts(self,mesh,vcnt,ecnt,lcnt,fcnt):
+        self.assert_tmcounts(mesh,vcnt,ecnt,fcnt)
+        self.assertEqual(mesh.lcnt(),lcnt)
 
     def setUp(self):
-        self.mesh = tmsh.trimesh()
-        self.pset = pointset()
-        self.nset = pointset()
-        self.uset = pointset()
+        self.mod = dmo.model()
 
     def test_init(self):
-        self.assert_counts(0,0,0)
+        self.assertTrue(self.mod.__str__() == 'model:')
+        #self.assert_counts(0,0,0)
 
-    def test_avert(self):
-        self.v1 = self.avert(vec3(-1,-1,-1))
-        self.v2 = self.avert(vec3( 1,-1,-1))
-        self.v3 = self.avert(vec3( 1, 1,-1))
-        self.v4 = self.avert(vec3(-1, 1,-1))
-        self.assert_counts(4,0,0)
+    def test_agfxmesh(self):
+        gmesh = self.mod.agfxmesh()
+        self.assert_tmcounts(gmesh,0,0,0)
 
-    #def test_rvert(self):
-    #def test_aedge(self):
-    #def test_redge(self):
+    def test_acolmesh(self):
+        cmesh = self.mod.acolmesh()
+        self.assert_tmcounts(cmesh,0,0,0)
 
-    def test_aface(self):
-        self.v1 = self.avert(vec3(-1,-1,-1))
-        self.v2 = self.avert(vec3( 1,-1,-1))
-        self.v3 = self.avert(vec3( 1, 1,-1))
-        self.v4 = self.avert(vec3(-1, 1,-1))
-        fx = self.mesh.aface(self.v1,self.v2,self.v3)
-        self.assert_counts(4,3,1)
+    def test_alodmesh(self):
+        lmesh = self.mod.alodmesh()
+        self.assert_tmcounts(lmesh,0,0,0)
 
-    #def test_rface(self):
-    #def test_sface(self):
+    def test_apolymesh(self):
+        pmesh = self.mod.apolymesh()
+        self.assert_pmcounts(pmesh,1,1,1,1)
 
-    def test_mask_v1(self):
-        self.quad()
-        v10m = self.mesh.mask(0,self.mesh.verts[self.v1],None,None)
-        self.assertTrue(self.mesh.verts[self.v2] in v10m)
-        self.assertTrue(self.mesh.verts[self.v3] in v10m)
-        self.assertTrue(self.mesh.verts[self.v4] in v10m)
-        v11m = self.mesh.mask(1,self.mesh.verts[self.v1],None,None)
-        self.assertTrue((0,1) in v11m)
-        self.assertTrue((3,0) in v11m)
-        self.assertTrue((0,2) in v11m)
-        self.assertTrue((2,0) in v11m)
-        v12m = self.mesh.mask(2,self.mesh.verts[self.v1],None,None)
-        self.assertTrue((0,1,2) in v12m)
-        self.assertTrue((0,2,3) in v12m)
-        self.assertEqual(len(v10m),3)
-        self.assertEqual(len(v11m),4)
-        self.assertEqual(len(v12m),2)
+    #def test_avert(self):
+    #def test_gvps(self,vxs):
 
-    def test_mask_v4(self):
-        self.quad()
-        v40m = self.mesh.mask(0,self.mesh.verts[self.v4],None,None)
-        self.assertTrue(self.mesh.verts[self.v1] in v40m)
-        self.assertFalse(self.mesh.verts[self.v2] in v40m)
-        self.assertTrue(self.mesh.verts[self.v3] in v40m)
-        v41m = self.mesh.mask(1,self.mesh.verts[self.v4],None,None)
-        self.assertTrue((3,0) in v41m)
-        self.assertTrue((2,3) in v41m)
-        v42m = self.mesh.mask(2,self.mesh.verts[self.v4],None,None)
-        self.assertTrue((0,2,3) in v42m)
-        self.assertEqual(len(v40m),2)
-        self.assertEqual(len(v41m),2)
-        self.assertEqual(len(v42m),1)
+    def test_subdiv_cube(self):
+        gm = self.cube()
+        self.assert_tmcounts(gm,8,36,12)
+        self.mod.subdiv(gm)
+        self.assert_tmcounts(gm,20,108,36)
+        self.mod.subdiv(gm)
+        self.assert_tmcounts(gm,56,324,108)
 
-    #def test_vonb(self):
-    #def test_eonb(self):
+    def test_subdiv_dome(self):
+        gm = self.dome()
+        self.assert_tmcounts(gm,8,30,10)
+        self.mod.subdiv(gm)
+        self.assert_tmcounts(gm,18,90,30)
 
-    def test_quad(self):
-        self.quad()
-        self.assert_counts(4,6,2)
+    def test_subdiv_quad(self):
+        gm = self.quad()
+        self.assert_tmcounts(gm,4,6,2)
+        self.mod.subdiv(gm)
+        self.assert_tmcounts(gm,6,18,6)
+
+    #def test_trn(self):
+    #def test_rot(self):
+    #def test_scl(self):
 
     def test_cube(self):
-        self.cube()
-        self.assert_counts(8,36,12)
+        gm = self.cube()
+        self.assert_tmcounts(gm,8,36,12)
 
 if __name__ == '__main__':
     unittest.main()

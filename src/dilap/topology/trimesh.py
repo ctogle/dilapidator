@@ -5,8 +5,12 @@ import dilap.topology.edge as deg
 import dilap.topology.loop as dlp
 import dilap.topology.face as dfc
 
+import dilap.geometry.tools as gtl
 from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
+
+import numpy
+import pdb
 
 
 
@@ -56,7 +60,7 @@ class trimesh:
         self.edges = []         # list of edge tuples (vx1,vx2)
         self.edgecount = 0      # 
         self.eistack = []
-        self.faces = []         # list of face tuples (ex1,ex2,ex3)
+        self.faces = []         # list of face tuples (vx1,vx2,vx3)
         self.facecount = 0      # 
         self.fistack = []
 
@@ -90,9 +94,9 @@ class trimesh:
                     for ve in self.mask(1,vv,None,None):
                         if not ve is e:results.append(ve)
             if not f is None:
-                results.append(self.edges[f[0]])
-                results.append(self.edges[f[1]])
-                results.append(self.edges[f[2]])
+                for vx in f:
+                    for ve in self.mask(1,self.verts[vx],None,None):
+                        if f == self.ef_rings[ve]:results.append(ve)
         elif d == 2:
             if not v is None:
                 for ve in self.mask(1,v,None,None):
@@ -114,6 +118,12 @@ class trimesh:
     def eonb(self,e):
         if (e[1],e[0]) in self.ef_rings:return False
         else:return True
+
+    # for smoothing of a vertex with valence n, 
+    # compute the appropriate smoothing coefficient alpha_n
+    def alphan(self,n):
+        alpha = (4.0-2.0*numpy.cos(gtl.twoPI/n))/9.0
+        return alpha
 
     # create new vertex and return its index
     # a vert can be created disconnected from the mesh
@@ -139,8 +149,8 @@ class trimesh:
     def rvert(self,v):
         es = self.mask(1,v,None,None)
         fs = self.mask(2,v,None,None)
-        for f in fs:self.rface(f)
-        for e in es:self.redge(e)
+        for f in fs:self.rface(f,False,True)
+        for e in es:self.redge(e,False)
         del self.ve_rings[v]
         vx = self.verts.index(v)
         self.verts[vx] = None
@@ -163,20 +173,42 @@ class trimesh:
         return ex
 
     # destroy existing edge
-    # destroy faces connected to this edge
-    # destroy verts disconnected by removal of this edge
-    def redge(self,e):
+    # ambiguities:
+    #   an edge always has a face, and that face must be deleted
+    #   each face has 3 edges, which all must be deleted
+    #   vertices which are left dangling by this operation could be 
+    #     deleted or preserved
+    def redge(self,e,rv = True,rf = True):
+        if not e in self.ef_rings:return
         vs = self.mask(0,None,e,None)
-        fs = self.mask(2,None,e,None)
-        for f in fs:self.rface(f)
         for v in vs:
-            self.ve_rings[v].remove(e)
-            if not self.ve_rings[v]:
-                self.rvert(v)
-        del self.ef_rings[e]
+            vring = self.ve_rings[v]
+            if e in vring:vring.remove(e)
         ex = self.edges.index(e)
         self.edges[ex] = None
         self.eistack.append(ex)
+        ef = self.ef_rings[e]
+        del self.ef_rings[e]
+        if rf:self.rface(ef,False,True)
+        if rv:
+            for v in vs:
+                if not self.ve_rings[v]:
+                    self.rvert(v)
+
+    # u,v are the two vertex indices of the edge
+    # perform an edge flip on (u,v)
+    #   remove the two faces attached to this edge
+    #   add two new faces, creating the flipped edge
+    def fedge(self,u,v):
+        efr = self.ef_rings
+        if not (u,v) in efr or not (v,u) in efr:return
+        f1,f2 = efr[(u,v)],efr[(v,u)]
+        f1x = tuple(x for x in f1 if not x == u and not x == v)[0]
+        f2x = tuple(x for x in f2 if not x == u and not x == v)[0]
+        self.rface(f1,False,True)
+        self.rface(f2,False,True)
+        self.aface(f1x,u,f2x)
+        self.aface(f2x,v,f1x)
 
     # given the indices of three existing vertices,
     # create new face and return its index
@@ -199,19 +231,50 @@ class trimesh:
         return fx
 
     # destroy existing face
-    def rface(self,f):
-        es = self.mask(1,None,None,f)
-        for e in es:self.redge(e)
-        fx = self.faces.index(f)
-        self.faces[fx] = None
-        self.fistack.append(fx)
+    # NOTE: if re is True, remove edges
+    # NOTE: if ve is True, remove verts
+    def rface(self,f,rv = True,re = True):
+        if not f in self.fs_mats:return
+        if not re and rv:
+            vs = self.mask(0,None,None,f)
+            for v in vs:self.rvert(v)
+        else:
+            if re:
+                es = self.mask(1,None,None,f)
+                for e in es:self.redge(e,rv,False)
+            fx = self.faces.index(f)
+            self.faces[fx] = None
+            self.fistack.append(fx)
+            del self.fs_mats[f]
 
-    # create 3 new triangles from an existing triangle
-    def sface(self,tri,*args,**kwargs):
-        raise NotImplemented
+    # NOTE: performs sqrt(3) subdivision method
+    # NOTE: should also support dyadic split??
+    # create 3 new triangles for each existing triangle
+    # u is the new vertex index
+    # v,w,x are the three vertex indices of the face
+    def sface(self,u,v,w,x):
+        cnts = self.vcnt(),self.ecnt(),self.fcnt()
 
-    # NEED ALL METHODS FOR TRANSFORMATIONS!
-    # translate, rotate, scale
+        self.rface((v,w,x),False,True)
+        self.aface( u,v,w )
+        self.aface( u,w,x )
+        self.aface( u,x,v )
+
+        if not self.vcnt() == cnts[0]:raise ValueError
+        if not self.ecnt() == cnts[1]+6:raise ValueError
+        if not self.fcnt() == cnts[2]+2:raise ValueError
+
+    # remove all topology that is not properly connected 
+    # to a surface formed by this trimesh
+    def connected(self):
+        for v in self.verts:
+            if v is None:continue
+            if not self.ve_rings[v]:
+                self.rvert(v)
+        for e in self.edges:
+            if e is None:continue
+            if not self.ef_rings[e]:
+                self.redge(e,True)
 
 
 
@@ -219,7 +282,6 @@ class trimesh:
 
 
  
-
 
 
 

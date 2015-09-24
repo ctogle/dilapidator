@@ -47,12 +47,14 @@ cdef class pointset:
         self.pcnt = 0
 
     # return a list of copies of each index specified point
-    cdef list gpscp_c(self):
-        return [self.ps[x].cp() for x in range(self.pcnt)]
+    cdef list gpscp_c(self,rng):
+        if rng is None:rng = range(self.pcnt)
+        return [self.ps[x].cp() for x in rng]
 
     # return a list of the index specified points
-    cdef list gps_c(self):
-        return [self.ps[x] for x in range(self.pcnt)]
+    cdef list gps_c(self,rng):
+        if rng is None:rng = range(self.pcnt)
+        return [self.ps[x] for x in rng]
 
     # add a point and return its index
     cdef int ap_c(self,np):
@@ -118,6 +120,34 @@ cdef class pointset:
                 if p.isnear_c(q):return 1
         return 0
 
+    # translate all points by vec3 v
+    cdef pointset trn_c(self,vec3 v):
+        cdef int px
+        for px in range(self.pcnt):
+            self.ps[px].trn_c(v)
+        return self
+
+    # rotate all points by quat q
+    cdef pointset rot_c(self,quat q):
+        cdef int px
+        for px in range(self.pcnt):
+            self.ps[px].rot_c(q)
+        return self
+
+    # multiply all points by vec3 0
+    cdef pointset mul_c(self,vec3 o):
+        cdef int px
+        for px in range(self.pcnt):
+            self.ps[px].mul_c(o)
+        return self
+
+    # scale all points by float f
+    cdef pointset scl_c(self,float f):
+        cdef int px
+        for px in range(self.pcnt):
+            self.ps[px].scl_c(f)
+        return self
+
     ###########################################################################
 
     ###########################################################################
@@ -125,14 +155,14 @@ cdef class pointset:
     ###########################################################################
 
     # return a list of copies of each index specified point
-    cpdef list gpscp(self):
+    cpdef list gpscp(self,rng):
         '''create a list of copies of every point in this pointset'''
-        return self.gpscp_c()
+        return self.gpscp_c(rng)
 
     # return a list of the index specified points
-    cpdef list gps(self):
+    cpdef list gps(self,rng):
         '''create a list of every point in this pointset'''
-        return self.gps_c()
+        return self.gps_c(rng)
 
     # add a point and return its index
     cpdef int ap(self,np):
@@ -168,11 +198,33 @@ cdef class pointset:
     # find_point would in a one to one sequence
     ##### NOTE: could be faster
     cpdef list fps(self,list ps):
+        '''find a set of points'''
         return self.fps_c(ps)
         
     # is self disjoint from pointset o
     cpdef bint disjoint(self,pointset o):
+        '''determine if this pointset is disjoint from another'''
         return self.disjoint_c(o)
+
+    # translate all points by vec3 v
+    cpdef pointset trn(self,vec3 v):
+        '''translate the points in this pointset'''
+        return self.trn_c(v)
+
+    # rotate all points by quat q
+    cpdef pointset rot(self,quat q):
+        '''rotate the points in this pointset'''
+        return self.rot_c(q)
+
+    # multiply all points by vec3 0
+    cpdef pointset mul(self,vec3 o):
+        '''multiply (x,y,z scale) the points in this pointset'''
+        return self.mul_c(o)
+
+    # scale all points by float f
+    cpdef pointset scl(self,float f):
+        '''scale (uniform scale) the points in this pointset'''
+        return self.scl_c(f)
 
     ###########################################################################
 

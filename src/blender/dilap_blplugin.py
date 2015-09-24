@@ -247,11 +247,61 @@ def build_model(mod,**kwargs):
     object_to_scene(obj)
     return obj
 
+# build a single model into the blender world
+# return the resulting blender space object
+def build_model2(mod,**kwargs):
+
+    default_materials()
+
+    oname = mod.filename.replace('.mesh','.000')
+    mname = oname+'.'+'mesh'
+
+    ps = mod.pset.ps
+    us = mod.uset.ps
+
+    faces = mod.gfxmeshes[0].faces
+    face_mats = [0]*len(faces)
+    mats = ['generic']
+    oloc = (0,0,0)
+
+    #mesh = mesh_from_data(mname,ps,us,faces,face_mats,mats)
+    #def mesh_from_data(name,ps,us,faces,face_mats,mats):
+
+    mesh = bpy.data.meshes.new(mname)
+    if not mats is None:
+        [mesh.materials.append(materials[ma]) for ma in mats]
+    mesh.vertices.add(len(ps))
+    mesh.vertices.foreach_set('co',unpack_list(ps))
+    mesh.tessfaces.add(len(faces))
+    mesh.tessfaces.foreach_set('vertices_raw',unpack_face_list(faces))
+    mesh.tessfaces.foreach_set('material_index',face_mats)
+    mesh.tessface_uv_textures.new()
+    for fdx in range(len(faces)):
+        fa = faces[fdx]
+        mesh.tessface_uv_textures[0].data[fdx].uv1 = tuple(us[fa[0]])[:-1]
+        mesh.tessface_uv_textures[0].data[fdx].uv2 = tuple(us[fa[1]])[:-1]
+        mesh.tessface_uv_textures[0].data[fdx].uv3 = tuple(us[fa[2]])[:-1]
+    mesh.update()
+
+
+
+    obj = object_from_mesh(oname,mesh,oloc,mats)
+    object_to_scene(obj)
+    return obj
+
 #########################################################################
 
 # This allows you to run the script directly from blenders text editor
 # to test the addon without having to install it.
 if __name__ == "__main__":
     register()
+
+
+
+
+
+
+
+
 
 

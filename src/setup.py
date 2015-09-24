@@ -12,6 +12,7 @@ ext_modules = [
     Extension('dilap.geometry.ray3'        ,['dilap/geometry/ray3.pyx',    'dilap/geometry/ray3.pxd']), 
     Extension('dilap.geometry.tform'       ,['dilap/geometry/tform.pyx',   'dilap/geometry/tform.pxd']), 
     Extension('dilap.geometry.pointset'    ,['dilap/geometry/pointset.pyx','dilap/geometry/pointset.pxd']), 
+    Extension('dilap.geometry.tools'       ,['dilap/geometry/tools.pyx',   'dilap/geometry/tools.pxd']), 
 
     Extension('dilap.core.vector'        ,['dilap/core/vector.pyx','dilap/core/vector.pxd']), 
     Extension('dilap.core.quaternion'    ,['dilap/core/quaternion.pyx','dilap/core/quaternion.pxd']), 

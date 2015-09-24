@@ -138,20 +138,6 @@ class test_vec3(unittest.TestCase):
         self.assertEqual(v3.cp().prj(p2,pn2),vec3(0,-5,-1))
         self.assertTrue(v1.prj(p1,pn1) is v1)
 
-    def test_mul(self):
-        v1,v2,v3 = vec3(1,1,0),vec3(2,-10,5),vec3(0,1,-1)
-        self.assertEqual(v1*v1,vec3(1,1,0))
-        self.assertEqual(v2*v2,vec3(4,100,25))
-        self.assertEqual(v3*v3,vec3(0,1,1))
-        self.assertEqual(v1*v2,vec3(2,-10,0))
-        self.assertEqual(v1*v3,vec3(0,1,0))
-        self.assertEqual(v2*v1,vec3(2,-10,0))
-        self.assertEqual(v2*v3,vec3(0,-10,-5))
-        self.assertEqual(v3*v1,vec3(0,1,0))
-        self.assertEqual(v3*v2,vec3(0,-10,-5))
-        self.assertTrue(v1.mul(v2) is v1)
-        self.assertEqual(v1,vec3(2,-10,0))
-
     def test_inneighborhood(self):
         v1,v2,v3,v4 = vec3(1,1,0),vec3(1,2,0),vec3(1,2,1),vec3(1,1,1)
         self.assertEqual(v1.inneighborhood(v2,1.00),0)
@@ -231,11 +217,25 @@ class test_vec3(unittest.TestCase):
         self.assertTrue(v1.ztrn(2) is v1)
 
     def test_scl(self):
+        v1,v2,v3 = vec3(1,1,0),vec3(2,-10,5),vec3(0,1,-1)
+        self.assertEqual(v1*v1,vec3(1,1,0))
+        self.assertEqual(v2*v2,vec3(4,100,25))
+        self.assertEqual(v3*v3,vec3(0,1,1))
+        self.assertEqual(v1*v2,vec3(2,-10,0))
+        self.assertEqual(v1*v3,vec3(0,1,0))
+        self.assertEqual(v2*v1,vec3(2,-10,0))
+        self.assertEqual(v2*v3,vec3(0,-10,-5))
+        self.assertEqual(v3*v1,vec3(0,1,0))
+        self.assertEqual(v3*v2,vec3(0,-10,-5))
+        self.assertTrue(v1.scl(v2) is v1)
+        self.assertEqual(v1,vec3(2,-10,0))
+
+    def test_uscl(self):
         v1,v2 = vec3(-1,2,5),vec3(-12,24,60)
-        self.assertTrue(v1.scl(12) == v2)
-        self.assertTrue(v1.scl(12) is v1)
-        self.assertFalse(v1.scl(12) is v2)
-        self.assertTrue(v1.scl(12) == v1)
+        self.assertTrue(v1.uscl(12) == v2)
+        self.assertTrue(v1.uscl(12) is v1)
+        self.assertFalse(v1.uscl(12) is v2)
+        self.assertTrue(v1.uscl(12) == v1)
 
     def test_xscl(self):
         self.same('xscl',self.one,vec3(4,1,1),4)

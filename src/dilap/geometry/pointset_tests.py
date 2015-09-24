@@ -22,6 +22,10 @@ class test_pointset(unittest.TestCase):
     #def test_fp(self):pass
     #def test_fps(self):pass
     #def test_disjoint(self):pass
+    #def test_trn(self):pass
+    #def test_rot(self):pass
+    #def test_mul(self):pass
+    #def test_scl(self):pass
 
 if __name__ == '__main__':
     unittest.main()

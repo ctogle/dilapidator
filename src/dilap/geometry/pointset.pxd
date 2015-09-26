@@ -32,8 +32,8 @@ cdef class pointset:
     cdef bint disjoint_c(self,pointset o)
     cdef pointset trn_c(self,vec3 v)
     cdef pointset rot_c(self,quat q)
-    cdef pointset mul_c(self,vec3 o)
-    cdef pointset scl_c(self,float f)
+    cdef pointset scl_c(self,vec3 o)
+    cdef pointset uscl_c(self,float f)
 
     cpdef list gpscp(self,rng)
     cpdef list gps(self,rng)
@@ -46,8 +46,8 @@ cdef class pointset:
     cpdef bint disjoint(self,pointset o)
     cpdef pointset trn(self,vec3 v)
     cpdef pointset rot(self,quat q)
-    cpdef pointset mul(self,vec3 o)
-    cpdef pointset scl(self,float f)
+    cpdef pointset scl(self,vec3 o)
+    cpdef pointset uscl(self,float f)
         
 
  

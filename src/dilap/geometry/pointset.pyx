@@ -100,7 +100,7 @@ cdef class pointset:
     cdef int fp_c(self,p):
         cdef int px
         for px in range(self.pcnt):
-            if self.ps[px].isnear_c(p):
+            if self.ps[px].isnear(p):
                 return px
         return -1
 
@@ -117,35 +117,37 @@ cdef class pointset:
             p = self.ps[x]
             for y in range(o.pcnt):
                 q = o.ps[y]
-                if p.isnear_c(q):return 1
-        return 0
+                if p.isnear(q):return 0
+        return 1
 
     # translate all points by vec3 v
     cdef pointset trn_c(self,vec3 v):
         cdef int px
         for px in range(self.pcnt):
-            self.ps[px].trn_c(v)
+            #self.ps[px].trn_c(v)
+            self.ps[px].trn(v)
         return self
 
     # rotate all points by quat q
     cdef pointset rot_c(self,quat q):
         cdef int px
         for px in range(self.pcnt):
-            self.ps[px].rot_c(q)
+            #self.ps[px].rot_c(q)
+            self.ps[px].rot(q)
         return self
 
-    # multiply all points by vec3 0
-    cdef pointset mul_c(self,vec3 o):
+    # scale all points by vec3 0
+    cdef pointset scl_c(self,vec3 o):
         cdef int px
         for px in range(self.pcnt):
-            self.ps[px].mul_c(o)
+            self.ps[px].scl(o)
         return self
 
     # scale all points by float f
-    cdef pointset scl_c(self,float f):
+    cdef pointset uscl_c(self,float f):
         cdef int px
         for px in range(self.pcnt):
-            self.ps[px].scl_c(f)
+            self.ps[px].uscl(f)
         return self
 
     ###########################################################################
@@ -216,15 +218,15 @@ cdef class pointset:
         '''rotate the points in this pointset'''
         return self.rot_c(q)
 
-    # multiply all points by vec3 0
-    cpdef pointset mul(self,vec3 o):
-        '''multiply (x,y,z scale) the points in this pointset'''
-        return self.mul_c(o)
+    # scale all points by vec3 0
+    cpdef pointset scl(self,vec3 o):
+        '''scale (x,y,z scale) the points in this pointset'''
+        return self.scl_c(o)
 
     # scale all points by float f
-    cpdef pointset scl(self,float f):
+    cpdef pointset uscl(self,float f):
         '''scale (uniform scale) the points in this pointset'''
-        return self.scl_c(f)
+        return self.uscl_c(f)
 
     ###########################################################################
 

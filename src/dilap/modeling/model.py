@@ -32,16 +32,6 @@ class model:
 
     def __str__(self):return 'model:'
 
-    '''#
-    # return 3d bounding box for this model
-    def aaabbb(self):
-        xproj = dpv.project_coords(self.pcoords,dpv.xhat)
-        yproj = dpv.project_coords(self.pcoords,dpv.yhat)
-        zproj = dpv.project_coords(self.pcoords,dpv.zhat)
-        bb = dbb.bbox(xproj,yproj,zproj)
-        return bb
-    '''#
-
     def __init__(self,*args,**kwargs):
         self.gfxmeshes = []
         self.colmeshes = []
@@ -54,6 +44,92 @@ class model:
         #self._def('reps',{},**kwargs)
         #self._def('filename','model.mesh',**kwargs)
         self.filename = 'model.mesh'
+
+    # generate a gfx trimesh for a nice cube
+    def atricube(self):
+        gmesh = self.agfxmesh()
+        v1  = gmesh.avert(*self.avert(vec3(-1,-1,-1)))
+        v2  = gmesh.avert(*self.avert(vec3( 1,-1,-1)))
+        v3  = gmesh.avert(*self.avert(vec3( 1, 1,-1)))
+        v4  = gmesh.avert(*self.avert(vec3(-1, 1,-1)))
+        v5  = gmesh.avert(*self.avert(vec3(-1,-1, 1)))
+        v6  = gmesh.avert(*self.avert(vec3( 1,-1, 1)))
+        v7  = gmesh.avert(*self.avert(vec3( 1, 1, 1)))
+        v8  = gmesh.avert(*self.avert(vec3(-1, 1, 1)))
+        v9  = gmesh.avert(*self.avert(vec3( 0, 0,-1)))
+        v10 = gmesh.avert(*self.avert(vec3( 0, 0, 1)))
+        v11 = gmesh.avert(*self.avert(vec3(-1, 0, 0)))
+        v12 = gmesh.avert(*self.avert(vec3( 1, 0, 0)))
+        v13 = gmesh.avert(*self.avert(vec3( 0,-1, 0)))
+        v14 = gmesh.avert(*self.avert(vec3( 0, 1, 0)))
+        f1  = gmesh.aface(v1,v9, v2) 
+        f2  = gmesh.aface(v2,v9, v3) 
+        f3  = gmesh.aface(v3,v9, v4) 
+        f4  = gmesh.aface(v4,v9, v1) 
+        f5  = gmesh.aface(v5,v6,v10) 
+        f6  = gmesh.aface(v6,v7,v10) 
+        f7  = gmesh.aface(v7,v8,v10) 
+        f8  = gmesh.aface(v8,v5,v10) 
+        f9  = gmesh.aface(v1,v2,v13) 
+        f10 = gmesh.aface(v2,v6,v13) 
+        f11 = gmesh.aface(v6,v5,v13) 
+        f12 = gmesh.aface(v5,v1,v13) 
+        f13 = gmesh.aface(v3,v4,v14)
+        f14 = gmesh.aface(v4,v8,v14)
+        f15 = gmesh.aface(v8,v7,v14)
+        f16 = gmesh.aface(v7,v3,v14)
+        f17 = gmesh.aface(v2,v3,v12)
+        f18 = gmesh.aface(v3,v7,v12)
+        f19 = gmesh.aface(v7,v6,v12)
+        f20 = gmesh.aface(v6,v2,v12)
+        f21 = gmesh.aface(v4,v1,v11)
+        f22 = gmesh.aface(v1,v5,v11)
+        f23 = gmesh.aface(v5,v8,v11)
+        f24 = gmesh.aface(v8,v4,v11)
+        return gmesh
+
+    # generate a gfx trimesh for a nice dome
+    def atridome(self):
+        gmesh = self.agfxmesh()
+        v1  = gmesh.avert(*self.avert(vec3(-1,-1,-1)))
+        v2  = gmesh.avert(*self.avert(vec3( 1,-1,-1)))
+        v3  = gmesh.avert(*self.avert(vec3( 1, 1,-1)))
+        v4  = gmesh.avert(*self.avert(vec3(-1, 1,-1)))
+        v5  = gmesh.avert(*self.avert(vec3(-1,-1, 1)))
+        v6  = gmesh.avert(*self.avert(vec3( 1,-1, 1)))
+        v7  = gmesh.avert(*self.avert(vec3( 1, 1, 1)))
+        v8  = gmesh.avert(*self.avert(vec3(-1, 1, 1)))
+        #v9  = gmesh.avert(*self.avert(vec3( 0, 0,-1)))
+        v10 = gmesh.avert(*self.avert(vec3( 0, 0, 1)))
+        v11 = gmesh.avert(*self.avert(vec3(-1, 0, 0)))
+        v12 = gmesh.avert(*self.avert(vec3( 1, 0, 0)))
+        v13 = gmesh.avert(*self.avert(vec3( 0,-1, 0)))
+        v14 = gmesh.avert(*self.avert(vec3( 0, 1, 0)))
+        #f1  = gmesh.aface(v1,v9, v2) 
+        #f2  = gmesh.aface(v2,v9, v3) 
+        #f3  = gmesh.aface(v3,v9, v4) 
+        #f4  = gmesh.aface(v4,v9, v1) 
+        f5  = gmesh.aface(v5,v6,v10) 
+        f6  = gmesh.aface(v6,v7,v10) 
+        f7  = gmesh.aface(v7,v8,v10) 
+        f8  = gmesh.aface(v8,v5,v10) 
+        f9  = gmesh.aface(v1,v2,v13) 
+        f10 = gmesh.aface(v2,v6,v13) 
+        f11 = gmesh.aface(v6,v5,v13) 
+        f12 = gmesh.aface(v5,v1,v13) 
+        f13 = gmesh.aface(v3,v4,v14)
+        f14 = gmesh.aface(v4,v8,v14)
+        f15 = gmesh.aface(v8,v7,v14)
+        f16 = gmesh.aface(v7,v3,v14)
+        f17 = gmesh.aface(v2,v3,v12)
+        f18 = gmesh.aface(v3,v7,v12)
+        f19 = gmesh.aface(v7,v6,v12)
+        f20 = gmesh.aface(v6,v2,v12)
+        f21 = gmesh.aface(v4,v1,v11)
+        f22 = gmesh.aface(v1,v5,v11)
+        f23 = gmesh.aface(v5,v8,v11)
+        f24 = gmesh.aface(v8,v4,v11)
+        return gmesh
 
     # create new gfx trimesh
     def agfxmesh(self):
@@ -110,6 +186,41 @@ class model:
         ps = self.pset.gps(pxs)
         return ps
 
+    # subdivide the boundary of the mesh
+    def subdivbnd(self,mesh):
+        # iterate over the edges
+        #   if an edge is a boundary, split it into 3 segments
+        #     erase the face attached to it and make a tri fan 
+        #     over the 3 new segments
+        #   if an edge is not a boundar, ignore it
+
+        #oldvs = list(mesh.ve_rings.keys())
+        oldes = list(mesh.ef_rings.keys())
+
+        oldvs = []
+        for e in oldes:
+            if mesh.eonb(e):
+                one = mesh.verts[e[0]]
+                two = mesh.verts[e[1]]
+                oldvs.append(one)
+                #oldvs.append(two)
+                ep1,ep2 = self.pset.ps[one[0]],self.pset.ps[two[0]]
+                np1,np2 = ep1.pline(ep2,2)
+                sv1 = mesh.avert(*self.avert(np1))
+                sv2 = mesh.avert(*self.avert(np2))
+                mesh.sedge(e,(sv1,sv2))
+
+        dels = []
+        for v in oldvs:
+            p = self.pset.ps[v[0]]
+            vns = (v for v in mesh.mask(0,v,None,None) if mesh.vonb(v))
+            # need the subset of vns that is on the boundary too!!!
+            pns = self.pset.gps((v[0] for v in vns))
+            alpha = mesh.alphan(len(pns))
+            sdel = p.tov(gtl.com(pns)).uscl(alpha)
+            dels.append((p,sdel))
+        for sd in dels:sd[0].trn(sd[1])
+
     #
     # i really want two fundamental concepts abstractly added
     #   splitting operators which add vertices to the mesh
@@ -119,7 +230,7 @@ class model:
     # perform a sqrt(3) subdivision on a trimesh
     #   topological splitting of the face
     #   also geometric smooothing afterwards
-    def subdiv(self,mesh):
+    def subdiv(self,mesh,subdivbnd = True):
         oldvs = list(mesh.ve_rings.keys())
         oldes = list(mesh.ef_rings.keys())
         for f in list(mesh.fs_mats.keys()):
@@ -138,6 +249,7 @@ class model:
             sdel = p.tov(gtl.com(pns)).uscl(alpha)
             dels.append((p,sdel))
         for sd in dels:sd[0].trn(sd[1])
+        if subdivbnd:self.subdivbnd(mesh)
 
     # translate the position pointset of the model
     def trn(self,v):

@@ -121,9 +121,25 @@ class test_quat(unittest.TestCase):
         self.assertFalse(q2.cp().cnj() == q2)
         self.assertFalse(q3.cnj() == q4)
                
-    #def test_inv(self):
-    #def test_add(self):
-    #def test_sub(self):
+    def test_inv(self):
+        a1,v1 = dpr.PI4,vec3(0,0,1)
+        a2,v2 = dpr.threePI4,vec3(0,0,1)
+        q1,q2 = quat(1,0,0,0).av(a1,v1),quat(1,1,1,0).av(a2,v2)
+        self.assertEqual(q1.cp().cnj(),q1.inv())
+        self.assertEqual(q2.cp().cnj(),q2.inv())
+        self.assertFalse(q1.inv() is q1)
+        
+    def test_add(self):
+        q1,q2 = quat(0.5,0.3,-2.2,3),quat(1,1.1,2,-0.5)
+        q3 = quat(1.5,1.4,-0.2,2.5)
+        self.assertEqual(q1.add(q2),q3)
+        self.assertFalse(q1.add(q2) is q1)
+
+    def test_sub(self):
+        q1,q2 = quat(0.5,0.3,-2.2,3),quat(1,1.1,2,-0.5)
+        q3 = quat(-0.5,-0.8,-4.2,3.5)
+        self.assertEqual(q1.sub(q2),q3)
+        self.assertFalse(q1.sub(q2) is q1)
 
     def test_mul(self):
         a1,v1 = dpr.PI4,vec3(0,0,1)
@@ -151,7 +167,13 @@ class test_quat(unittest.TestCase):
         self.assertFalse(dpr.isnear(q1.dot(q3),0))
         self.assertTrue(dpr.isnear(q3.dot(q4),q3.w))
 
-    #def test_slerp(self):
+    def test_slerp(self):
+        a1,v1 = dpr.PI4,vec3(0,0,1)
+        a2,v2 = dpr.PI,vec3(0,0,1)
+        q1,q2 = quat(1,0,0,0).av(0,v1),quat(1,1,1,0).av(a1,v1)
+        q3 = quat(0,1,0,0).av(a2,v2)
+        self.assertEqual(q1.slerp(q3,0.25),q2)
+        self.assertFalse(q1.slerp(q3,0.25) is q1) 
 
 if __name__ == '__main__':
     unittest.main()

@@ -52,6 +52,7 @@ cdef class vec3:
     cdef vec3 tov_c(self,vec3 o)
     cdef vec3 mid_c(self,vec3 o)
     cdef vec3 lerp_c(self,vec3 o,float ds)
+    cdef list pline_c(self,vec3 o,int n)
 
     cpdef vec3 cp(self)
     cpdef vec3 cpxy(self)
@@ -85,6 +86,7 @@ cdef class vec3:
     cpdef vec3 tov(self,vec3 o)
     cpdef vec3 mid(self,vec3 o)
     cpdef vec3 lerp(self,vec3 o,float ds)
+    cpdef list pline(self,vec3 o,int n)
 
 # functions to quickly generate R3 basis vectors and their flips
 cdef vec3 x_c()

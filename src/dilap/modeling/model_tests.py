@@ -78,6 +78,12 @@ class test_model(unittest.TestCase):
         self.f12 = gmesh.aface(self.v4,self.v5,self.v8) 
         return gmesh
 
+    def dome_symm(self):
+        return self.mod.atridome()
+
+    def cube_symm(self):
+        return self.mod.atricube()
+
     def polycube(self):
         pmesh = self.mod.apolymesh()
         gm = self.mod.gfx(pmesh)
@@ -127,16 +133,27 @@ class test_model(unittest.TestCase):
         self.mod.subdiv(gm)
         self.assert_tmcounts(gm,56,324,108)
 
+    def test_subdiv_cube_symm(self):
+        gm = self.cube_symm()
+        self.assert_tmcounts(gm,14,72,24)
+        self.mod.subdiv(gm)
+        #self.assert_tmcounts(gm,38,216,72)
+        self.mod.subdiv(gm)
+        #self.assert_tmcounts(gm,110,648,216)
+        self.mod.subdiv(gm)
+        self.mod.subdiv(gm)
+        self.plot(gm)
+
     def test_subdiv_dome(self):
         gm = self.dome()
         self.assert_tmcounts(gm,8,30,10)
-        self.mod.subdiv(gm)
+        self.mod.subdiv(gm,False)
         self.assert_tmcounts(gm,18,90,30)
 
     def test_subdiv_quad(self):
         gm = self.quad()
         self.assert_tmcounts(gm,4,6,2)
-        self.mod.subdiv(gm)
+        self.mod.subdiv(gm,False)
         self.assert_tmcounts(gm,6,18,6)
 
     #def test_trn(self):

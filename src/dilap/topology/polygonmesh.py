@@ -8,6 +8,8 @@ import dilap.topology.face as dfc
 from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
 
+import pdb
+
 
 
 
@@ -81,19 +83,39 @@ class polygonmesh:
                     for vv in self.mask(0,None,ve):
                         if not vv is v:results.append(vv)
             if not e is None:results.extend([e.one,e.two])
-            if not l is None:pass
-            if not f is None:pass
+            if not l is None:
+                for e in self.mask(1,None,None,l,None):
+                    results.append(e.one)
+            if not f is None:
+                el,ils = f.bound,f.holes
+                ev,ivs = [],[]
+                for evv in self.mask(0,None,None,el,None):
+                    ev.append(evv)
+                #for il in ils:
+                #    ivs.append([])
+                #    for ivv in self.mask(0,None,None,il,None):
+                #        ivs[-1].append(ivv)
+                results.extend(ev)
         elif d == 1:
             if not v is None:results.extend(v.ring)
             if not e is None:
                 for vv in self.mask(0,None,e):
                     for ve in self.mask(1,vv,None):
                         if not ve is e:results.append(ve)
-            if not l is None:pass
+            if not l is None:
+                first = l.edge
+                results.append(first)
+                nxt = first.nxt
+                while not nxt in results:
+                    results.append(nxt)
+                    nxt = nxt.nxt
             if not f is None:pass
         elif d == 2:
             if not v is None:pass
-            if not e is None:pass
+            if not e is None:
+                for l in self.loops:
+                    if l is None:continue
+                    if l.edge == e:results.append(l)
             if not l is None:pass
             if not f is None:pass
         elif d == 3:
@@ -120,13 +142,26 @@ class polygonmesh:
     # split the edge by adding a new vertex between its endpoints
     # remove the current edge and add two move, connect each 
     #  of its endpoints to the newly added vertex
-    def sedge(self,edg,*args,**kwargs):
-        nvrt = self.avert(*args,**kwargs)
+    def sedge(self,edg,nvrt,*args,**kwargs):
         vrt1,vrt2 = edg.one,edg.two
+        erng = self.mask(1,None,edg,None,None)
         self.redge(edg)
         eg1 = self.aedge(vrt1,nvrt)
         eg2 = self.aedge(nvrt,vrt2)
-        return nvrt,eg1,eg2
+        eg1.nxt = eg2
+        eg2.lst = eg1
+        if vrt1 is vrt2:
+            eg2.nxt = eg1
+            eg1.lst = eg2
+            loop = edg.loop
+            eg1.loop = loop
+            loop.edge = eg1
+        else:
+            eg2.nxt = edg.nxt
+            eg1.lst = edg.lst
+            eg1.lst.nxt = eg1
+            eg2.nxt.lst = eg2
+        return eg1,eg2
 
     # create new vertex connected to par by edge ending at new vertex
     # MV - analog - non-euler?
@@ -149,6 +184,14 @@ class polygonmesh:
         vrt1.connect(edg)
         vrt2.connect(edg)
         return edg
+
+    # MEFL - analog - this is how faces are added incrementally?
+    def mefl(self,vrt1,vrt2,*args,**kwargs):
+        edg1 = self.aedge(vrt1,vrt1,*args,**kwargs)
+        lop = self.aloop(edg1)
+        fac = self.aface(lop,[])
+        edg1,edg2 = self.sedge(edg1,vrt2)
+        return edg1,edg2,lop,fac
 
     # GLUE - analog - glue two faces together, possibly from disjoint meshes
     # can create handles through solids?
@@ -183,6 +226,14 @@ class polygonmesh:
         vrt1.disconnect(edg)
         vrt2.disconnect(edg)
 
+    # given a list of vertex indices, return their positions
+    def gvps(self,f):
+        vs = self.mask(0,None,None,None,f)
+        vps = []
+        for vx in range(len(vs)):
+            vps.append(vs[vx].p)
+        return vps
+
     ###################################################
     ###################################################
     ###################################################
@@ -190,41 +241,16 @@ class polygonmesh:
     ###################################################
 
     '''#
-
-    # create new vertex connected to par by edge ending at new vertex
-    def avert(self,par,*args,**kwargs):
-        vrt = self.vertclass(self.vertcount,*args,**kwargs)
-        self.verts.append(vrt)
-        self.vertcount += 1
-        if par is None:par = self.root
-        edg = self.aedge(par,vrt)
-        return vrt
-
-    # provided two vertices and possibly a geometric index
-    # create a new edge from vrt1 to vrt2
-    def aedge(self,vrt1,vrt2):
-        edg = self.edgeclass(vrt1,vrt2,self.edgecount)
-        self.edges.append(edg)
-        self.edgecount += 1
-        vrt1.connect(edg)
-        vrt2.connect(edg)
-        return edg
-
-    # provided a vertex, return its parent which lies at the 
-    # beginning of the one edge ending at vrt
-    def above(self,vrt):
-        es = self.mask(1,vrt,None)
-        if es:return es[0].one
-
-    # provided a vertex, return its children which lie at the 
-    # ends of the edges starting at vrt
-    def below(self,vrt):
-        par = self.above(vrt)
-        vs = self.mask(0,vrt,None)
-        chn = [v for v in vs if not v is par]
-        return chn
+    # provided a sequence of ordered verts, create a new loop
+    def aloop_fromvs(self,verts,*args,**kwargs):
+        edgs = []
+        for x in range(len(verts)):
+            edgs.append(self.aedge(verts[x-1],verts[x]))
+        lop = self.loopclass(edgs,self.loopcount,*args,**kwargs)
+        self.loops.append(lop)
+        self.loopcount += 1
+        return lop
     '''#
-
 
 
 

@@ -310,6 +310,16 @@ class test_vec3(unittest.TestCase):
         self.assertFalse(v1.lerp(v2,1) is v2)
         self.assertEqual(v1.lerp(v2,1),v2)
 
+    def test_pline(self):
+        pline = self.origin.pline(self.one,2)
+        d1 = self.origin.d(pline[0])
+        d2 = pline[0].d(pline[1])
+        d3 = pline[1].d(self.one)
+        self.assertEqual(len(pline),2)
+        self.assertTrue(dpr.isnear(d1,d2))
+        self.assertTrue(dpr.isnear(d2,d3))
+        self.assertTrue(self.origin.mid(self.one),pline[0].mid(pline[1]))
+
 if __name__ == '__main__':
     unittest.main()
 

@@ -135,7 +135,7 @@ cdef class quat:
     # compute the inverse of self and return 
     cdef quat inv_c(self):
         cdef m = self.mag2_c()
-        cdef quat n = self.cp_().cnj_c().uscl_c(1/m)
+        cdef quat n = self.cp_c().cnj_c().uscl_c(1/m)
         return n
 
     # given quat o, return self + o

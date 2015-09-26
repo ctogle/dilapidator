@@ -24,12 +24,21 @@ class edge:
     def disconnect(self,f):
         self.ring.remove(f)
 
+    def snxt(self,nxt):
+        self.nxt = nxt
+
+    def gnxt(self,nxt):
+        return self.nxt
+
     # has an index unique per mesh
     def __init__(self,one,two,ix):
         self.one = one
         self.two = two
         self.ix = ix
         self.ring = []
+        self.nxt = None
+        self.lst = None
+        self.loop = None
 
 
 

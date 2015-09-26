@@ -110,6 +110,15 @@ class trimesh:
                         results.append(self.ef_rings[ofekey])
         return results
 
+    # return a vertex x such that uv
+    # is a positively oriented edge
+    def adjc(self,u,v):
+        ekey = (u,v)
+        if ekey in self.ef_rings:
+            f = self.ef_rings[ekey]
+            if f is None:return
+            else:return tuple(x for x in f if not x in ekey)[0]
+
     def vonb(self,v):
         for ve in self.mask(1,v,None,None):
             if self.eonb(ve):return True
@@ -195,10 +204,20 @@ class trimesh:
                 if not self.ve_rings[v]:
                     self.rvert(v)
 
-    # u,v are the two vertex indices of the edge
-    # perform an edge flip on (u,v)
-    #   remove the two faces attached to this edge
-    #   add two new faces, creating the flipped edge
+    # perform an edge split on e adding new verts nvs
+    # create a fan of triangles replacing the triangle 
+    # which is current adjacent to e
+    #   remove e and make edges connecting e.one to e.two, 
+    #   sequentially hitting each of nvs on the way
+    #     make a new triangle to the pivot of e!!
+    def sedge(self,e,nvs):
+        f = self.mask(2,None,e,None)[0]
+        u,v = e
+        piv = self.adjc(u,v)
+        blade = (u,)+tuple(nvs)+(v,)
+        self.rface(f,False,True)
+        self.fan(piv,blade)
+
     def fedge(self,u,v):
         efr = self.ef_rings
         if not (u,v) in efr or not (v,u) in efr:return
@@ -263,6 +282,12 @@ class trimesh:
         if not self.vcnt() == cnts[0]:raise ValueError
         if not self.ecnt() == cnts[1]+6:raise ValueError
         if not self.fcnt() == cnts[2]+2:raise ValueError
+
+    # create a set of triangles which contain 
+    # two sequential verts of vs and u
+    def fan(self,u,vs):
+        for x in range(1,len(vs)):
+            self.aface(u,vs[x-1],vs[x])
 
     # remove all topology that is not properly connected 
     # to a surface formed by this trimesh

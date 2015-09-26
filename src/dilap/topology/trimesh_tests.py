@@ -15,6 +15,15 @@ import pdb
 
 class test_trimesh(unittest.TestCase):
 
+    def plotmesh(self):
+        mesh = self.mesh
+        ax = dtl.plot_axes()
+        for f in mesh.faces:
+            pxs = (mesh.verts[vx][0] for vx in f)
+            ps = self.pset.gps(pxs)
+            ax = dtl.plot_polygon(ps,ax)
+        plt.show()
+
     def avert(self,p):
         px = self.pset.ap(p)
         nx = self.nset.ap(vec3(0,0,1))
@@ -37,6 +46,48 @@ class test_trimesh(unittest.TestCase):
     def test_quad(self):
         self.quad()
         self.assert_counts(4,6,2)
+
+    def cube_symm(self):
+        self.v1  = self.avert(vec3(-1,-1,-1))
+        self.v2  = self.avert(vec3( 1,-1,-1))
+        self.v3  = self.avert(vec3( 1, 1,-1))
+        self.v4  = self.avert(vec3(-1, 1,-1))
+        self.v5  = self.avert(vec3(-1,-1, 1))
+        self.v6  = self.avert(vec3( 1,-1, 1))
+        self.v7  = self.avert(vec3( 1, 1, 1))
+        self.v8  = self.avert(vec3(-1, 1, 1))
+        self.v9  = self.avert(vec3( 0, 0,-1))
+        self.v10 = self.avert(vec3( 0, 0, 1))
+        self.v11 = self.avert(vec3(-1, 0, 0))
+        self.v12 = self.avert(vec3( 1, 0, 0))
+        self.v13 = self.avert(vec3( 0,-1, 0))
+        self.v14 = self.avert(vec3( 0, 1, 0))
+        self.f1  = self.mesh.aface(self.v1,self.v2 ,self.v9) 
+        self.f2  = self.mesh.aface(self.v2,self.v3 ,self.v9) 
+        self.f3  = self.mesh.aface(self.v3,self.v4 ,self.v9) 
+        self.f4  = self.mesh.aface(self.v4,self.v1 ,self.v9) 
+        self.f5  = self.mesh.aface(self.v5,self.v6,self.v10) 
+        self.f6  = self.mesh.aface(self.v6,self.v7,self.v10) 
+        self.f7  = self.mesh.aface(self.v7,self.v8,self.v10) 
+        self.f8  = self.mesh.aface(self.v8,self.v5,self.v10) 
+        self.f9  = self.mesh.aface(self.v1,self.v2,self.v13) 
+        self.f10 = self.mesh.aface(self.v2,self.v6,self.v13) 
+        self.f11 = self.mesh.aface(self.v6,self.v5,self.v13) 
+        self.f12 = self.mesh.aface(self.v5,self.v1,self.v13) 
+        self.f13 = self.mesh.aface(self.v3,self.v4,self.v14) 
+        self.f14 = self.mesh.aface(self.v4,self.v8,self.v14) 
+        self.f15 = self.mesh.aface(self.v8,self.v7,self.v14) 
+        self.f16 = self.mesh.aface(self.v7,self.v3,self.v14) 
+        self.f17 = self.mesh.aface(self.v2,self.v3,self.v12) 
+        self.f18 = self.mesh.aface(self.v3,self.v7,self.v12) 
+        self.f19 = self.mesh.aface(self.v7,self.v6,self.v12) 
+        self.f20 = self.mesh.aface(self.v6,self.v2,self.v12) 
+        self.f21 = self.mesh.aface(self.v4,self.v1,self.v11) 
+        self.f22 = self.mesh.aface(self.v1,self.v5,self.v11) 
+        self.f23 = self.mesh.aface(self.v5,self.v8,self.v11) 
+        self.f24 = self.mesh.aface(self.v8,self.v4,self.v11) 
+
+        self.plotmesh()
 
     def cube(self):
         self.v1  = self.avert(vec3(-1,-1,-1))
@@ -63,6 +114,10 @@ class test_trimesh(unittest.TestCase):
     def test_cube(self):
         self.cube()
         self.assert_counts(8,36,12)
+
+    def test_cube_symm(self):
+        self.cube_symm()
+        self.assert_counts(14,72,24)
 
     def setUp(self):
         self.mesh = tmsh.trimesh()

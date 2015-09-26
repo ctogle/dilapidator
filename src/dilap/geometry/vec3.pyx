@@ -3,6 +3,8 @@
 
 cimport dilap.core.tools as dpr
 
+cimport dilap.geometry.tools as gtl
+
 from dilap.geometry.quat cimport quat
 
 from libc.math cimport sqrt
@@ -276,6 +278,18 @@ cdef class vec3:
         cdef vec3 n = vec3(dx,dy,dz)
         return n
 
+    # generate a polyline between seelf and vec3 o with n points between ends
+    # self and o are not modified nor contained in the result
+    cdef list pline_c(self,vec3 o,int n):
+        cdef float s = self.d_c(o)
+        cdef float t
+        cdef int x
+        cdef list line = []
+        for x in range(n):
+            t = (x+1.0)/(n+1.0)
+            line.append(self.lerp_c(o,t))
+        return line
+
     ###########################################################################
 
     ###########################################################################
@@ -443,6 +457,12 @@ cdef class vec3:
     cpdef vec3 lerp(self,vec3 o,float ds):
         '''create a new point linearly interpolated between this point and another'''
         return self.lerp_c(o,ds)
+
+    # generate a polyline between seelf and vec3 o with n points between ends
+    # self and o are not modified nor contained in the result
+    cpdef list pline(self,vec3 o,int n):
+        '''create a polyline between this and another'''
+        return self.pline_c(o,n)
 
     ###########################################################################
 

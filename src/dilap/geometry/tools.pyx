@@ -28,6 +28,8 @@ cdef float epsilonsq_c = epsilon*epsilon
 maxfloat = sys.float_info.max
 cdef float maxfloat_c = maxfloat
 
+stuff = 'hi'
+
 __doc__ = '''General purpose tool functions...'''
 
 ###############################################################################
@@ -43,6 +45,24 @@ cdef vec3 com_c(ps):
     for px in range(pcnt):n.trn_c(ps[px])
     return n.uscl_c(1.0/pcntf)
 
+# given start point s, end point e, and n segments, 
+# return a colinear set of points equally spaced between s and e
+cdef list pline_c(vec3 s,vec3 e,int n):
+    cdef list line = [s.cp_c()]
+    cdef vec3 tn = s.tov_c(e)
+    cdef float l = tn.mag_c()
+    cdef int x
+    cdef vec3 nxt
+    tn.nrm_c()
+    tn.uscl_c(float(l)/(n+1))
+    for x in range(n):
+        print('wtfff',line)
+        #nxt = line[-1].cp_c().trn_c(tn)
+        nxt = line[x].cp().trn(tn)
+        line.append(nxt)
+    line.append(e.cp_c())
+    return line
+
 ###############################################################################
 ### python space
 ###############################################################################
@@ -52,6 +72,10 @@ cpdef vec3 com(ps):
     '''compute the center of mass for a set of vectors'''
     return com_c(ps)
 
+# return a ring of points of radius r with n corners
+cpdef list pline(vec3 s,vec3 e,int n):
+    '''return a line of n points starting with s, ending with e'''
+    return pline_c(s,e,n)
 
 
 

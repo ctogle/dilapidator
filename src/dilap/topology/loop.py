@@ -22,6 +22,7 @@ class loop:
     def __init__(self,edge,ix):
         self.edge = edge
         self.ix = ix
+        self.edge.loop = self
 
 
 

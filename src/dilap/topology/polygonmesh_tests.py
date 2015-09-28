@@ -14,15 +14,8 @@ import pdb
 
 class test_polygonmesh(unittest.TestCase):
 
-    # could use a plotting method
-    # could use a plotting method
-    # could use a plotting method
-    # could use a plotting method
-    # could use a plotting method
-    # could use a plotting method
     def plotmesh(self):
         mesh = self.mesh
-
         ax = dtl.plot_axes()
         for f in mesh.faces:
             ps = mesh.gvps(f)
@@ -87,7 +80,7 @@ class test_polygonmesh(unittest.TestCase):
         self.assertEqual(self.mesh.lcnt(),2)
         self.assertEqual(self.mesh.fcnt(),2)
 
-        self.plotmesh()
+        #self.plotmesh()
 
     #def test_mefl(self):
     #def test_mask(self):

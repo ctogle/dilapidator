@@ -36,6 +36,7 @@ class edge:
         self.two = two
         self.ix = ix
         self.ring = []
+
         self.nxt = None
         self.lst = None
         self.loop = None

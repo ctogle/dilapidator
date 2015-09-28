@@ -164,6 +164,7 @@ class test_trimesh(unittest.TestCase):
         self.assertEqual(len(v41m),2)
         self.assertEqual(len(v42m),1)
 
+    #def test_adjc(self):
     #def test_vonb(self):
     #def test_eonb(self):
     #def test_alphan(self):
@@ -185,6 +186,8 @@ class test_trimesh(unittest.TestCase):
         self.assertTrue((0,2) in self.mesh.edges)
         self.assertTrue((2,3) in self.mesh.edges)
         self.assertTrue((3,0) in self.mesh.edges)
+
+    #def test_sedge(self):
 
     def test_fedge(self):
         self.quad()
@@ -258,6 +261,7 @@ class test_trimesh(unittest.TestCase):
         self.mesh.sface(sv2,self.v1,self.v3,self.v4)
         self.assert_counts(6,18,6)
 
+    #def test_fan(self):
     #def test_connected(self):
 
 if __name__ == '__main__':

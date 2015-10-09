@@ -87,7 +87,7 @@ class test_trimesh(unittest.TestCase):
         self.f23 = self.mesh.aface(self.v5,self.v8,self.v11) 
         self.f24 = self.mesh.aface(self.v8,self.v4,self.v11) 
 
-        self.plotmesh()
+        #self.plotmesh()
 
     def cube(self):
         self.v1  = self.avert(vec3(-1,-1,-1))

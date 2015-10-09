@@ -4,7 +4,7 @@ from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
 from dilap.geometry.tform import tform
 
-import dilap.topology.scenegraph as dsg
+import dilap.modeling.scenegraph as dsg
 
 import dilap.mesh.tools as dtl
 import matplotlib.pyplot as plt

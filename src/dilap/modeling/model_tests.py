@@ -120,6 +120,7 @@ class test_model(unittest.TestCase):
 
     def test_apolymesh(self):
         pmesh = self.mod.apolymesh()
+        pmesh.aroot(vec3(0,0,0))
         self.assert_pmcounts(pmesh,1,1,1,1)
 
     #def test_avert(self):
@@ -138,11 +139,11 @@ class test_model(unittest.TestCase):
         self.assert_tmcounts(gm,14,72,24)
         self.mod.subdiv(gm)
         #self.assert_tmcounts(gm,38,216,72)
-        self.mod.subdiv(gm)
+        #self.mod.subdiv(gm)
         #self.assert_tmcounts(gm,110,648,216)
-        self.mod.subdiv(gm)
-        self.mod.subdiv(gm)
-        self.plot(gm)
+        #self.mod.subdiv(gm)
+        #self.mod.subdiv(gm)
+        #self.plot(gm)
 
     def test_subdiv_dome(self):
         gm = self.dome()

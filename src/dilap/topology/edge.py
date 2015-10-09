@@ -18,30 +18,39 @@ class edge:
 
     def __str__(self):return 'edge:'+str(self.ix)
 
-    def connect(self,f):
-        self.ring.append(f)
+    #def connect(self,l):
+    #    self.ring.append(l)
 
-    def disconnect(self,f):
-        self.ring.remove(f)
+    #def disconnect(self,l):
+    #    self.ring.remove(l)
 
-    def snxt(self,nxt):
-        self.nxt = nxt
+    #def snxt(self,nxt):
+    #    self.nxt = nxt
 
-    def gnxt(self,nxt):
-        return self.nxt
+    #def gnxt(self,nxt):
+    #    return self.nxt
 
     # has an index unique per mesh
     def __init__(self,one,two,ix):
-        self.one = one
-        self.two = two
-        self.ix = ix
-        self.ring = []
+        self.ix = ix   # unique index
 
-        self.nxt = None
-        self.lst = None
-        self.loop = None
+        self.one = one # start vertex
+        self.two = two # end vertex
+
+        self.rl = None # right loop
+        self.ll = None # left loop
+        self.rcw = None  # right clockwise edge
+        self.rccw = None # right counter-clockwise edge 
+        self.lcw = None  # left clockwise edge 
+        self.lccw = None # left counter-clockwise edge 
 
 
+
+        #self.ring = [] # loop-edge links
+
+        #self.nxt = None
+        #self.lst = None
+        #self.loop = None
 
 
 

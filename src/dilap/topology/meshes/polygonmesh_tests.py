@@ -96,28 +96,24 @@ class test_polygonmesh(unittest.TestCase):
         v7,e6 = self.mesh.mev(v6,vgx = 5)
         v8,e7 = self.mesh.mev(v7,vgx = 4)
         e8,f2 = self.mesh.mfe(v8,v1)
-        e9,f3 = self.mesh.mfe(v6,v3,f1)
-        #e10,f4 = self.mesh.mfe(v7,v2,f1)
-        e11,f5 = self.mesh.mfe(v8,v5,f2)
-
-        self.plotmesh()
+        v3hes = self.mesh.mask(4,v3,None,None,f1)
+        v6hes = self.mesh.mask(4,v6,None,None,f1)
+        oe1,oe2 = v6hes[1],v3hes[1]
+        e9,f3 = self.mesh.mfe(v3,v6,oe1,oe2)
 
         mask1 = self.mesh.mask(2,v1)
         self.assertTrue(self.mesh.loops[0] in mask1)
         self.assertTrue(self.mesh.loops[1] in mask1)
         self.assertFalse(self.mesh.loops[2] in mask1)
-        self.assertFalse(self.mesh.loops[3] in mask1)
         mask2 = self.mesh.mask(2,v2)
         self.assertTrue(self.mesh.loops[0] in mask2)
         self.assertTrue(self.mesh.loops[1] in mask2)
         self.assertFalse(self.mesh.loops[2] in mask2)
-        self.assertTrue(self.mesh.loops[3] in mask2)
         mask3 = self.mesh.mask(2,v3)
         self.assertTrue(self.mesh.loops[0] in mask3)
-        self.assertFalse(self.mesh.loops[1] in mask3)
+        self.assertTrue(self.mesh.loops[1] in mask3)
         self.assertTrue(self.mesh.loops[2] in mask3)
-        self.assertTrue(self.mesh.loops[3] in mask3)
-        self.assertEqual(self.mesh.lcnt(),5)
+        self.assertEqual(self.mesh.lcnt(),3)
 
     def test_mask_2nenn(self):
         v1,f1 = self.mesh.mfv()
@@ -198,6 +194,11 @@ class test_polygonmesh(unittest.TestCase):
         self.assertEqual(self.mesh.fcnt(),2)
 
     def test_cube(self):
+        def getoe(v,f):
+            hes = self.mesh.mask(4,v,None,None,f)
+            oe = tuple(x for x in hes if x.one is v)[0]
+            return oe
+
         self.pset.ap(vec3(0,0,0));self.pset.ap(vec3(2,0,0))
         self.pset.ap(vec3(2,2,0));self.pset.ap(vec3(0,2,0))
         self.pset.ap(vec3(0,0,2));self.pset.ap(vec3(2,0,2))
@@ -212,23 +213,20 @@ class test_polygonmesh(unittest.TestCase):
         v7,e6 = self.mesh.mev(v6,vgx = 5)
         v8,e7 = self.mesh.mev(v7,vgx = 4)
         e8,f2 = self.mesh.mfe(v8,v1)
-        e9,f3 = self.mesh.mfe(v6,v3,f1)
-        #e10,f4 = self.mesh.mfe(v7,v2,f1)
-        e11,f5 = self.mesh.mfe(v8,v5,f2)
-        #e12,f6 = self.mesh.mfe(v1,v4,f2)
 
+        oe1 = getoe(v6,f1);oe2 = getoe(v3,f1)
+        e9,f3 = self.mesh.mfe(v3,v6,oe1,oe2)
+        oe1 = getoe(v7,f1);oe2 = getoe(v2,f1)
+        e10,f4 = self.mesh.mfe(v2,v7,oe1,oe2)
+        oe1 = getoe(v1,f2);oe2 = getoe(v4,f2)
+        e11,f5 = self.mesh.mfe(v4,v1,oe1,oe2)
+        oe1 = getoe(v8,f2);oe2 = getoe(v5,f2)
+        e12,f6 = self.mesh.mfe(v5,v8,oe1,oe2)
 
-
-        #e9,f3 = self.mesh.mfe(v1,v4)
-        #e10,f4 = self.mesh.mfe(v8,v5)
-
-        #e10,f4 = self.mesh.mfe(v4,v5)
-        #e9,f3  = self.mesh.mfe(v5,v8)
-        #e11,f5 = self.mesh.mfe(v7,v2)
-        #self.assertEqual(self.mesh.vcnt(),8)
-        #self.assertEqual(self.mesh.ecnt(),10)
-        #self.assertEqual(self.mesh.lcnt(),4)
-        #self.assertEqual(self.mesh.fcnt(),4)
+        self.assertEqual(self.mesh.vcnt(),8)
+        self.assertEqual(self.mesh.ecnt(),12)
+        self.assertEqual(self.mesh.lcnt(),6)
+        self.assertEqual(self.mesh.fcnt(),6)
 
         self.plotmesh()
 

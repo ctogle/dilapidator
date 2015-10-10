@@ -21,6 +21,21 @@ class halfedge:
         self.lst = self # next counter-clockwise edge 
         self.ops = self # opposite halfedge
 
+# remove each item in one that is not in two
+def isect(one,two):
+    extras = 0
+    for x in range(len(one)):
+        if not one[x] in two:
+            one[x] = None
+            extras += 1
+    while extras:
+        one.remove(None)
+        extras -= 1
+
+# add any item in two to one if its not already present
+def union(one,two):
+    raise NotImplemented
+
 __doc__ = '''dilapidator\'s implementation of a polygonal mesh'''
 # dilapidators implementation of a polygonal mesh
 # analogous to a single solid or topological shell
@@ -67,57 +82,93 @@ class polygonmesh:
             self.facecount += 1
             return self.facecount-1
 
+    # return verts incident on v,e,l,f
+    def mask0(self,v = None,e = None,l = None,f = None):
+        results = []
+        if not l is None:
+            for he in self.mask(4,None,None,l,None):
+                if not he.one in results:results.append(he.one)
+                if not he.two in results:results.append(he.two)
+        else:raise NotImplemented
+        return results
+
+    # return edges incident on v,e,l,f
+    def mask1(self,v = None,e = None,l = None,f = None):
+        results = []
+        if not v is None:
+            for ve in self.vrings[v]:
+                if not ve in results:
+                    results.append(ve)
+        else:raise NotImplemented
+        return results
+
+    # return loops incident on v,e,l,f
+    def mask2(self,v = None,e = None,l = None,f = None):
+        results = []
+        if not v is None:
+            for ve in self.mask(1,v,None,None,None):
+                for vl in self.mask(2,None,ve,None,None):
+                    if not vl in results:
+                        results.append(vl)
+        elif not e is None:
+            for he in self.erings[e]:
+                hel = self.loops[he.l]
+                if not hel in results:
+                    results.append(hel)
+        elif not f is None:
+            for fl in self.frings[f]:
+                if not fl in results:
+                    results.append(fl)
+        else:raise NotImplemented
+        return results
+
+    # return faces incident on v,e,l,f
+    def mask3(self,v = None,e = None,l = None,f = None):
+        raise NotImplemented
+
+    # return halfedges incident on v,e,l,f
+    def mask4(self,v = None,e = None,l = None,f = None):
+        results = []
+        if not v is None:
+            for ve in self.mask(1,v,None,None,None):
+                for he in self.mask(4,None,ve,None,None):
+                    if not he in results:
+                        results.append(he)
+        if not e is None:
+            subresults = []
+            for he in self.erings[e]:
+                if not he in subresults:
+                    subresults.append(he)
+            if results:isect(results,subresults)
+            else:results.extend(subresults)
+        if not l is None:
+            subresults = []
+            firsthe = l[1]
+            subresults.append(firsthe)
+            subresults.append(firsthe.nxt)
+            while not subresults[-1] is firsthe:
+                subresults.append(subresults[-1].nxt)
+            if results:isect(results,subresults)
+            else:results.extend(subresults)
+        if not f is None:
+            subresults = []
+            for l in self.frings[f]:
+                for he in self.mask(4,None,None,l,None):
+                    if not he in subresults:
+                        subresults.append(he)
+            if results:isect(results,subresults)
+            else:results.extend(subresults)
+        return results
+
     # return the d-cells which are incident upon any of v,e,l,f
     # with the exception that d = 4 indicates halfedges
     def mask(self,d = 0,v = None,e = None,l = None,f = None):
-        results = []
-
-        if d == 0:
-            if not l is None:
-                for he in self.mask(4,None,None,l,None):
-                    if not he.one in results:results.append(he.one)
-                    if not he.two in results:results.append(he.two)
-          
-            else:raise NotImplemented
-
-        elif d == 1:
-            if not v is None:
-                for ve in self.vrings[v]:
-                    if not ve in results:
-                        results.append(ve)
-          
-            else:raise NotImplemented
-
-        elif d == 2:
-            if not v is None:
-                for ve in self.mask(1,v,None,None,None):
-                    for vl in self.mask(2,None,ve,None,None):
-                        if not vl in results:
-                            results.append(vl)
-            elif not e is None:
-                for he in self.erings[e]:
-                    hel = self.loops[he.l]
-                    if not hel in results:
-                        results.append(hel)
-            elif not f is None:
-                for fl in self.frings[f]:
-                    if not fl in results:
-                        results.append(fl)
-                    
-            else:raise NotImplemented
-
-        elif d == 3:raise NotImplemented
-
-        elif d == 4:
-            if l is None:raise ValueError
-            else:
-                hes = [l[1]]
-                while not hes[-1].nxt in hes:
-                    hes.append(hes[-1].nxt)
-            if v is None:return hes
-            else:return [h for h in hes if h.one == v or h.two == v]
-
-        return results
+        if   d == 0:return self.mask0(v,e,l,f)
+        elif d == 1:return self.mask1(v,e,l,f)
+        elif d == 2:return self.mask2(v,e,l,f)
+        elif d == 3:return self.mask3(v,e,l,f)
+        elif d == 4:return self.mask4(v,e,l,f)
+        else:raise ValueError
 
     def __init__(self,*args,**kwargs):
         self.verts = []     # list of tuples (geo-id,)
@@ -213,10 +264,8 @@ class polygonmesh:
     def mev(self,bv,oe = None,ol = None,vgx = 0,egx = 0):
         vr = self.vrings[bv]
         rc = len(vr)
-
         nv = self.avert(vgx)
         ne = self.aedge(bv,nv,egx)
-
         if rc == 0: # the vertex is the root of a face
             nl = self.aloop(ne)
             ops = halfedge(nl[1].two,nl[1].one,nl[2])
@@ -231,7 +280,6 @@ class polygonmesh:
                 if f is None:continue
                 if f[0] == bv:
                     self.frings[f].append(nl)
-
         elif rc == 1: # the vertex is a spur 
             se = vr[0]
             hel,her = self.erings[se]
@@ -243,10 +291,10 @@ class polygonmesh:
             nhel.nxt.lst = nhel;nhel.lst.nxt = nhel
             nher.lst = nhel;nher.nxt = her
             nher.nxt.lst = nher;nher.lst.nxt = nher
-
         elif rc >= 2: # the vertex is in a 2+ edge loop
             
             pdb.set_trace()
+            raise NotImplemented
 
         return nv,ne
 
@@ -255,57 +303,46 @@ class polygonmesh:
     #   slice an edge
     # add an edge and a face
     #   u,v are the start,end vertices
-    #   e1,e2 specify the new loop boundaries
     #   egx,fgx are geometric indices
-    #def mfe(self,u,v,e1 = None,e2 = None,egx = 0,fgx = 0):
-    def mfe(self,u,v,f = None,egx = 0,fgx = 0):
-        # find the common loop to u and v
-        uls = self.mask(2,u,None,None,None)
-        vls = self.mask(2,v,None,None,None)
-        uvls = tuple(x for x in uls if x in vls)
-
-        if f is None:
-            if len(uvls) == 0:
-                print('mfe u,v share no loops!')
+    #   e1 is the halfedge following a new halfedge in the old loop
+    #   e2 is the halfedge following a new halfedge in the new loop
+    #   the new loop is to the right of the halfedge u,v
+    def mfe(self,u,v,e1 = None,e2 = None,egx = 0,fgx = 0):
+        if e1 is None or e2 is None:
+            uls = self.mask(2,u,None,None,None)
+            vls = self.mask(2,v,None,None,None)
+            uvls = tuple(x for x in uls if x in vls)
+            if len(uvls) == 1:ol = uvls[0]
+            else:
+                print('loop ambiguity!')
                 raise ValueError
-            elif len(uvls) == 1:oll = uvls[0]
-        else:
-            oll = tuple(x for x in uvls if x in self.frings[f])[0]
-
-        # find the edges of the common loop incident on u and v
-        lue = self.mask(4,u,None,oll,None)
-        lve = self.mask(4,v,None,oll,None)
-
-        if not lue or not lve:
-            print('wtffff')
-            pdb.set_trace()
-
+            if e1 is None:
+                lve = self.mask(4,v,None,ol)
+                e1 = tuple(x for x in lve if x.one is v)[0]
+            if e2 is None:
+                lue = self.mask(4,u,None,ol)
+                e2 = tuple(x for x in lue if x.one is u)[0]
+        else:ol = self.loops[e1.l]
         ne = self.aedge(u,v,egx)
-        nl = self.aloop(ne)
+        nl = self.aloop(ne,b = 1)
         nf = self.aface(u,fgx)
         self.frings[nf].append(nl)
-
-        nlx = nl[2]
-        olhe = halfedge(u,v,oll[2])
+        olhe = halfedge(u,v,ol[2])
         nlhe = nl[1]
         olhe.ops = nlhe
         nlhe.ops = olhe
-
-        olue = tuple(x for x in lue if x.one == u)[0]
-        nlue = tuple(x for x in lue if x.two == u)[0]
-        olve = tuple(x for x in lve if x.two == v)[0]
-        nlve = tuple(x for x in lve if x.one == v)[0]
-        olhe.nxt = olue;olhe.lst = olve
-        nlhe.nxt = nlve;nlhe.lst = nlue
-        olhe.nxt.lst = olhe;olhe.lst.nxt = olhe
-        nlhe.nxt.lst = nlhe;nlhe.lst.nxt = nlhe
-
-        # need to traverse each loop setting the loop reference appropriately
-        c = nlhe.nxt
-        while not c is nlhe:
+        olhe.nxt = e1;e1.lst = olhe
+        nlhe.nxt = e2;e2.lst = nlhe
+        c = e2
+        while not c.nxt is e1:
             c.l = nl[2]
             c = c.nxt
-
+        c.nxt = nlhe;nlhe.lst = c
+        c = e1
+        while not c.nxt is e2:
+            c.l = ol[2]
+            c = c.nxt
+        c.nxt = olhe;olhe.lst = c
         return ne,nf
 
 
@@ -314,56 +351,6 @@ class polygonmesh:
 
 
 
-    # return the d-cells which are incident upon any of v,e,l,f
-    def mask_____(self,d = 0,v = None,e = None,l = None,f = None):
-        results = []
-        if d == 0:
-            if not v is None:
-                for ve in self.mask(1,v,None):
-                    for vv in self.mask(0,None,ve):
-                        if not vv is v:results.append(vv)
-            if not e is None:results.extend([e.one,e.two])
-            if not l is None:
-                for e in self.mask(1,None,None,l,None):
-                    results.append(e.one)
-            if not f is None:
-                el,ils = f.bound,f.holes
-                ev,ivs = [],[]
-                for evv in self.mask(0,None,None,el,None):
-                    ev.append(evv)
-                #for il in ils:
-                #    ivs.append([])
-                #    for ivv in self.mask(0,None,None,il,None):
-                #        ivs[-1].append(ivv)
-                results.extend(ev)
-        elif d == 1:
-            if not v is None:results.extend(v.ring)
-            if not e is None:
-                for vv in self.mask(0,None,e):
-                    for ve in self.mask(1,vv,None):
-                        if not ve is e:results.append(ve)
-            if not l is None:
-                first = l.edge
-                results.append(first)
-                nxt = first.nxt
-                while not nxt in results:
-                    results.append(nxt)
-                    nxt = nxt.nxt
-            if not f is None:pass
-        elif d == 2:
-            if not v is None:pass
-            if not e is None:
-                for l in self.loops:
-                    if l is None:continue
-                    if l.edge == e:results.append(l)
-            if not l is None:pass
-            if not f is None:pass
-        elif d == 3:
-            if not v is None:pass
-            if not e is None:pass
-            if not l is None:pass
-            if not f is None:pass
-        return results
 
     '''#
     # add a new root vertex in the mesh (only needed once)

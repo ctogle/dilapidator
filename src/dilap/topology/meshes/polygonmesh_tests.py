@@ -21,7 +21,7 @@ class test_polygonmesh(unittest.TestCase):
         ax = dtl.plot_axes()
         for f in mesh.faces:                    
             for l in mesh.mask(2,None,None,None,f):
-                hes = mesh.mask(4,None,None,l,None)
+                hes = mesh.mask(6,None,None,l,None)
                 p1 = self.pset.ps[hes[0].one[1]]
                 p2 = self.pset.ps[hes[0].two[1]]
                 ps = [p1,p2]
@@ -34,14 +34,33 @@ class test_polygonmesh(unittest.TestCase):
                 ax = dtl.plot_edges(ps,ax)
         plt.show()
 
+    def assert_counts(self,v,e,l,f,fg,s):
+        self.assertEqual(self.mesh.vcnt(),v)
+        self.assertEqual(self.mesh.ecnt(),e)
+        self.assertEqual(self.mesh.lcnt(),l)
+        self.assertEqual(self.mesh.fcnt(),f)
+        self.assertEqual(self.mesh.fgcnt(),fg)
+        self.assertEqual(self.mesh.scnt(),s)
+
+    def cube_points(self):
+        self.pset.ap(vec3(0,0,0));self.pset.ap(vec3(2,0,0))
+        self.pset.ap(vec3(2,2,0));self.pset.ap(vec3(0,2,0))
+        self.pset.ap(vec3(0,0,2));self.pset.ap(vec3(2,0,2))
+        self.pset.ap(vec3(2,2,2));self.pset.ap(vec3(0,2,2))
+
     def setUp(self):
         self.mesh = dmsh.polygonmesh()
         self.pset = pointset()
 
-    #def test_mask_0nnln(self):
+    #def test_mask_0vnnnnn(self):
+    #def test_mask_0nennnn(self):
+    #def test_mask_0nnlnnn(self):
+    #def test_mask_0nnnfnn(self):
+    #def test_mask_0nnnngn(self):
+    #def test_mask_0nnnngs(self):
 
-    def test_mask_1vnnn(self):
-        v1,f1 = self.mesh.mfv(vgx = 0)
+    def test_mask_1vnnnnn(self):
+        v1,f1 = self.mesh.mbfv(vgx = 0)
         v2,e1 = self.mesh.mev(v1,vgx = 0)
         v3,e2 = self.mesh.mev(v2,vgx = 0)
         v4,e3 = self.mesh.mev(v3,vgx = 0)
@@ -49,7 +68,7 @@ class test_polygonmesh(unittest.TestCase):
         v6,e5 = self.mesh.mev(v5,vgx = 0)
         v7,e6 = self.mesh.mev(v6,vgx = 0)
         v8,e7 = self.mesh.mev(v7,vgx = 0)
-        e8,f2 = self.mesh.mfe(v8,v1)
+        e8,f2 = self.mesh.mefl(v8,v1)
 
         mask1 = self.mesh.mask(1,v1)
         self.assertTrue(e1 in mask1)
@@ -81,13 +100,16 @@ class test_polygonmesh(unittest.TestCase):
         self.assertTrue(e7 in mask8)
         self.assertTrue(e8 in mask8)
 
-    def test_mask_2vnnn(self):
-        self.pset.ap(vec3(0,0,0));self.pset.ap(vec3(2,0,0))
-        self.pset.ap(vec3(2,2,0));self.pset.ap(vec3(0,2,0))
-        self.pset.ap(vec3(0,0,2));self.pset.ap(vec3(2,0,2))
-        self.pset.ap(vec3(2,2,2));self.pset.ap(vec3(0,2,2))
+    #def test_mask_1nennnn(self):
+    #def test_mask_1nnlnnn(self):
+    #def test_mask_1nnnfnn(self):
+    #def test_mask_1nnnngn(self):
+    #def test_mask_1nnnnns(self):
 
-        v1,f1 = self.mesh.mfv(vgx = 0)
+    def test_mask_2vnnnnn(self):
+        self.cube_points()
+
+        v1,f1 = self.mesh.mbfv(vgx = 0)
         v2,e1 = self.mesh.mev(v1,vgx = 1)
         v3,e2 = self.mesh.mev(v2,vgx = 2)
         v4,e3 = self.mesh.mev(v3,vgx = 3)
@@ -95,11 +117,11 @@ class test_polygonmesh(unittest.TestCase):
         v6,e5 = self.mesh.mev(v5,vgx = 6)
         v7,e6 = self.mesh.mev(v6,vgx = 5)
         v8,e7 = self.mesh.mev(v7,vgx = 4)
-        e8,f2 = self.mesh.mfe(v8,v1)
-        v3hes = self.mesh.mask(4,v3,None,None,f1)
-        v6hes = self.mesh.mask(4,v6,None,None,f1)
+        e8,f2 = self.mesh.mefl(v8,v1)
+        v3hes = self.mesh.mask(6,v3,None,None,f1)
+        v6hes = self.mesh.mask(6,v6,None,None,f1)
         oe1,oe2 = v6hes[1],v3hes[1]
-        e9,f3 = self.mesh.mfe(v3,v6,oe1,oe2)
+        e9,f3 = self.mesh.mefl(v3,v6,oe1,oe2)
 
         mask1 = self.mesh.mask(2,v1)
         self.assertTrue(self.mesh.loops[0] in mask1)
@@ -115,8 +137,8 @@ class test_polygonmesh(unittest.TestCase):
         self.assertTrue(self.mesh.loops[2] in mask3)
         self.assertEqual(self.mesh.lcnt(),3)
 
-    def test_mask_2nenn(self):
-        v1,f1 = self.mesh.mfv()
+    def test_mask_2nennnn(self):
+        v1,f1 = self.mesh.mbfv()
         v2,e1 = self.mesh.mev(v1)
         v3,e2 = self.mesh.mev(v2)
         v4,e3 = self.mesh.mev(v3)
@@ -126,85 +148,83 @@ class test_polygonmesh(unittest.TestCase):
         self.assertEqual(mask1,mask2)
         self.assertEqual(mask1,mask3)
 
-    #def test_mask_2nnnf(self):
+    #def test_mask_2nnlnnn(self):
+    #def test_mask_2nnnfnn(self):
+    #def test_mask_2nnnngn(self):
+    #def test_mask_2nnnnns(self):
 
-    #def test_mask_4nnln(self):
-    #def test_mask_4vnln(self):
+    #def test_mask_3vnnnnn(self):
+    #def test_mask_3nennnn(self):
+    #def test_mask_3nnlnnn(self):
+    #def test_mask_3nnnfnn(self):
+    #def test_mask_3nnnngn(self):
+    #def test_mask_3nnnnns(self):
+
+    #def test_mask_4vnnnnn(self):
+    #def test_mask_4nennnn(self):
+    #def test_mask_4nnlnnn(self):
+    #def test_mask_4nnnfnn(self):
+    #def test_mask_4nnnngn(self):
+    #def test_mask_4nnnnns(self):
+
+    #def test_mask_5vnnnnn(self):
+    #def test_mask_5nennnn(self):
+    #def test_mask_5nnlnnn(self):
+    #def test_mask_5nnnfnn(self):
+    #def test_mask_5nnnngn(self):
+    #def test_mask_5nnnnns(self):
+
+    #def test_mask_6vnnnnn(self):
+    #def test_mask_6nennnn(self):
+    #def test_mask_6nnlnnn(self):
+    #def test_mask_6nnnfnn(self):
+    #def test_mask_6nnnngn(self):
+    #def test_mask_6nnnnns(self):
 
     def test_init(self):
-        self.assertEqual(self.mesh.vcnt(),0)
-        self.assertEqual(self.mesh.ecnt(),0)
-        self.assertEqual(self.mesh.lcnt(),0)
-        self.assertEqual(self.mesh.fcnt(),0)
+        self.assert_counts(0,0,0,0,0,0)
 
     def test_avert(self):
-        v1,f1 = self.mesh.mfv()
+        v1,f1 = self.mesh.mbfv()
         v2 = self.mesh.avert()
-        self.assertEqual(self.mesh.vcnt(),2)
-        self.assertEqual(self.mesh.ecnt(),0)
-        self.assertEqual(self.mesh.lcnt(),0)
-        self.assertEqual(self.mesh.fcnt(),1)
+        self.assert_counts(2,0,0,1,1,1)
 
     def test_aedge(self):
-        v1,f1 = self.mesh.mfv()
+        v1,f1 = self.mesh.mbfv()
         v2 = self.mesh.avert()
         self.mesh.aedge(v1,v2)
-        self.assertEqual(self.mesh.vcnt(),2)
-        self.assertEqual(self.mesh.ecnt(),1)
-        self.assertEqual(self.mesh.lcnt(),0)
-        self.assertEqual(self.mesh.fcnt(),1)
+        self.assert_counts(2,1,0,1,1,1)
 
     #def test_aloop(self):
     #def test_aface(self):
+    #def test_afgroup(self):
+    #def test_ashell(self):
 
-    def test_mfv(self):
-        self.mesh.mfv()
-        self.assertEqual(self.mesh.vcnt(),1)
-        self.assertEqual(self.mesh.ecnt(),0)
-        self.assertEqual(self.mesh.lcnt(),0)
-        self.assertEqual(self.mesh.fcnt(),1)
+    def test_mbfv(self):
+        self.mesh.mbfv()
+        self.assert_counts(1,0,0,1,1,1)
 
     def test_mev(self):
-        v1,f1 = self.mesh.mfv()
+        v1,f1 = self.mesh.mbfv()
         v2,e1 = self.mesh.mev(v1)
-        self.assertEqual(self.mesh.vcnt(),2)
-        self.assertEqual(self.mesh.ecnt(),1)
-        self.assertEqual(self.mesh.lcnt(),1)
-        self.assertEqual(self.mesh.fcnt(),1)
+        self.assert_counts(2,1,1,1,1,1)
         v3,e2 = self.mesh.mev(v2)
-        self.assertEqual(self.mesh.vcnt(),3)
-        self.assertEqual(self.mesh.ecnt(),2)
-        self.assertEqual(self.mesh.lcnt(),1)
-        self.assertEqual(self.mesh.fcnt(),1)
+        self.assert_counts(3,2,1,1,1,1)
         v4,e3 = self.mesh.mev(v3)
-        self.assertEqual(self.mesh.vcnt(),4)
-        self.assertEqual(self.mesh.ecnt(),3)
-        self.assertEqual(self.mesh.lcnt(),1)
-        self.assertEqual(self.mesh.fcnt(),1)
+        self.assert_counts(4,3,1,1,1,1)
 
-    def test_mfe(self):
-        v1,f1 = self.mesh.mfv()
+    def test_mefl(self):
+        v1,f1 = self.mesh.mbfv()
         v2,e1 = self.mesh.mev(v1)
         v3,e2 = self.mesh.mev(v2)
         v4,e3 = self.mesh.mev(v3)
-        e4,f2 = self.mesh.mfe(v4,v1)
-        self.assertEqual(self.mesh.vcnt(),4)
-        self.assertEqual(self.mesh.ecnt(),4)
-        self.assertEqual(self.mesh.lcnt(),2)
-        self.assertEqual(self.mesh.fcnt(),2)
+        e4,f2 = self.mesh.mefl(v4,v1)
+        self.assert_counts(4,4,2,2,1,1)
 
     def test_cube(self):
-        def getoe(v,f):
-            hes = self.mesh.mask(4,v,None,None,f)
-            oe = tuple(x for x in hes if x.one is v)[0]
-            return oe
+        self.cube_points()
 
-        self.pset.ap(vec3(0,0,0));self.pset.ap(vec3(2,0,0))
-        self.pset.ap(vec3(2,2,0));self.pset.ap(vec3(0,2,0))
-        self.pset.ap(vec3(0,0,2));self.pset.ap(vec3(2,0,2))
-        self.pset.ap(vec3(2,2,2));self.pset.ap(vec3(0,2,2))
-
-        v1,f1 = self.mesh.mfv(vgx = 0)
+        v1,f1 = self.mesh.mbfv(vgx = 0)
         v2,e1 = self.mesh.mev(v1,vgx = 1)
         v3,e2 = self.mesh.mev(v2,vgx = 2)
         v4,e3 = self.mesh.mev(v3,vgx = 3)
@@ -212,21 +232,22 @@ class test_polygonmesh(unittest.TestCase):
         v6,e5 = self.mesh.mev(v5,vgx = 6)
         v7,e6 = self.mesh.mev(v6,vgx = 5)
         v8,e7 = self.mesh.mev(v7,vgx = 4)
-        e8,f2 = self.mesh.mfe(v8,v1)
+        e8,f2 = self.mesh.mefl(v8,v1)
 
-        oe1 = getoe(v6,f1);oe2 = getoe(v3,f1)
-        e9,f3 = self.mesh.mfe(v3,v6,oe1,oe2)
-        oe1 = getoe(v7,f1);oe2 = getoe(v2,f1)
-        e10,f4 = self.mesh.mfe(v2,v7,oe1,oe2)
-        oe1 = getoe(v1,f2);oe2 = getoe(v4,f2)
-        e11,f5 = self.mesh.mfe(v4,v1,oe1,oe2)
-        oe1 = getoe(v8,f2);oe2 = getoe(v5,f2)
-        e12,f6 = self.mesh.mfe(v5,v8,oe1,oe2)
+        oe1 = self.mesh.hefrom(v6,f1)
+        oe2 = self.mesh.hefrom(v3,f1)
+        e9,f3 = self.mesh.mefl(v3,v6,oe1,oe2)
+        oe1 = self.mesh.hefrom(v7,f1)
+        oe2 = self.mesh.hefrom(v2,f1)
+        e10,f4 = self.mesh.mefl(v2,v7,oe1,oe2)
+        oe1 = self.mesh.hefrom(v1,f2)
+        oe2 = self.mesh.hefrom(v4,f2)
+        e11,f5 = self.mesh.mefl(v4,v1,oe1,oe2)
+        oe1 = self.mesh.hefrom(v8,f2)
+        oe2 = self.mesh.hefrom(v5,f2)
+        e12,f6 = self.mesh.mefl(v5,v8,oe1,oe2)
 
-        self.assertEqual(self.mesh.vcnt(),8)
-        self.assertEqual(self.mesh.ecnt(),12)
-        self.assertEqual(self.mesh.lcnt(),6)
-        self.assertEqual(self.mesh.fcnt(),6)
+        self.assert_counts(8,12,6,6,1,1)
 
         self.plotmesh()
 

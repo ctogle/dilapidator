@@ -12,9 +12,9 @@ import dilap.primitive.floor as df
 import dilap.primitive.pipe as dp
 import dilap.primitive.road as dr
 import dilap.generate.landscape as dls
-import dilap.generate.lot as dlot
+#import dilap.generate.lot as dlot
 #import dilap.generate.street as dstr
-import dilap.generate.continent as dct
+#import dilap.generate.continent as dct
 
 from dilap.geometry.vec3 import vec3
 import dilap.modeling.model as dmo

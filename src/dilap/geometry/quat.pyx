@@ -1,7 +1,9 @@
 # cython: profile=True
 #cimport cython
 
-cimport dilap.core.tools as dpr
+#cimport dilap.core.tools as dpr
+
+cimport dilap.geometry.tools as gtl
 
 from dilap.geometry.vec3 cimport vec3
 
@@ -84,13 +86,13 @@ cdef class quat:
     # is quat o within a very small neighborhood of self
     cdef bint isnear_c(self,quat o):
         cdef float dw = (self.w-o.w)
-        if dw*dw > dpr.epsilonsq_c:return 0
+        if dw*dw > gtl.epsilonsq_c:return 0
         cdef float dx = (self.x-o.x)
-        if dx*dx > dpr.epsilonsq_c:return 0
+        if dx*dx > gtl.epsilonsq_c:return 0
         cdef float dy = (self.y-o.y)
-        if dy*dy > dpr.epsilonsq_c:return 0
+        if dy*dy > gtl.epsilonsq_c:return 0
         cdef float dz = (self.z-o.z)
-        if dz*dz > dpr.epsilonsq_c:return 0
+        if dz*dz > gtl.epsilonsq_c:return 0
         return 1
 
     # return the squared magintude of self
@@ -152,8 +154,8 @@ cdef class quat:
     # a rotation by self and then q (q * self)
     cdef quat mul_c(self,quat o):
         cdef float nw,nx,ny,nz
-        if dpr.isnear_c(self.w,0):nw,nx,ny,nz = o.__iter__()
-        elif dpr.isnear_c(o.w,0):nw,nx,ny,nz = self.__iter__()
+        if gtl.isnear_c(self.w,0):nw,nx,ny,nz = o.__iter__()
+        elif gtl.isnear_c(o.w,0):nw,nx,ny,nz = self.__iter__()
         else:
             nw = o.w*self.w - o.x*self.x - o.y*self.y - o.z*self.z
             nx = o.w*self.x + o.x*self.w + o.y*self.z - o.z*self.y
@@ -178,11 +180,11 @@ cdef class quat:
     cdef quat slerp_c(self,quat o,float ds):
         cdef float hcosth = self.dot_c(o)
         # will need to flip result direction if hcosth < 0????
-        if dpr.isnear_c(abs(hcosth),1.0):return self.cp_c()
+        if gtl.isnear_c(abs(hcosth),1.0):return self.cp_c()
         cdef float hth    = acos(hcosth)
         cdef float hsinth = sqrt(1.0 - hcosth*hcosth)
         cdef float nw,nx,ny,nz,a,b
-        if dpr.isnear_c(hsinth,0): 
+        if gtl.isnear_c(hsinth,0): 
             nw = (self.w*0.5 + o.w*0.5)
             nx = (self.x*0.5 + o.x*0.5)
             ny = (self.y*0.5 + o.y*0.5)

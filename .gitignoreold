@@ -1,0 +1,7 @@
+
+*.pyc
+*.swp
+
+src/build/*
+src/cython/build/*
+

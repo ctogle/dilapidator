@@ -7,22 +7,26 @@ import os,numpy,appdirs
 
 core_modules = []
 ext_modules = [
-    Extension('dilap.geometry.vec3'        ,['dilap/geometry/vec3.pyx',    'dilap/geometry/vec3.pxd']), 
-    Extension('dilap.geometry.quat'        ,['dilap/geometry/quat.pyx',    'dilap/geometry/quat.pxd']), 
-    Extension('dilap.geometry.ray3'        ,['dilap/geometry/ray3.pyx',    'dilap/geometry/ray3.pxd']), 
-    Extension('dilap.geometry.curve'       ,['dilap/geometry/curve.pyx',   'dilap/geometry/curve.pxd']), 
-    Extension('dilap.geometry.tform'       ,['dilap/geometry/tform.pyx',   'dilap/geometry/tform.pxd']), 
-    Extension('dilap.geometry.pointset'    ,['dilap/geometry/pointset.pyx','dilap/geometry/pointset.pxd']), 
-    Extension('dilap.geometry.tools'       ,['dilap/geometry/tools.pyx',   'dilap/geometry/tools.pxd']), 
+    Extension('dilap.geometry.vec3'        ,['dilap/geometry/vec3.pyx',       'dilap/geometry/vec3.pxd']), 
+    Extension('dilap.geometry.quat'        ,['dilap/geometry/quat.pyx',       'dilap/geometry/quat.pxd']), 
+    Extension('dilap.geometry.ray3'        ,['dilap/geometry/ray3.pyx',       'dilap/geometry/ray3.pxd']), 
+    Extension('dilap.geometry.curve'       ,['dilap/geometry/curve.pyx',      'dilap/geometry/curve.pxd']), 
+    Extension('dilap.geometry.tform'       ,['dilap/geometry/tform.pyx',      'dilap/geometry/tform.pxd']), 
+    Extension('dilap.geometry.pointset'    ,['dilap/geometry/pointset.pyx',   'dilap/geometry/pointset.pxd']), 
+    Extension('dilap.geometry.tools'       ,['dilap/geometry/tools.pyx',      'dilap/geometry/tools.pxd']), 
+    Extension('dilap.geometry.triangulate' ,['dilap/geometry/triangulate.pyx','dilap/geometry/triangulate.pxd']), 
 
-    Extension('dilap.core.vector'        ,['dilap/core/vector.pyx','dilap/core/vector.pxd']), 
-    Extension('dilap.core.quaternion'    ,['dilap/core/quaternion.pyx','dilap/core/quaternion.pxd']), 
-    Extension('dilap.core.bbox'          ,['dilap/core/bbox.pyx']), 
-    Extension('dilap.core.ray'           ,['dilap/core/ray.pyx']), 
-    Extension('dilap.core.tools'         ,['dilap/core/tools.pyx','dilap/core/tools.pxd']), 
-    Extension('dilap.core.pointset'      ,['dilap/core/pointset.pyx']), 
-    Extension('dilap.mesh.triangulate'   ,['dilap/mesh/triangulate.pyx']), 
-    Extension('dilap.mesh.tetrahedralize',['dilap/mesh/tetrahedralize.pyx']), 
+    #Extension('dilap.core.vector'        ,['dilap/core/vector.pyx','dilap/core/vector.pxd']), 
+    #Extension('dilap.core.quaternion'    ,['dilap/core/quaternion.pyx','dilap/core/quaternion.pxd']), 
+    #Extension('dilap.core.bbox'          ,['dilap/core/bbox.pyx']), 
+    #Extension('dilap.core.ray'           ,['dilap/core/ray.pyx']), 
+    #Extension('dilap.core.tools'         ,['dilap/core/tools.pyx','dilap/core/tools.pxd']), 
+    #Extension('dilap.core.pointset'      ,['dilap/core/pointset.pyx']), 
+
+    #Extension('dilap.mesh.triangulate'   ,['dilap/mesh/triangulate.pyx']), 
+    #Extension('dilap.mesh.tetrahedralize',['dilap/mesh/tetrahedralize.pyx']), 
+
+    #Extension('dilap.topology.tools.triangulate'   ,['dilap/topology/tools/triangulate.pyx','dilap/topology/tools/triangulate.pxd']), 
             ]
 
 resourcesdir = os.path.join(appdirs.user_data_dir(),'dilap_resources')
@@ -38,21 +42,21 @@ for rpath in os.walk(resourcesrcd):
 pkgs = [
     'dilap.geometry',
     'dilap.topology',
-    'dilap.topology.meshes',
     'dilap.modeling',
-    'dilap.theworld',
+    #'dilap.theworld',
 
     'dilap',
     'dilap.io',
     'dilap.core',
-    'dilap.graph',
-    'dilap.mesh',
-    'dilap.primitive',
-    'dilap.generate',
-    'dilap.degenerate',
-    'dilap.infrastructure',
-    'dilap.structures',
-    'dilap.foliage',
+    #'dilap.graph',
+    #'dilap.mesh',
+    #'dilap.primitive',
+    #'dilap.planning',
+    #'dilap.generate',
+    #'dilap.degenerate',
+    #'dilap.infrastructure',
+    #'dilap.structures',
+    #'dilap.foliage',
 ]
 
 setup(

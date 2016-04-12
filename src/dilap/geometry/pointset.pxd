@@ -1,4 +1,4 @@
-cimport dilap.core.tools as dpr
+#cimport dilap.core.tools as dpr
 
 from dilap.geometry.vec3 cimport vec3
 from dilap.geometry.quat cimport quat

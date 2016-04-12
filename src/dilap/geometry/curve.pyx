@@ -1,7 +1,7 @@
 # cython: profile=True
 #cimport cython
 
-cimport dilap.core.tools as dpr
+cimport dilap.geometry.tools as dpr
 
 from dilap.geometry.vec3 cimport vec3
 from dilap.geometry.quat cimport quat

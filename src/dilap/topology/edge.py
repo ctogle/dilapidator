@@ -1,5 +1,3 @@
-import dilap.core.tools as dpr
-
 from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
 

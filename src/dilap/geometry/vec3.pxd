@@ -1,15 +1,12 @@
-cimport dilap.core.tools as dpr
+#cimport dilap.core.tools as dpr
+
+cimport dilap.geometry.tools as gtl
+
+cimport dilap.geometry.triangulate as dtg
 
 from dilap.geometry.quat cimport quat
 
 stuff = 'hi'
-
-
-
-
-
-
-
 
 
 

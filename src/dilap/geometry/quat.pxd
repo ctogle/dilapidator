@@ -1,4 +1,6 @@
-cimport dilap.core.tools as dpr
+#cimport dilap.core.tools as dpr
+
+cimport dilap.geometry.tools as gtl
 
 from dilap.geometry.vec3 cimport vec3
 

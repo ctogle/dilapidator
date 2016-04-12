@@ -3,8 +3,6 @@ from dilap.geometry.quat import quat
 
 import dilap.modeling.model as dmo
 
-import dilap.core.tools as dpr
-
 import pdb
 
 
@@ -40,6 +38,8 @@ class factory:
     def new(self,*args,**kwargs):
         model = self.modelclass(*args,**kwargs)
         mpoly = model.apolymesh()
+
+        return model
 
         v1 = mpoly.avert(vec3(-1,-1,-1))
         v2 = mpoly.avert(vec3( 1,-1,-1))

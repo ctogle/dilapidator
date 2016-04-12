@@ -1,9 +1,11 @@
 # cython: profile=True
 #cimport cython
 
-cimport dilap.core.tools as dpr
+#cimport dilap.core.tools as dpr
 
 cimport dilap.geometry.tools as gtl
+
+cimport dilap.geometry.triangulate as dtg
 
 from dilap.geometry.quat cimport quat
 
@@ -88,8 +90,8 @@ cdef class vec3:
         cdef float om = o.mag_c()
         cdef float sod = (self.x*o.x + self.y*o.y + self.z*o.z)/(sm*om)
         cdef float a
-        if   dpr.isnear_c(sod, 1.0):a = 0.0
-        elif dpr.isnear_c(sod,-1.0):a = dpr.PI
+        if   gtl.isnear_c(sod, 1.0):a = 0.0
+        elif gtl.isnear_c(sod,-1.0):a = gtl.PI
         else:a = numpy.arccos(sod)
         return a
 
@@ -124,19 +126,19 @@ cdef class vec3:
     # is vec3 o within a very small neighborhood of self
     cdef bint isnear_c(self,vec3 o):
         cdef float dx = (self.x-o.x)
-        if dx*dx > dpr.epsilonsq_c:return 0
+        if dx*dx > gtl.epsilonsq_c:return 0
         cdef float dy = (self.y-o.y)
-        if dy*dy > dpr.epsilonsq_c:return 0
+        if dy*dy > gtl.epsilonsq_c:return 0
         cdef float dz = (self.z-o.z)
-        if dz*dz > dpr.epsilonsq_c:return 0
+        if dz*dz > gtl.epsilonsq_c:return 0
         return 1
 
     # is vec3 o within a very small neighborhood of self in the xy plane
     cdef bint isnearxy_c(self,vec3 o):
         cdef float dx = (self.x-o.x)
-        if dx*dx > dpr.epsilonsq_c:return 0
+        if dx*dx > gtl.epsilonsq_c:return 0
         cdef float dy = (self.y-o.y)
-        if dy*dy > dpr.epsilonsq_c:return 0
+        if dy*dy > gtl.epsilonsq_c:return 0
         return 1
 
     # return the squared magintude of self
@@ -208,7 +210,7 @@ cdef class vec3:
 
     # rotate by a quaternion q and return self
     cdef vec3 rot_c(self,quat q):
-        if dpr.isnear_c(q.w,0):return self
+        if gtl.isnear_c(q.w,0):return self
         cdef float row1x = q.w**2 + q.x**2 - q.y**2 - q.z**2
         cdef float row1y = 2*(q.x*q.y - q.w*q.z)
         cdef float row1z = 2*(q.x*q.z + q.w*q.y)

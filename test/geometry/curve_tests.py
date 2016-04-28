@@ -41,7 +41,7 @@ class test_curve(unittest.TestCase):
         self.assertTrue(len(self.c1.pts)==self.c1.segs-1)
         self.assertTrue(len(self.c1.tns)==self.c1.segs-1)
         self.assertTrue(len(self.c1.nms)==self.c1.segs-1)
-        print(self.c1)
+        #print(self.c1)
 
 if __name__ == '__main__':
     unittest.main()

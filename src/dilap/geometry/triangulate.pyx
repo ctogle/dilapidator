@@ -25,7 +25,8 @@ cdef class triangulation:
             gst = self.ghosts[gdx]
             if gst is None:continue
             gx1,gx2,gx3 = gst
-            g1,g2 = self.points.get_points(gx1,gx2)
+            #g1,g2 = self.points.get_points(gx1,gx2)
+            g1,g2 = self.points.gps_c((gx1,gx2))
             if gtl.inseg_xy_c(up,g1,g2):
                 return gdx
         return -1
@@ -91,7 +92,8 @@ cdef class triangulation:
     # u is the vertex to insert. vwx is a positively oriented triangle whose
     # circumcircle encloses u
     cdef void insert_vertex(self,int u,int v,int w,int x):
-        vu,vv,vw,vx = self.points.get_points(u,v,w,x)
+        #vu,vv,vw,vx = self.points.get_points(u,v,w,x)
+        vu,vv,vw,vx = self.points.gps_c((u,v,w,x))
         self.delete_triangle(v,w,x)
         self.dig_cavity(u,v,w)
         self.dig_cavity(u,w,x)
@@ -142,7 +144,8 @@ cdef class triangulation:
         if x == -1:return
         elif x == -2:self.add_triangle(u,v,w)
         else:
-            vu,vv,vw,vx = self.points.get_points(u,v,w,x)
+            #vu,vv,vw,vx = self.points.get_points(u,v,w,x)
+            vu,vv,vw,vx = self.points.gps_c((u,v,w,x))
             # uvw is not delaunay, dig the adjacent two triangles
             if gtl.incircle_c(vu,vv,vw,vx) > 0:
                 self.delete_triangle(w,v,x)
@@ -156,16 +159,20 @@ cdef class triangulation:
 cdef void initialize(triangulation data,list bnd):
     b1,b2,b3 = bnd[0],bnd[1],bnd[2]
     #bnorm,btang = dpr.norm_c(b1,b2,b3),dpr.tangent_c(b1,b2,b3)
-    bnorm,btang = gtl.nrm_c(b1,b2,b3),gtl.tng_c(b1,b2,b3)
+    bnorm = gtl.nrm_c(b1,b2,b3)
+    btang = b1.tov(b2).nrm()
     convexcom = gtl.com_c(bnd)
-    convexrad = max([cx.d_c(convexcom) for cx in bnd])+1000
-    c01delta = vec3(-1,-1,0).normalize().scale_u(convexrad)
-    c02delta = vec3( 1,-1,0).normalize().scale_u(convexrad)
-    c03delta = vec3( 0, 1,0).normalize().scale_u(convexrad)
-    c01 = convexcom.cp_c().translate(c01delta)
-    c02 = convexcom.cp_c().translate(c02delta)
-    c03 = convexcom.cp_c().translate(c03delta)
-    c01x,c02x,c03x = data.points.add_points(c01,c02,c03)
+    convexrad = max([cx.d(convexcom) for cx in bnd])+1000
+    c01delta = vec3(-1,-1,0).nrm().uscl(convexrad)
+    c02delta = vec3( 1,-1,0).nrm().uscl(convexrad)
+    c03delta = vec3( 0, 1,0).nrm().uscl(convexrad)
+    c01 = convexcom.cp().trn(c01delta)
+    c02 = convexcom.cp().trn(c02delta)
+    c03 = convexcom.cp().trn(c03delta)
+    c01x = data.points.ap_c(c01)
+    c02x = data.points.ap_c(c02)
+    c03x = data.points.ap_c(c03)
+    #c01x,c02x,c03x = data.points.aps_c(c01,c02,c03)
     data.add_triangle(c01x,c02x,c03x)
     data.add_ghost(c03x,c02x)
     data.add_ghost(c02x,c01x)
@@ -178,8 +185,11 @@ cdef list point_location(triangulation data,vec3 y):
     cdef int pretricnt,nv,onb,tdx,gdx,u,v,w,x,tu
     cdef vec3 vu,vv,vw
     pretricnt = data.tricnt
-    if data.points.find_point(y):return []
-    nv = data.points.add_point(y)
+    #if data.points.find_point(y):return []
+    #if data.points.fp_c(y):
+    if not data.points.fp_c(y) == -1:return []
+    #nv = data.points.add_point(y)
+    nv = data.points.ap_c(y)
     onb = data.point_on_boundary(nv)
     if not onb == -1:
         v,w,x = data.ghosts[onb]
@@ -206,10 +216,13 @@ cdef list point_location(triangulation data,vec3 y):
         ghost = data.ghosts[gdx]
         if ghost is None:continue
         else:u,v,w = ghost
-        vu,vv = data.points.get_points(u,v)
+        #vu,vv = data.points.get_points(u,v)
+        vu,vv = data.points.gps_c((u,v))
         if not gtl.orient2d_c(vu,vv,y) < 0:
             data.insert_ghost_vertex(nv,u,v,w)
             return [x for x in range(pretricnt,data.tricnt)]
+
+    print('never should have come to this')
 
 # given a loop of points, add them to a triangulation 
 # and return the line segments which bound the loop
@@ -221,8 +234,10 @@ cdef list loop_location(triangulation data,tuple loop):
         p1,p2 = loop[x-1],loop[x]
         #point_location(data,p1.xy())
         #bnd.append((p1.xy(),p2.xy()))
-        point_location(data,p1.cp_c())
-        bnd.append((p1.cp_c(),p2.cp_c()))
+        #point_location(data,p1.cp_c())
+        #bnd.append((p1.cp_c(),p2.cp_c()))
+        point_location(data,p1.cp())
+        bnd.append((p1.cp(),p2.cp()))
     return bnd
 
 # locate each loop associated with polygon
@@ -243,7 +258,8 @@ cdef void cover_polygon(triangulation data,tuple ebnd,tuple ibnds):
         tri = data.triangles[tdx]
         if tri is None:continue
         else:u,v,w = tri
-        ptri = tuple(data.points.get_points(u,v,w))
+        #ptri = tuple(data.points.get_points(u,v,w))
+        ptri = tuple(data.points.gps_c((u,v,w)))
         extras.append(tdx)
         if gtl.polyinpoly_c(ebnd,ptri):
             extras.remove(tdx)
@@ -267,7 +283,9 @@ cdef void ghost_border(triangulation data,list edges):
     for plce in edges:
         if plce is None:continue
         plce1,plce2 = plce
-        e1,e2 = data.points.find_points(plce1,plce2)
+        #e1,e2 = data.points.find_points(plce1,plce2)
+        e1 = data.points.fp_c(plce1)
+        e2 = data.points.fp_c(plce2)
         eadj = data.adjacent(e1,e2)
         if eadj == -1:data.add_ghost(e1,e2)
         eadj = data.adjacent(e2,e1)
@@ -296,8 +314,12 @@ cdef void refine_chews_first(triangulation data,float h):
         if unfin is None:continue
         if not unfin in data.triangles:continue
         ufx1,ufx2,ufx3 = unfin
-        v1,v2,v3 = data.points.get_points(ufx1,ufx2,ufx3)
-        tcp,tcr = gtl.circumscribe_tri_c(v1,v2,v3)
+        #v1,v2,v3 = data.points.get_points(ufx1,ufx2,ufx3)
+        try:
+          v1,v2,v3 = data.points.gps_c((ufx1,ufx2,ufx3))
+          tcp,tcr = gtl.circumscribe_tri_c(v1,v2,v3)
+        except TypeError:
+          print('fuckoff')
         if tcr/h > 1.0:
             ntxs = point_location(data,tcp)
             for ntx in ntxs:
@@ -327,7 +349,8 @@ cdef void smooth_laplacian(triangulation data,dict vrings,int smooths,float d):
             ring = vrings[x]
             if ghost == -1 and ring:
                 rcom = gtl.com_c([data.points.ps[j] for j in ring])
-                rdel = data.points.ps[x].tov_c(rcom).uscl_c(d)
+                #rdel = data.points.ps[x].tov_c(rcom).uscl_c(d)
+                rdel = data.points.ps[x].tov(rcom).uscl_c(d)
             else:rdel = vec3(0,0,0)
             dels[x] = rdel
         for x in range(data.points.pcnt):
@@ -340,7 +363,8 @@ cdef void plot_triangulation(triangulation data,ax = None):
     for t in data.triangles:
         if t is None:continue
         else:t1,t2,t3 = t
-        tps = data.points.get_points(t1,t2,t3)
+        #tps = data.points.get_points(t1,t2,t3)
+        tps = data.points.gps_c((t1,t2,t3))
         ax = dtl.plot_polygon_xy(tps,ax,center = True)
 
 # given poly, a tuple containing vectors representing a polygon
@@ -349,6 +373,13 @@ cdef void plot_triangulation(triangulation data,ax = None):
 # bounds are ordered loops of points with no duplicates
 # bounds are possibly concave; interior bounds represent holes
 cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
+    cdef vec3 p0,pn
+    cdef quat prot
+
+    #if refine:
+    #    ebnd,ibnds = subdivide_edges(ebnd,ibnds)
+    #    hminnnn,ebnd,ibnds = chew1_subdivide_polygon(ebnd,ibnds)
+
     #p0 = ebnd[0].cp_c()
     p0 = ebnd[0].cp()
     #pn = gtl.poly_nrm_c(ebnd)
@@ -380,7 +411,8 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
     for gdx in range(data.ghostcnt):
         gst = data.ghosts[gdx]
         if gst is None:continue
-        gpair = data.points.get_points(gst[0],gst[1])
+        #gpair = data.points.get_points(gst[0],gst[1])
+        gpair = data.points.gps_c((gst[0],gst[1]))
         gsts.append(gpair)
     return smps,gsts
 

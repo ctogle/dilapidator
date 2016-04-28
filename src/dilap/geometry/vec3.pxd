@@ -1,5 +1,6 @@
 #cimport dilap.core.tools as dpr
 
+import dilap.geometry.tools as gtl
 cimport dilap.geometry.tools as gtl
 
 cimport dilap.geometry.triangulate as dtg
@@ -22,10 +23,12 @@ cdef class vec3:
     cdef float d_c(self,vec3 o)
     cdef float dxy_c(self,vec3 o)
     cdef float ang_c(self,vec3 o)
+    cdef float sang_c(self,vec3 o,vec3 n)
     cdef float angxy_c(self,vec3 o)
     cdef float dot_c(self,vec3 o)
     cdef vec3 crs_c(self,vec3 o)
     cdef vec3 prj_c(self,vec3 r,vec3 n)
+    cdef tuple bary_xy_c(self,vec3 a,vec3 b,vec3 c)
     cdef bint inneighborhood_c(self,vec3 o,float e)
     cdef bint isnear_c(self,vec3 o)
     cdef bint isnearxy_c(self,vec3 o)
@@ -47,19 +50,25 @@ cdef class vec3:
     cdef vec3 zrot_c(self,float a)
     cdef vec3 flp_c(self)
     cdef vec3 tov_c(self,vec3 o)
+    cdef vec3 tovxy_c(self,vec3 o)
     cdef vec3 mid_c(self,vec3 o)
     cdef vec3 lerp_c(self,vec3 o,float ds)
     cdef list pline_c(self,vec3 o,int n)
+    cdef list pring_c(self,float r,int n)
+    cdef list sq_c(self,float l,float w)
+    cdef vec3 com_c(self,os)
 
     cpdef vec3 cp(self)
     cpdef vec3 cpxy(self)
     cpdef float d(self,vec3 o)
     cpdef float dxy(self,vec3 o)
     cpdef float ang(self,vec3 o)
+    cpdef float sang(self,vec3 o,vec3 n)
     cpdef float angxy(self,vec3 o)
     cpdef float dot(self,vec3 o)
     cpdef vec3 crs(self,vec3 o)
     cpdef vec3 prj(self,vec3 r,vec3 n)
+    cpdef tuple bary_xy(self,vec3 a,vec3 b,vec3 c)
     cpdef bint inneighborhood(self,vec3 o,float e)
     cpdef bint isnear(self,vec3 o)
     cpdef bint isnearxy(self,vec3 o)
@@ -81,9 +90,13 @@ cdef class vec3:
     cpdef vec3 zrot(self,float a)
     cpdef vec3 flp(self)
     cpdef vec3 tov(self,vec3 o)
+    cpdef vec3 tovxy(self,vec3 o)
     cpdef vec3 mid(self,vec3 o)
     cpdef vec3 lerp(self,vec3 o,float ds)
     cpdef list pline(self,vec3 o,int n)
+    cpdef list pring(self,float r,int n)
+    cpdef list sq(self,float l,float w)
+    cpdef vec3 com(self,os)
 
 # functions to quickly generate R3 basis vectors and their flips
 cdef vec3 x_c()

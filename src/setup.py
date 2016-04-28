@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Build import cythonize
@@ -59,22 +61,27 @@ pkgs = [
     #'dilap.foliage',
 ]
 
-setup(
-    name="dilapidator",
-    version = '1.0',
-    description = "dilapidator python pkg",
-    author = "ctogle",
-    author_email = "cogle@vt.edu",
-    license = "MIT License",
-    long_description = 'procedural model construction/dilapidation', 
-    packages = pkgs, 
-    py_modules = core_modules, 
-    ext_modules = ext_modules, 
-    cmdclass = {'build_ext': build_ext},
-    include_dirs = [numpy.get_include()], 
-    data_files=[(resourcesdir,resourcefils)], 
-)
+def runsetup(*ags):
+    rskws = {
+        'script_args' : ags,
+        'name' : 'dilapidator',
+        'version' : '1.0',
+        'description' : 'dilapidator python pkg',
+        'author' : 'ctogle',
+        'author_email' : 'cogle@vt.edu',
+        'license' : 'MIT License',
+        'long_description' : 'procedural model construction/dilapidation', 
+        'packages' : pkgs, 
+        'py_modules' : core_modules, 
+        'ext_modules' : ext_modules, 
+        'cmdclass' : {'build_ext': build_ext},
+        'include_dirs' : [numpy.get_include()], 
+        'data_files' : [(resourcesdir,resourcefils)], 
+            }
+    setup(**rskws)
 
+if __name__ == '__main__':
+    runsetup('build','install','--user')
 
 
 

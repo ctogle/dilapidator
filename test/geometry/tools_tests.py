@@ -64,15 +64,72 @@ class test_tools(unittest.TestCase):
         self.assertEqual(gtl.com(self.pslist),vec3(0,0,0))
         self.assertEqual(gtl.com(self.pstupl),vec3(0,0,0))
 
-    #def test_ang(self):
-    #def test_sang(self):
-    #def test_ang_xy(self):
-    #def test_sang_xy(self):
-    #def test_xang_xy(self):
-    #def test_onseg_xy(self):
+    #def test_circumscribe_tri(self):
+
+    '''#
+    def test_ang(self):
+        p1,p2,p3 = vec3(1, 1,0),vec3(0, 1,0),vec3(0,-1,0)
+        meth,nr = gtl.ang,gtl.isnear
+        self.assertEqual(nr(meth(p1,p2),gtl.PI4),1)
+        self.assertEqual(nr(meth(p2,p1),gtl.PI4),1)
+        self.assertEqual(nr(meth(p2,p3),gtl.PI ),1)
+        self.assertEqual(nr(meth(p3,p1),gtl.threePI4),1)
+    
+    def test_sang(self):
+        p1,p2,p3,p4 = vec3(1, 1,0),vec3(0, 1,0),vec3(0,-1,0),vec3(0,0,1)
+        pn = vec3(0,0,1)
+        meth,nr = gtl.sang,gtl.isnear
+        self.assertEqual(nr(meth(p1,p2,pn), gtl.PI4),1)
+        self.assertEqual(nr(meth(p2,p1,pn), gtl.PI4),0)
+        self.assertEqual(nr(meth(p2,p1,pn),-gtl.PI4),1)
+        self.assertEqual(nr(meth(p2,p3,pn), gtl.PI ),1)
+        self.assertEqual(nr(meth(p3,p1,pn),gtl.threePI4),1)
+
+    def test_ang_xy(self):
+        p1,p2 = vec3(1,1,1),vec3(0,1,0)
+        meth,nr = gtl.ang_xy,gtl.isnear
+        self.assertEqual(nr(meth(p1,p2), gtl.PI4),1)
+        self.assertEqual(nr(meth(p2,p1), gtl.PI4),1)
+        self.assertEqual(nr(meth(p2,p1),-gtl.PI4),0)
+
+    def test_sang_xy(self):
+        p1,p2 = vec3(1,1,1),vec3(0,1,0)
+        meth,nr = gtl.sang_xy,gtl.isnear
+        self.assertEqual(nr(meth(p1,p2), gtl.PI4),1)
+        self.assertEqual(nr(meth(p2,p1), gtl.PI4),0)
+        self.assertEqual(nr(meth(p2,p1),-gtl.PI4),1)
+
+    def test_xang_xy(self):
+        p1,p2,p3 = vec3(1, 1,1),vec3(0, 1,0),vec3(0,-1,0)
+        meth,nr = gtl.xang_xy,gtl.isnear
+        self.assertEqual(nr(meth(p1),gtl.PI4),1)
+        self.assertEqual(nr(meth(p2),gtl.PI4),0)
+        self.assertEqual(nr(meth(p2),gtl.PI2),1)
+        self.assertEqual(nr(meth(p3),gtl.threePI2),1)
+    
     #def test_bary_xy(self):
-    #def test_inseg_xy(self):
-    #def test_orient2d(self):
+    '''#
+
+    def test_onseg_xy(self):
+        p1,p2,p3 = vec3(1,1,0),vec3(0,1,0),vec3(2,2,0)
+        s1,s2 = vec3(0,0,0),vec3(2,2,0)
+        self.assertEqual(gtl.onseg_xy(p1,s1,s2),1)
+        self.assertEqual(gtl.onseg_xy(p2,s1,s2),0)
+        self.assertEqual(gtl.onseg_xy(p3,s1,s2),1)
+
+    def test_inseg_xy(self):
+        p1,p2,p3 = vec3(1,1,0),vec3(0,1,0),vec3(2,2,0)
+        s1,s2 = vec3(0,0,0),vec3(2,2,0)
+        self.assertEqual(gtl.inseg_xy(p1,s1,s2),1)
+        self.assertEqual(gtl.inseg_xy(p2,s1,s2),0)
+        self.assertEqual(gtl.inseg_xy(p3,s1,s2),0)
+
+    def test_orient2d(self):
+        p1,p2,p3,p4 = vec3(1,1,0),vec3(0,1,0),vec3(0,0,0),vec3(0,2,0)
+        self.assertTrue(gtl.orient2d(p1,p2,p3) > 0)
+        self.assertTrue(gtl.orient2d(p2,p1,p3) < 0)
+        self.assertTrue(gtl.orient2d(p2,p4,p3) == 0)
+
     #def test_incircle(self):
     #def test_intri(self):
     #def test_onconcave_xy(self):
@@ -114,45 +171,6 @@ decimal.getcontext().prec = 5
 
 class test_tools(unittest.TestCase):
 
-    def test_near(self):
-        self.assertEqual(dpr.near(0.0001,0),0)
-        self.assertEqual(dpr.isnear(dpr.near(0.1,0),0.1),1)
-
-    def test_isnear(self):
-        self.assertEqual(dpr.isnear(0.0001,0),1)
-        self.assertEqual(dpr.isnear(0.1,0),0)
-
-    def test_rad(self):
-        self.assertEqual(dpr.isnear(dpr.rad(180),dpr.PI),1)
-
-    def test_deg(self):
-        self.assertEqual(dpr.isnear(dpr.deg(dpr.PI),180),1)
-
-    def test_clamp(self):
-        self.assertEqual(dpr.clamp(180,0,90),90)
-        self.assertEqual(dpr.clamp(-90,0,90), 0)
-        self.assertEqual(dpr.clamp( 45,0,90),45)
-
-    def test_clamp_periodic(self):
-        self.assertEqual(dpr.clamp_periodic(120,0,90),30)
-        self.assertEqual(dpr.clamp_periodic(-20,0,90),70)
-        self.assertEqual(dpr.clamp_periodic( 45,0,90),45)
-
-    def test_inrange(self):
-        self.assertEqual(dpr.inrange(   0,0,1),0)
-        self.assertEqual(dpr.inrange(   1,0,1),0)
-        self.assertEqual(dpr.inrange( 0.1,0,1),1)
-        self.assertEqual(dpr.inrange( 0.9,0,1),1)
-        self.assertEqual(dpr.inrange(-0.1,0,1),0)
-        self.assertEqual(dpr.inrange( 1.1,0,1),0)
-
-    def test_adist(self):
-        deg10 = dpr.rad(10)
-        self.assertEqual(dpr.isnear(dpr.adist(deg10*2,deg10*6),deg10*4),1)
-        self.assertEqual(dpr.isnear(dpr.adist(deg10*6,deg10*2),deg10*4),1)
-        self.assertEqual(dpr.isnear(dpr.adist(deg10*6,deg10*22),deg10*16),1)
-        self.assertEqual(dpr.isnear(dpr.adist(deg10*6,deg10*32),deg10*10),1)
-
     def test_locate_smallest(self):
         vals = [8,1,2,4,10,12,3]
         self.assertEqual(dpr.locate_smallest(vals),1)
@@ -171,83 +189,6 @@ class test_tools(unittest.TestCase):
         seq3 = [2,8,1,4,10,12,3]
         self.assertEqual(dpr.cyclic_permutation(seq1,seq2),1)
         self.assertEqual(dpr.cyclic_permutation(seq2,seq3),0)
-
-    def test_insegment_xy(self):
-        p1 = dpv.vector(1,1,0)
-        p2 = dpv.vector(0,1,0)
-        p3 = dpv.vector(2,2,0)
-        s1 = dpv.vector(0,0,0)
-        s2 = dpv.vector(2,2,0)
-        self.assertEqual(dpr.insegment_xy(p1,s1,s2),1)
-        self.assertEqual(dpr.insegment_xy(p2,s1,s2),0)
-        self.assertEqual(dpr.insegment_xy(p3,s1,s2),0)
-
-    def test_onsegment_xy(self):
-        p1 = dpv.vector(1,1,0)
-        p2 = dpv.vector(0,1,0)
-        p3 = dpv.vector(2,2,0)
-        s1 = dpv.vector(0,0,0)
-        s2 = dpv.vector(2,2,0)
-        self.assertEqual(dpr.onsegment_xy(p1,s1,s2),1)
-        self.assertEqual(dpr.onsegment_xy(p2,s1,s2),0)
-        self.assertEqual(dpr.onsegment_xy(p3,s1,s2),1)
-
-    def test_orient2d(self):
-        p1 = dpv.vector(1,1,0)
-        p2 = dpv.vector(0,1,0)
-        p3 = dpv.vector(0,0,0)
-        p4 = dpv.vector(0,2,0)
-        self.assertTrue(dpr.orient2d(p1,p2,p3) > 0)
-        self.assertTrue(dpr.orient2d(p2,p1,p3) < 0)
-        self.assertTrue(dpr.orient2d(p2,p4,p3) == 0)
-
-    def test_angle_between_xy(self):
-        p1 = dpv.vector(1,1,1)
-        p2 = dpv.vector(0,1,0)
-        meth = dpr.angle_between_xy
-        self.assertEqual(dpr.isnear(meth(p1,p2), dpr.PI4),1)
-        self.assertEqual(dpr.isnear(meth(p2,p1), dpr.PI4),1)
-        self.assertEqual(dpr.isnear(meth(p2,p1),-dpr.PI4),0)
-
-    def test_signed_angle_between_xy(self):
-        p1 = dpv.vector(1,1,1)
-        p2 = dpv.vector(0,1,0)
-        meth = dpr.signed_angle_between_xy
-        self.assertEqual(dpr.isnear(meth(p1,p2), dpr.PI4),1)
-        self.assertEqual(dpr.isnear(meth(p2,p1), dpr.PI4),0)
-        self.assertEqual(dpr.isnear(meth(p2,p1),-dpr.PI4),1)
-
-    def test_angle_from_xaxis_xy(self):
-        p1 = dpv.vector(1, 1,1)
-        p2 = dpv.vector(0, 1,0)
-        p3 = dpv.vector(0,-1,0)
-        meth = dpr.angle_from_xaxis_xy
-        self.assertEqual(dpr.isnear(meth(p1),dpr.PI4),1)
-        self.assertEqual(dpr.isnear(meth(p2),dpr.PI4),0)
-        self.assertEqual(dpr.isnear(meth(p2),dpr.PI2),1)
-        self.assertEqual(dpr.isnear(meth(p3),dpr.threePI2),1)
-
-    def test_angle_between(self):
-        p1 = dpv.vector(1, 1,0)
-        p2 = dpv.vector(0, 1,0)
-        p3 = dpv.vector(0,-1,0)
-        meth = dpr.angle_between
-        self.assertEqual(dpr.isnear(meth(p1,p2),dpr.PI4),1)
-        self.assertEqual(dpr.isnear(meth(p2,p1),dpr.PI4),1)
-        self.assertEqual(dpr.isnear(meth(p2,p3),dpr.PI ),1)
-        self.assertEqual(dpr.isnear(meth(p3,p1),dpr.threePI4),1)
-
-    def test_signed_angle_between(self):
-        p1 = dpv.vector(1, 1,0)
-        p2 = dpv.vector(0, 1,0)
-        p3 = dpv.vector(0,-1,0)
-        pn = dpv.z()
-        meth = dpr.signed_angle_between
-        self.assertEqual(dpr.isnear(meth(p1,p2,pn), dpr.PI4),1)
-        self.assertEqual(dpr.isnear(meth(p2,p1,pn), dpr.PI4),0)
-        self.assertEqual(dpr.isnear(meth(p2,p1,pn),-dpr.PI4),1)
-        self.assertEqual(dpr.isnear(meth(p2,p3,pn), dpr.PI ),1)
-        self.assertEqual(dpr.isnear(meth(p3,p1,pn),dpr.threePI4),1)
 
     def test_distance_to_line(self):
         p1 = dpv.vector(1,0,0)

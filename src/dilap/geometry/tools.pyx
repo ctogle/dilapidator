@@ -97,31 +97,22 @@ cdef vec3 com_c(ps):
     for px in range(pcnt):n.trn_c(ps[px])
     return n.uscl_c(1.0/pcntf)
 
-# find the angle between two vectors 
-cdef float ang_c(vec3 v1,vec3 v2):
-    cdef vec3 n1 = v1.cp().nrm()
-    cdef vec3 n2 = v2.cp().nrm()
-    cdef float n12dot = n1.x*n2.x + n1.y*n2.y + n1.z*n2.z
-    cdef float ang = 0.0
-    if   isnear_c(n12dot, 1.0):pass
-    elif isnear_c(n12dot,-1.0):ang = PI
-    else:ang = numpy.arccos(n12dot)
-    return ang                    
+# given 3 points and a plane, determine the center and radius
+# of the circumcenter found in the plane plane by projecting p1,p2,p3
+# in the plane
+cdef tuple circumscribe_tri_c(vec3 p1,vec3 p2,vec3 p3):
+    cdef vec3 cp1 = p1.cpxy()
+    cdef vec3 cp2 = p2.cpxy()
+    cdef vec3 cp3 = p3.cpxy()
+    cdef vec3 e1 = cp3.tovxy_c(cp1)
+    cdef vec3 e2 = cp3.tovxy_c(cp2)
+    cdef float th = e1.angxy_c(e2)
+    cdef float cr = cp1.dxy_c(cp2)/(2*numpy.sin(th))
+    cdef vec3 cp = e2.cp_c().uscl_c(e1.mag2_c())-e1.cp_c().uscl_c(e2.mag2_c())
+    cdef vec3 fp = p3+cp.crs_c(e1.crs_c(e2)).uscl_c(1.0/(2.0*(e1.crs_c(e2).mag2())))
+    return fp,cr
 
-# find the signed angle between two vectors, given a vector pointing "up"
-cdef float sang_c(vec3 v1,vec3 v2,vec3 n):
-    cdef vec3 n1 = v1.cp_c().nrm_c()
-    cdef vec3 n2 = v2.cp_c().nrm_c()
-    cdef vec3 vn = n1.crs_c(n2)
-    cdef float vdot = vn.x*n.x + vn.y*n.y + vn.z*n.z
-    cdef float n12dot = n1.x*n2.x + n1.y*n2.y + n1.z*n2.z
-    cdef float ang = 0.0
-    if   isnear_c(n12dot, 1.0):pass
-    elif isnear_c(n12dot,-1.0):ang = PI
-    else:ang = numpy.arccos(n12dot)
-    if vdot < 0.0:ang *= -1.0
-    return ang                    
-
+'''#
 # find the angle between the xy projections of two vectors 
 cdef float ang_xy_c(vec3 v1,vec3 v2):
     cdef vec3 n1 = v1.xy().normalize()
@@ -175,6 +166,7 @@ cdef tuple bary_xy_c(vec3 pt,vec3 a,vec3 b,vec3 c):
     cdef float u = (dot11 * dot02 - dot01 * dot12) * invdenom
     cdef float v = (dot00 * dot12 - dot01 * dot02) * invdenom
     return u,v
+'''#
 
 # determine if a point lies on the interior of a line segment or its endpoints
 cdef bint onseg_xy_c(vec3 p,vec3 s1,vec3 s2):
@@ -228,7 +220,7 @@ cdef float incircle_c(vec3 a,vec3 b,vec3 c,vec3 d):
 # assume all points are in the xy plane 
 cdef bint intri_xy_c(vec3 pt,vec3 a,vec3 b,vec3 c):
     cdef float u,v
-    u,v = bary_xy_c(pt,a,b,c)
+    u,v = pt.bary_xy_c(a,b,c)
     if u > 0 or abs(u) < epsilon:
         if v > 0 or abs(v) < epsilon:
             if 1-u-v > 0 or abs(1-u-v) < epsilon:
@@ -261,15 +253,16 @@ cdef bint inconcave_xy_c(vec3 pt,tuple poly):
 # does s1 overlap the interior or s2?
 # a segment is a tuple of two points
 cdef bint segs_isect_perp_c(vec3 s11,vec3 s12,vec3 s21,vec3 s22):
-    p,q = s11,s21
-    r = s11.tov_c(s12)
-    s = s21.tov_c(s22)
-    qmp = q-p
-    rcs = r.crs_c(s)
-    rcsmag = rcs.mag_c()
-    qmpcr = qmp.crs_c(r)
-    qmpcrmag = qmpcr.mag_c()
-    rmag2 = r.mag2_c()
+    cdef vec3 p = s11
+    cdef vec3 q = s21
+    cdef vec3 r = s11.tov_c(s12)
+    cdef vec3 s = s21.tov_c(s22)
+    cdef vec3 qmp = q-p
+    cdef vec3 rcs = r.crs_c(s)
+    cdef float rcsmag = rcs.mag_c()
+    cdef vec3 qmpcr = qmp.crs_c(r)
+    cdef float qmpcrmag = qmpcr.mag_c()
+    cdef float rmag2 = r.mag2_c()
     if isnear_c(rcsmag,0) and isnear_c(qmpcrmag,0):return 0
     elif isnear_c(rcsmag,0) and not isnear_c(qmpcrmag,0):return 0
     elif not isnear_c(rcs.z,0):
@@ -285,7 +278,6 @@ cdef bint segs_isect_perp_c(vec3 s11,vec3 s12,vec3 s21,vec3 s22):
 # given line segment s1, line segment s2
 # does s1 overlap the interior or s2?
 # a segment is a tuple of two points
-#cdef bint segments_intersect_interior_c(dpv.vector s11,dpv.vector s12,dpv.vector s21,dpv.vector s22):
 cdef bint segs_isect_int_c(vec3 s11,vec3 s12,vec3 s21,vec3 s22):
     p,q = s11,s21
     r = s11.tov_c(s12)
@@ -347,6 +339,7 @@ cdef bint poly_isect_c(tuple p1,tuple p2):
                 break
     return isegsectfound
 
+'''#
 # given start point s, end point e, and n segments, 
 # return a colinear set of points equally spaced between s and e
 cdef list pline_c(vec3 s,vec3 e,int n):
@@ -376,6 +369,7 @@ cdef list pring_c(float r,int n):
         nv = st.cp_c().zrot_c(x*alpha)
         points.append(nv)
     return points
+'''#
 
 # rotate a polygon: (extbnd,(holes...)) by a quaternion q
 cdef tuple rot_poly_c(tuple polygon,quat q):
@@ -422,15 +416,15 @@ cdef vec3 tng_c(vec3 c1,vec3 c2,vec3 c3):
 # return a vector normal to the polygon poly
 cdef vec3 poly_nrm_c(tuple poly):
     cdef vec3 zero = vec3(0,0,0)
-    cdef vec3 c1c2 
-    cdef vec3 c2c3
+    cdef vec3 c1,c2,c3,c1c2,c2c3
+    #cdef vec3 c2c3
     cdef vec3 pn = zero
     cdef int x = 0
     while pn.isnear_c(zero):
         c1,c2,c3 = poly[x-2],poly[x-1],poly[x]
         c1c2 = c1.tov_c(c2)
         c2c3 = c2.tov_c(c3)
-        cang = ang_c(c1c2,c2c3)
+        cang = c1c2.ang_c(c2c3)
         if cang > 0.1 and cang < PI-0.1:
             pn = c1c2.crs_c(c2c3).nrm_c()
         x += 1
@@ -499,41 +493,48 @@ cpdef float adist(float a1,float a2):
     '''find the angular distance between two angles'''
     return adist_c(a1,a2)
 
+# given 3 points and a plane, determine the center and radius
+# of the circumcenter found in the plane plane by projecting p1,p2,p3
+# in the plane
+cpdef tuple circumscribe_tri(vec3 p1,vec3 p2,vec3 p3):
+    '''return the circumcenter and circumradius of a triangle'''
+    return circumscribe_tri_c(p1,p2,p3)
+                                            
 # compute the center of mass for a set of vectors
-cpdef vec3 com(ps):
-    '''compute the center of mass for a set of vectors'''
-    return com_c(ps)
+#cpdef vec3 com(ps):
+#    '''compute the center of mass for a set of vectors'''
+#    return com_c(ps)
 
 # find the angle between two vectors 
-cpdef float ang(vec3 v1,vec3 v2):
-    '''find the angle between two vectors'''
-    return ang_c(v1,v2)
+#cpdef float ang(vec3 v1,vec3 v2):
+#    '''find the angle between two vectors'''
+#    return ang_c(v1,v2)
 
 # find the signed angle between two vectors, given a vector pointing "up"
-cpdef float sang(vec3 v1,vec3 v2,vec3 n):
-    '''find the signed angle between two vectors, given a vector pointing "up"'''
-    return sang_c(v1,v2,n)
+#cpdef float sang(vec3 v1,vec3 v2,vec3 n):
+#    '''find the signed angle between two vectors, given a vector pointing "up"'''
+#    return sang_c(v1,v2,n)
 
 # find the angle between the xy projections of two vectors 
-cpdef float ang_xy(vec3 v1,vec3 v2):
-    '''determine the angle between two vectors projected into the xy plane'''
-    return ang_xy_c(v1,v2)
+#cpdef float ang_xy(vec3 v1,vec3 v2):
+#    '''determine the angle between two vectors projected into the xy plane'''
+#    return ang_xy_c(v1,v2)
 
 # find the signed angle between the xy projections of two vectors
-cpdef float sang_xy(vec3 v1,vec3 v2):
-    '''find the signed angle between the xy projections of two vectors'''
-    return sang_xy_c(v1,v2)
+#cpdef float sang_xy(vec3 v1,vec3 v2):
+#    '''find the signed angle between the xy projections of two vectors'''
+#    return sang_xy_c(v1,v2)
 
 # find the positive angle between the xy projection of a vector and the x axis
-cpdef float xang_xy(vec3 v):
-    '''find the angle between the xy projection of a vector and the x axis'''
-    return xang_xy_c(v)
+#cpdef float xang_xy(vec3 v):
+#    '''find the angle between the xy projection of a vector and the x axis'''
+#    return xang_xy_c(v)
 
 # calculate the barycentric coordinates of the point pt for the triangle abc
 # assume all points are in the xy plane
-cpdef tuple bary_xy(vec3 pt,vec3 a,vec3 b,vec3 c): 
-    '''calculate a barycentric representation of a point relative to a triangle in the xy plane'''
-    return bary_xy_c(pt,a,b,c)
+#cpdef tuple bary_xy(vec3 pt,vec3 a,vec3 b,vec3 c): 
+#    '''calculate a barycentric representation of a point relative to a triangle in the xy plane'''
+#    return bary_xy_c(pt,a,b,c)
 
 # determine if a point lies on the interior of a line segment or its endpoints
 cpdef bint onseg_xy(vec3 p,vec3 s1,vec3 s2):
@@ -584,7 +585,6 @@ cpdef bint segs_isect_perp(vec3 s11,vec3 s12,vec3 s21,vec3 s22):
 # given line segment s1, line segment s2
 # does s1 overlap the interior or s2?
 # a segment is a tuple of two points
-#cdef bint segments_intersect_interior_c(dpv.vector s11,dpv.vector s12,dpv.vector s21,dpv.vector s22):
 cpdef bint segs_isect_int(vec3 s11,vec3 s12,vec3 s21,vec3 s22):
     '''determine if two line segments intersect or not'''
     return segs_isect_int_c(s11,s12,s21,s22)
@@ -605,14 +605,14 @@ cpdef bint poly_isect(tuple p1,tuple p2):
     return poly_isect_c(p1,p2)
 
 # return a ring of points of radius r with n corners
-cpdef list pline(vec3 s,vec3 e,int n):
-    '''return a line of n points starting with s, ending with e'''
-    return pline_c(s,e,n)
+#cpdef list pline(vec3 s,vec3 e,int n):
+#    '''return a line of n points starting with s, ending with e'''
+#    return pline_c(s,e,n)
 
 # return a ring of points of radius r with n corners
-cpdef list pring(float r,int n):
-    '''return a ring of points of radius r with n corners'''
-    return pring_c(r,n)
+#cpdef list pring(float r,int n):
+#    '''return a ring of points of radius r with n corners'''
+#    return pring_c(r,n)
 
 # rotate a polygon: (extbnd,(holes...)) by a quaternion q
 cpdef tuple rot_poly(tuple polygon,quat q):

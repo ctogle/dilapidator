@@ -86,6 +86,15 @@ class test_vec3(unittest.TestCase):
         self.assertTrue(dpr.isnear(v1.ang(v4),numpy.arctan(1.0/math.sqrt(2))))
         self.assertTrue(dpr.isnear(v4.ang(v1),numpy.arctan(1.0/math.sqrt(2))))
 
+    def test_sang(self):
+        p1,p2,p3,p4 = vec3(1,1,0),vec3(0,1,0),vec3(0,-1,0),vec3(0,0,1)
+        pn = vec3(0,0,1)
+        self.assertEqual(dpr.isnear(p1.sang(p2,pn), dpr.PI4),1)
+        self.assertEqual(dpr.isnear(p2.sang(p1,pn), dpr.PI4),0)
+        self.assertEqual(dpr.isnear(p2.sang(p1,pn),-dpr.PI4),1)
+        self.assertEqual(dpr.isnear(p2.sang(p3,pn), dpr.PI ),1)
+        self.assertEqual(dpr.isnear(p3.sang(p1,pn),dpr.threePI4),1)
+
     def test_angxy(self):
         v1,v2,v3,v4 = vec3(1,1,2),vec3(-1,1,-1),vec3(-1,0,0),vec3(1,1,1)
         self.assertTrue(dpr.isnear(v1.angxy(v1),0))
@@ -95,6 +104,9 @@ class test_vec3(unittest.TestCase):
         self.assertTrue(dpr.isnear(v3.angxy(v1),3*dpr.PI4))
         self.assertTrue(dpr.isnear(v1.angxy(v4),0))
         self.assertTrue(dpr.isnear(v4.angxy(v1),0))
+
+    #def test_sang_xy(self):
+    #def test_xang_xy(self):
 
     def test_dot(self):
         v1,v2,v3,v4 = vec3(1,1,0),vec3(-1,1,0),vec3(-1,0,0),vec3(1,1,1)
@@ -136,6 +148,8 @@ class test_vec3(unittest.TestCase):
         self.assertEqual(v2.cp().prj(p2,pn2),vec3(2,-5,5))
         self.assertEqual(v3.cp().prj(p2,pn2),vec3(0,-5,-1))
         self.assertTrue(v1.prj(p1,pn1) is v1)
+
+    #def test_bary_xy(self):
 
     def test_inneighborhood(self):
         v1,v2,v3,v4 = vec3(1,1,0),vec3(1,2,0),vec3(1,2,1),vec3(1,1,1)
@@ -294,6 +308,13 @@ class test_vec3(unittest.TestCase):
         self.assertEqual(v2.tov(v1),vec3(0,-4,-4))
         self.assertEqual(v2.tov(v2),vec3(0,0,0))
 
+    def test_tovxy(self):
+        v1,v2 = vec3(1,-2,1),vec3(1,2,5)
+        self.assertEqual(v1.tovxy(v1),vec3(0,0,0))
+        self.assertEqual(v1.tovxy(v2),vec3(0, 4,0))
+        self.assertEqual(v2.tovxy(v1),vec3(0,-4,0))
+        self.assertEqual(v2.tovxy(v2),vec3(0,0,0))
+
     def test_mid(self):
         v1,v2 = vec3(0,2,0),vec3(-1,0,1)
         v3,v4 = vec3(-0.5,1,0.5),vec3(-0.75,0.5,0.75)
@@ -318,6 +339,10 @@ class test_vec3(unittest.TestCase):
         self.assertTrue(dpr.isnear(d1,d2))
         self.assertTrue(dpr.isnear(d2,d3))
         self.assertTrue(self.origin.mid(self.one),pline[0].mid(pline[1]))
+
+    #def test_pring(self):
+    #def test_sq(self):
+    #def test_com(self):
 
 if __name__ == '__main__':
     unittest.main()

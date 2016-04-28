@@ -3,6 +3,7 @@
 
 #cimport dilap.core.tools as dpr
 
+import dilap.geometry.tools as gtl
 cimport dilap.geometry.tools as gtl
 
 cimport dilap.geometry.triangulate as dtg
@@ -22,14 +23,10 @@ stuff = 'hi'
 
 
 
-
-
-
-
-
-
-
 __doc__ = '''dilapidator\'s implementation of a vector in R3'''
+
+
+
 # dilapidators implementation of a vector in R3
 cdef class vec3:
 
@@ -95,6 +92,20 @@ cdef class vec3:
         else:a = numpy.arccos(sod)
         return a
 
+    # return the signed angle between self and vec3 o given z-up vec3 n
+    cdef float sang_c(self,vec3 o,vec3 n):
+        cdef vec3 n1 = self.cp_c().nrm_c()
+        cdef vec3 n2 = o.cp_c().nrm_c()
+        cdef vec3 vn = n1.crs_c(n2)
+        cdef float vd = vn.x*n.x + vn.y*n.y + vn.z*n.z
+        cdef float sod = n1.x*n2.x + n1.y*n2.y + n1.z*n2.z
+        cdef float a = 0.0
+        if   gtl.isnear_c(sod, 1.0):pass
+        elif gtl.isnear_c(sod,-1.0):a = gtl.PI
+        else:a = numpy.arccos(sod)
+        if vd < 0.0:a *= -1.0
+        return a                    
+
     # return the angle between the xy projections of self and vec3 o
     cdef float angxy_c(self,vec3 o):
         return self.cpxy_c().ang_c(o.cpxy_c())
@@ -116,6 +127,26 @@ cdef class vec3:
         cdef float d = (self.x-r.x)*n.x+(self.y-r.y)*n.y+(self.z-r.z)*n.z
         cdef vec3 pj = n.cp_c().uscl_c(-d)
         return self.trn_c(pj)
+
+    # return the u,v barycentric coordinates of self given 3 corners of a triangle
+    # everything is assumed to be in the xy plane
+    cdef tuple bary_xy_c(self,vec3 a,vec3 b,vec3 c): 
+        cdef float v0x =  c.x-a.x
+        cdef float v0y =  c.y-a.y
+        cdef float v1x =  b.x-a.x
+        cdef float v1y =  b.y-a.y
+        cdef float v2x = self.x-a.x
+        cdef float v2y = self.y-a.y
+        cdef float dot00 = v0x*v0x + v0y*v0y
+        cdef float dot01 = v0x*v1x + v0y*v1y
+        cdef float dot02 = v0x*v2x + v0y*v2y
+        cdef float dot11 = v1x*v1x + v1y*v1y
+        cdef float dot12 = v1x*v2x + v1y*v2y
+        cdef float denom = (dot00 * dot11 - dot01 * dot01)
+        cdef float invdenom = 1.0 / denom
+        cdef float u = (dot11 * dot02 - dot01 * dot12) * invdenom
+        cdef float v = (dot00 * dot12 - dot01 * dot02) * invdenom
+        return u,v
 
     # is vec3 o within an open ball of raidus e centered at self
     cdef bint inneighborhood_c(self,vec3 o,float e):
@@ -268,6 +299,13 @@ cdef class vec3:
         cdef vec3 n = vec3(dx,dy,dz)
         return n
 
+    # return a vector point from self to vec3 o in the xy plane
+    cdef vec3 tovxy_c(self,vec3 o):
+        cdef float dx = o.x - self.x
+        cdef float dy = o.y - self.y
+        cdef vec3 n = vec3(dx,dy,0)
+        return n
+
     # return a vector at the midpoint between self and vec3 o
     cdef vec3 mid_c(self,vec3 o):
         return self.lerp_c(o,0.5)
@@ -291,6 +329,40 @@ cdef class vec3:
             t = (x+1.0)/(n+1.0)
             line.append(self.lerp_c(o,t))
         return line
+
+    # return a ring of points of radius r with n corners
+    cdef list pring_c(self,float r,int n):
+        cdef vec3 st = vec3(0,0,0).xtrn_c(r)
+        cdef vec3 nv
+        cdef float alpha = gtl.PI*(2.0/n)
+        cdef list points = []
+        cdef int x
+        for x in range(n):
+            nv = st.cp_c().zrot_c(x*alpha-alpha/2.0)
+            points.append(nv.trn_c(self))
+        return points
+
+    # return a rectangle of dims l by w, centered at self
+    cdef list sq_c(self,float l,float w):
+        cdef float hl = l/2.0
+        cdef float hw = w/2.0
+        cdef list sq = [
+            vec3(self.x-hl,self.y-hw,self.z),
+            vec3(self.x+hl,self.y-hw,self.z),
+            vec3(self.x+hl,self.y+hw,self.z),
+            vec3(self.x-hl,self.y+hw,self.z)]
+        return sq
+
+    # compute the center of mass for a set of vectors
+    cdef vec3 com_c(self,os):
+        cdef int pcnt = len(os)
+        cdef int px
+        cdef float pcntf = float(pcnt)
+        cdef vec3 n = vec3(0,0,0)
+        for px in range(pcnt):n.trn_c(os[px])
+        self.trn_c(n.uscl_c(1.0/pcntf))
+        return self
+        #return n.uscl_c(1.0/pcntf)
 
     ###########################################################################
 
@@ -323,6 +395,11 @@ cdef class vec3:
         '''determine the angle between this point and another'''
         return self.ang_c(o)
 
+    # return the signed angle between self and vec3 o given z-up vec3 n
+    cpdef float sang(self,vec3 o,vec3 n):
+        '''determine the signed angle between this point and another'''
+        return self.sang_c(o,n)
+
     # return the angle between the xy projections of self and vec3 o
     cpdef float angxy(self,vec3 o):
         '''determine the angle between the xy projections of this point and another'''
@@ -342,6 +419,12 @@ cdef class vec3:
     cpdef vec3 prj(self,vec3 r,vec3 n):
         '''project this point into a plane'''
         return self.prj_c(r,n)
+
+    # return the u,v barycentric coordinates of self given 3 corners of a triangle
+    # everything is assumed to be in the xy plane
+    cpdef tuple bary_xy(self,vec3 a,vec3 b,vec3 c): 
+        '''find the barycentric coords of this point in a triangle in the xy plane'''
+        return self.bary_xy_c(a,b,c)
 
     # is vec3 o within an open ball of raidus e centered at self
     cpdef bint inneighborhood(self,vec3 o,float e):
@@ -450,6 +533,11 @@ cdef class vec3:
         '''return a vector which points from this point to another'''
         return self.tov_c(o)
 
+    # return a vector point from self to vec3 o in the xy plane
+    cpdef vec3 tovxy(self,vec3 o):
+        '''return a vector point from self to vec3 o in the xy plane'''
+        return self.tovxy_c(o)
+
     # return a vector at the midpoint between self and vec3 o
     cpdef vec3 mid(self,vec3 o):
         '''return the midpoint between this point and another'''
@@ -465,6 +553,20 @@ cdef class vec3:
     cpdef list pline(self,vec3 o,int n):
         '''create a polyline between this and another'''
         return self.pline_c(o,n)
+
+    # return a ring of points of radius r with n corners
+    cpdef list pring(self,float r,int n):
+        '''return a ring of points of radius r with n corners centered at self'''
+        return self.pring_c(r,n)
+
+    # return a rectangle of dims l by w, centered at self
+    cpdef list sq(self,float l,float w):
+        '''return a rectangle of dims l by w, centered at self'''
+        return self.sq_c(l,w)
+
+    cpdef vec3 com(self,os):
+        '''compute the center of mass for a set of vectors'''
+        return self.com_c(os)
 
     ###########################################################################
 

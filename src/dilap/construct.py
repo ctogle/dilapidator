@@ -6,6 +6,9 @@ import dilap.io.io as dio
 
 import dilap.modeling.model as dmo
 
+import dilap.topology.worldly.treeskin as ltr
+
+import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
 import pdb
@@ -22,10 +25,13 @@ def build2(mod,io = None):
     elif type(io) is type(''):io = iotypes[io]
     io.build_model2(mod)
 
-def realize(context,years = 0):
+#def realize(context,years = 0):
+def realize(context,years = 0,io = None):
+    if io is None:io = di.fetch_info()['exporter']
+    elif type(io) is type(''):io = iotypes[io]
     context.generate(worn = years)
-    context.passtime(years)
-    context.graph()
+    #context.passtime(years)
+    context.graph(io)
 
 ###############################################################################
 
@@ -67,17 +73,44 @@ def house(mod):
     #f2  = gm.aface(v1,v3,v4) 
     return mod
 
+
+
+
+
 def teststage(**kwargs):
-    mod = dmo.model()
+    kwargs['years'] = 0
+    p,d = vec3(0,0,0),vec3(0,0,1)
+    ax = dtl.plot_axes()
+    cx = ltr.tree(p,d,ax = ax)
+    realize(cx,**kwargs)
+
+
+
+
+
+
+def teststageold(**kwargs):
+    p,d = vec3(0,0,0),vec3(0,0,1)
+    ax = dtl.plot_axes()
+    mod = ltr.treeskin(p,d,ax = ax).skeleton()
+
+    #mod = dmo.model()
 
     #mod = tridome(mod)
-    mod = house(mod)
+    #mod = house(mod)
 
+    #p,d = vec3(0,0,0),vec3(0,0,1)
+    #ax = dtl.plot_axes()
+    #gm = mod.agfxmesh(ltr.treeskinmesh(p,d,ax = ax).skeleton(mod))
+
+    '''#
     ax = dtl.plot_axes()
     for gmesh in mod.gfxmeshes:
         for f in gmesh.faces:
             ps = mod.gvps(gmesh,f)
             ax = dtl.plot_polygon(ps,ax)
+    '''#
+
     plt.show()
 
     print('build2 cube now')

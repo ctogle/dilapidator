@@ -1,6 +1,7 @@
 import dilap.core.base as db
 import dilap.core.uinfo as di
-import dilap.core.material as dma
+#import dilap.core.material as dma
+import dilap.modeling.material as dma
 
 #import cStringIO as sio
 from io import StringIO as sio

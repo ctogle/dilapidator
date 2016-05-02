@@ -35,6 +35,7 @@ cdef class vec3:
     ###########################################################################
 
     def __str__(self):return 'vec3:'+str(tuple(self))
+    def __repr__(self):return 'vec3:'+str(tuple(self))
     def __iter__(self):yield self.x;yield self.y;yield self.z
     def __add__(self,o):return vec3(self.x+o.x,self.y+o.y,self.z+o.z)
     def __sub__(self,o):return vec3(self.x-o.x,self.y-o.y,self.z-o.z)
@@ -64,6 +65,16 @@ cdef class vec3:
     # return an independent copy of the xy projection of this point
     cdef vec3 cpxy_c(self):
         cdef vec3 n = vec3(self.x,self.y,0.0)
+        return n
+
+    # return an independent reciprocated copy of this point
+    cdef vec3 cpr_c(self):
+        cdef vec3 n = vec3(1.0/self.x,1.0/self.y,1.0/self.z)
+        return n
+
+    # return an independent flipped copy of this point
+    cdef vec3 cpf_c(self):
+        cdef vec3 n = vec3(-self.x,-self.y,-self.z)
         return n
 
     # return the R3 euclidean distance between self and vec3 o
@@ -143,6 +154,8 @@ cdef class vec3:
         cdef float dot11 = v1x*v1x + v1y*v1y
         cdef float dot12 = v1x*v2x + v1y*v2y
         cdef float denom = (dot00 * dot11 - dot01 * dot01)
+        if denom == 0:
+            print('colinear triangle?',a,b,c,self,denom)
         cdef float invdenom = 1.0 / denom
         cdef float u = (dot11 * dot02 - dot01 * dot12) * invdenom
         cdef float v = (dot00 * dot12 - dot01 * dot02) * invdenom
@@ -255,6 +268,16 @@ cdef class vec3:
         cdef float ny = self.x*row2x + self.y*row2y + self.z*row2z
         cdef float nz = self.x*row3x + self.y*row3y + self.z*row3z
         self.x = nx;self.y = ny;self.z = nz
+        return self
+
+    # rotate a set of points around self
+    cdef vec3 fulc_c(self,quat q,pts):
+        cdef int pcnt = len(pts)
+        cdef int px
+        cdef vec3 pt
+        for px in range(pcnt):
+            pt = pts[px]
+            pt.trn_c(self.flp_c()).rot_c(q).trn_c(self.flp_c())
         return self
 
     # rotate around the x axis by an angle a and return self
@@ -379,6 +402,16 @@ cdef class vec3:
     cpdef vec3 cpxy(self):
         '''create an independent copy of the xy projection of this point'''
         return self.cpxy_c()
+
+    # return an independent copy of the reciprocal of this point
+    cpdef vec3 cpr(self):
+        '''return an independent copy of the reciprocal of this point'''
+        return self.cpr_c()
+
+    # return an independent flipped copy of this point
+    cpdef vec3 cpf(self):
+        '''return an independent flipped copy of this point'''
+        return self.cpf_c()
 
     # return the R3 euclidean distance between self and vec3 o
     cpdef float d(self,vec3 o):
@@ -505,6 +538,11 @@ cdef class vec3:
     cpdef vec3 rot(self,quat q):
         '''rotate by a quaternion and return self'''
         return self.rot_c(q)
+
+    # rotate a set of points around self
+    cpdef vec3 fulc(self,quat q,pts):
+        '''rotate a set of points around self'''
+        return self.fulc_c(q,pts)
 
     # rotate around the x axis by an angle a and return self
     cpdef vec3 xrot(self,float a):

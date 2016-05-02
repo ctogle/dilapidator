@@ -10,13 +10,6 @@ stuff = 'hi'
 
 
 
-
-
-
-
-
-
-
 __doc__ = '''dilapidator\'s implementation of a transform object in R3'''
 # dilapidator\'s implementation of a transform object in R3'''
 cdef class tform:

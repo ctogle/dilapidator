@@ -59,6 +59,9 @@ class test_vec3(unittest.TestCase):
     def test_cpxy(self):
         for e in self.each:self.diff('cpxy',e,vec3(e.x,e.y,0))
 
+    #def test_cpr(self):
+    #def test_cpf(self):
+
     def test_d(self):
         for e in self.each:self.comp('d',e,e.mag(),self.origin)
         for e in self.each:self.comp('d',e,0,e)
@@ -271,6 +274,8 @@ class test_vec3(unittest.TestCase):
         q2 = quat(0,0,0,0).av(0,vec3(0,0,1))
         self.assertEqual(v1.rot(q1),v2)
         self.assertEqual(v1.cp().rot(q2),v1)
+
+    #def test_fulc(self):
 
     def test_xrot(self):
         self.same('xrot',self.origin,vec3(0,0,0),dpr.PI2)

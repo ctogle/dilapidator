@@ -83,6 +83,11 @@ cdef class quat:
         cdef quat n = quat(self.w,self.x,self.y,self.z)
         return n
 
+    # return an independent flipped copy of this quaternion
+    cdef quat cpf_c(self):
+        cdef quat n = quat(-self.w,self.x,self.y,self.z)
+        return n
+
     # is quat o within a very small neighborhood of self
     cdef bint isnear_c(self,quat o):
         cdef float dw = (self.w-o.w)
@@ -221,6 +226,11 @@ cdef class quat:
     cpdef quat cp(self):
         '''create an independent copy of this quaternion'''
         return self.cp_c()
+
+    # return an independent flipped copy of this quaternion
+    cpdef quat cpf(self):
+        '''create an independent flipped copy of this quaternion'''
+        return self.cpf_c()
 
     # is quat o within a very small neighborhood of self
     cpdef bint isnear(self,quat o):

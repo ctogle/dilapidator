@@ -391,11 +391,11 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
     initialize(data,list(ebnd))
     plcedges = polygon_location(data,ebnd,ibnds)
 
-    cover_polygon(data,ebnd,ibnds)
-    ghost_border(data,plcedges)              
-    constrain_delaunay(data)
-    if refine:refine_chews_first(data,hmin)
-    if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
+    #cover_polygon(data,ebnd,ibnds)
+    #ghost_border(data,plcedges)              
+    #constrain_delaunay(data)
+    #if refine:refine_chews_first(data,hmin)
+    #if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
 
     prot.flp_c()
     for p in data.points.ps:p.rot(prot)

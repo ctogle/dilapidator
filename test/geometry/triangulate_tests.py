@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 class test_triangulate(unittest.TestCase):
 
-    doshow = False
+    doshow = True
 
     def show_xy(self,tris,bnds):
         ax = dtl.plot_axes_xy()
@@ -33,8 +33,8 @@ class test_triangulate(unittest.TestCase):
     ### extra triangulating functions
     ###########################################################################
     def split_nondelauney_edges(self,eb,ibs):
-        aps = eb[:]
-        for ib in ibs:aps.extend(ib)
+        aps = list(eb)
+        for ib in ibs:aps.extend(list(ib))
 
         def split_loop(loop):
             x = 0
@@ -91,7 +91,7 @@ class test_triangulate(unittest.TestCase):
     ###########################################################################
     ###########################################################################
 
-    def test_squares(self):
+    def atest_squares(self):
         eb,ibs = tuple(vec3(5,1,-1).sq(2,4)),()
         tris,bnds = self.tribnd(eb,ibs,False,False)
         self.show_xy(tris,bnds)
@@ -113,6 +113,7 @@ class test_triangulate(unittest.TestCase):
 
     def test_octagons(self):
         eb,ibs = tuple(vec3(1,-2,-1).pring(5,8)),()
+        '''#
         tris,bnds = self.tribnd(eb,ibs,False,False)
         self.show_xy(tris,bnds)
         self.assertTrue(len(tris) == 6)
@@ -126,16 +127,30 @@ class test_triangulate(unittest.TestCase):
         self.show_xy(tris,bnds)
         self.assertTrue(len(tris) == 8)
         self.assertTrue(len(bnds) == 10)
+        eb[0].trn(vec3(7,-2,0))
+        '''#
+        ibs = (tuple(vec3(1,-2,-1).pring(1,8)),)
+        #tris,bnds = self.tribnd(eb,ibs,False,False)
+        #self.show_xy(tris,bnds)
+        tris,bnds = self.tribnd(eb,ibs,True,False)
+        self.show_xy(tris,bnds)
 
+    def atest_ushape(self):
+        eb = (
+            vec3(0,0,0),vec3(1,0,0),vec3(1,1,0),vec3(0.75,1,0),
+            vec3(0.75,0.5,0),vec3(0.25,0.5,0),vec3(0.25,1,0),vec3(0,1,0))
+        ibs = (tuple(p.cp().uscl(0.35).trn(vec3(0.1,0.1,0)) for p in eb),)
 
+        ax = dtl.plot_polygon_full_xy((eb,ibs))
+        plt.show()
 
-    def atest_triangulate(self):
-        eb = (vec3(-2,-2,0),vec3(2,-2,0),vec3(2,2,0),vec3(-2,2,0))
-        ibs = ()
-        hmin,ref,smo = 1,False,False
+        tris,bnds = self.tribnd(eb,(),False,False)
+        self.show_xy(tris,bnds)
+        tris,bnds = self.tribnd(ibs[0],(),False,False)
+        self.show_xy(tris,bnds)
 
-        tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo)
-        self.show(tris,bnds)
+        tris,bnds = self.tribnd(eb,ibs,False,False)
+        self.show_xy(tris,bnds)
 
 if __name__ == '__main__':
     unittest.main()

@@ -10,13 +10,6 @@ import pdb
 
 
 
-
-
-
-
-
-
-
 __doc__ = '''dilapidator\'s implementation of a topological tree'''
 # dilapidators implementation of a topological tree
 class tree:
@@ -24,7 +17,7 @@ class tree:
     vertclass = dvt.vert
     edgeclass = deg.edge
 
-    def __str__(self):return 'tree:'+str(self.vertcount)+str(edgecount)
+    def __str__(self):return 'tree:'+str(self.vertcount)+str(self.edgecount)
     def vcnt(self):return self.cnt(self.verts)
     def ecnt(self):return self.cnt(self.edges)
     def cnt(self,tobjs):
@@ -80,6 +73,17 @@ class tree:
         vs = self.mask(0,vrt,None)
         chn = [v for v in vs if not v is par]
         return chn
+
+    # provided a vertex, return all children recursively below 
+    def allbelow(self,vrt):
+        alb = self.below(vrt)
+        unfin = alb[:]
+        while unfin:
+            u = unfin.pop(0)
+            chn = self.below(u)
+            alb.extend(chn)
+            unfin.extend(chn)
+        return alb
 
     # add a new root vertex in the tree (only needed once)
     def aroot(self,*args,**kwargs):

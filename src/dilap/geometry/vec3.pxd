@@ -20,6 +20,8 @@ cdef class vec3:
 
     cdef vec3 cp_c(self)
     cdef vec3 cpxy_c(self)
+    cdef vec3 cpr_c(self)
+    cdef vec3 cpf_c(self)
     cdef float d_c(self,vec3 o)
     cdef float dxy_c(self,vec3 o)
     cdef float ang_c(self,vec3 o)
@@ -45,6 +47,7 @@ cdef class vec3:
     cdef vec3 yscl_c(self,float s)
     cdef vec3 zscl_c(self,float s)
     cdef vec3 rot_c(self,quat q)
+    cdef vec3 fulc_c(self,quat q,pts)
     cdef vec3 xrot_c(self,float a)
     cdef vec3 yrot_c(self,float a)
     cdef vec3 zrot_c(self,float a)
@@ -60,6 +63,8 @@ cdef class vec3:
 
     cpdef vec3 cp(self)
     cpdef vec3 cpxy(self)
+    cpdef vec3 cpr(self)
+    cpdef vec3 cpf(self)
     cpdef float d(self,vec3 o)
     cpdef float dxy(self,vec3 o)
     cpdef float ang(self,vec3 o)
@@ -85,6 +90,7 @@ cdef class vec3:
     cpdef vec3 yscl(self,float s)
     cpdef vec3 zscl(self,float s)
     cpdef vec3 rot(self,quat q)
+    cpdef vec3 fulc(self,quat q,pts)
     cpdef vec3 xrot(self,float a)
     cpdef vec3 yrot(self,float a)
     cpdef vec3 zrot(self,float a)

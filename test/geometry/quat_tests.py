@@ -53,6 +53,8 @@ class test_quat(unittest.TestCase):
         self.assertFalse(q1 is q1.cp())
         self.assertTrue(q1 == q1.cp())
 
+    #def test_cpf(self):
+
     def test_isnear(self):
         q1,q2 = quat(1,1,1,0),quat(1,1,1,0.1)
         q3,q4 = quat(1,1,1,1),quat(1,1.000001,1,1)

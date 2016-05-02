@@ -40,8 +40,8 @@ class model:
         self.filename = 'model.mesh'
 
     # generate a gfx trimesh for a nice cube
-    def atricube(self):
-        gmesh = self.agfxmesh()
+    def atricube(self,fm = None):
+        gmesh = self.agfxmesh(defmat = fm)
         v1  = gmesh.avert(*self.avert(vec3(-1,-1,-1)))
         v2  = gmesh.avert(*self.avert(vec3( 1,-1,-1)))
         v3  = gmesh.avert(*self.avert(vec3( 1, 1,-1)))
@@ -126,8 +126,8 @@ class model:
         return gmesh
 
     # create new gfx trimesh
-    def agfxmesh(self):
-        ngm = trimesh()
+    def agfxmesh(self,ngm = None,defmat = None):
+        if ngm is None:ngm = trimesh(defmat = defmat)
         self.gfxmeshes.append(ngm)
         return ngm
 
@@ -258,7 +258,8 @@ class model:
 
     # scale the position pointset of the model
     def scl(self,s):
-        self.pset.mul(s)
+        self.pset.scl(s)
+        return self
 
 
 

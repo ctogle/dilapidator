@@ -1,7 +1,6 @@
 import dilap.core.base as db
-import dilap.core.tools as dpr
 import dilap.construct as dlc
-import dilap.destruct as dld
+#import dilap.destruct as dld
 
 import bpy,sys
 from bpy_extras.io_utils import unpack_list
@@ -259,9 +258,15 @@ def build_model2(mod,**kwargs):
     ps = mod.pset.ps
     us = mod.uset.ps
 
+    mats = ['generic','concrete1']
+    fs_lookup = {}
+    for fmx in range(len(mats)):
+        fs_lookup[mats[fmx]] = fmx
+
     faces = mod.gfxmeshes[0].faces
-    face_mats = [0]*len(faces)
-    mats = ['generic']
+    face_mats = [fs_lookup[mod.gfxmeshes[0].fs_mats[f]] for f in faces]
+    #face_mats = [0]*len(faces)
+    #mats = ['generic']
     oloc = (0,0,0)
 
     #mesh = mesh_from_data(mname,ps,us,faces,face_mats,mats)

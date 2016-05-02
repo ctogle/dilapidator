@@ -15,13 +15,6 @@ import pdb
 
 
 
-
-
-
-
-
-
-
 __doc__ = '''dilapidator\'s implementation of a triangle mesh'''
 # dilapidators implementation of a triangle mesh
 # analogous to a single manifold surface
@@ -67,7 +60,9 @@ class trimesh:
 
         self.ve_rings = {}      # lookup of edge rings per vertex
         self.ef_rings = {}      # lookup of faces by edge tuples
-        self.fs_mats = {}       # loopup of face material per face
+        self.fs_mats = {}       # lookup of face material per face
+        if 'defmat' in kwargs:self.defmat = kwargs['defmat']
+        else:self.defmat = 'generic'
 
     # return the d-cells which are incident upon any of v,e,f
     # v is a tuple of (px,nx,ux)
@@ -232,9 +227,10 @@ class trimesh:
 
     # given the indices of three existing vertices,
     # create new face and return its index
-    def aface(self,u,v,w):
+    def aface(self,u,v,w,fm = None):
         fac = (u,v,w)
-        self.fs_mats[fac] = None
+        if fm is None:fm = self.defmat
+        self.fs_mats[fac] = fm
         self.aedge(u,v)
         self.aedge(v,w)
         self.aedge(w,u)

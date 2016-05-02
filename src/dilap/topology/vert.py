@@ -3,13 +3,6 @@ from dilap.geometry.quat import quat
 
 
 
-
-
-
-
-
-
-
 __doc__ = '''dilapidator\'s implementation of a topological vertex'''
 # dilapidators implementation of a topological vertex
 class vert:

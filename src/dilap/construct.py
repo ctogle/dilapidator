@@ -7,6 +7,7 @@ import dilap.io.io as dio
 import dilap.modeling.model as dmo
 
 import dilap.topology.worldly.treeskin as ltr
+import dilap.topology.worldly.building as blg
 
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
@@ -78,10 +79,14 @@ def house(mod):
 
 
 def teststage(**kwargs):
+    #kwargs['years'] = 0
+    #p,d = vec3(0,0,0),vec3(0,0,1)
+    #ax = dtl.plot_axes()
+    #cx = ltr.tree(p,d,ax = ax)
+    #realize(cx,**kwargs)
     kwargs['years'] = 0
-    p,d = vec3(0,0,0),vec3(0,0,1)
     ax = dtl.plot_axes()
-    cx = ltr.tree(p,d,ax = ax)
+    cx = blg.building(ax = ax)
     realize(cx,**kwargs)
 
 

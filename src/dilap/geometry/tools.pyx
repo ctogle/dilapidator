@@ -88,15 +88,6 @@ cdef float adist_c(float a1,float a2):
     cdef float da = wrap_c(a1-a2,0.0,twoPI)
     return da if da < PI else twoPI - da
 
-# compute the center of mass for a set of vectors
-cdef vec3 com_c(ps):
-    cdef int pcnt = len(ps)
-    cdef int px
-    cdef float pcntf = float(pcnt)
-    cdef vec3 n = vec3(0,0,0)
-    for px in range(pcnt):n.trn_c(ps[px])
-    return n.uscl_c(1.0/pcntf)
-
 # given 3 points and a plane, determine the center and radius
 # of the circumcenter found in the plane plane by projecting p1,p2,p3
 # in the plane
@@ -250,7 +241,7 @@ cdef bint inconcave_xy_c(vec3 pt,tuple poly):
     return not winding_c(pt,poly) == 0
 
 # given line segment s1, line segment s2
-# does s1 overlap the interior or s2?
+# does s1 overlap the interior of s2?
 # a segment is a tuple of two points
 cdef bint segs_isect_perp_c(vec3 s11,vec3 s12,vec3 s21,vec3 s22):
     cdef vec3 p = s11
@@ -314,7 +305,7 @@ cdef bint segs_isect_int_c(vec3 s11,vec3 s12,vec3 s21,vec3 s22):
 cdef bint polyinpoly_c(tuple p1,tuple p2):
     cdef int p2cnt = len(p2)
     cdef int px
-    cdef vec3 i2 = com_c(p2)
+    cdef vec3 i2 = vec3(0,0,0).com_c(p2)
     if not inconcave_xy_c(i2,p1):return 0
     for px in range(p2cnt):
         if not onconcave_xy_c(p2[px],p1):
@@ -499,11 +490,6 @@ cpdef float adist(float a1,float a2):
 cpdef tuple circumscribe_tri(vec3 p1,vec3 p2,vec3 p3):
     '''return the circumcenter and circumradius of a triangle'''
     return circumscribe_tri_c(p1,p2,p3)
-                                            
-# compute the center of mass for a set of vectors
-#cpdef vec3 com(ps):
-#    '''compute the center of mass for a set of vectors'''
-#    return com_c(ps)
 
 # find the angle between two vectors 
 #cpdef float ang(vec3 v1,vec3 v2):

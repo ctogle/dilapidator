@@ -185,6 +185,21 @@ class test_vec3(unittest.TestCase):
         self.assertEqual(v2.isnearxy(v4),0)
         self.assertEqual(v3.isnearxy(v4),1)
 
+    def test_inbxy(self):
+        py = vec3(1,1,0).sq(2,2)
+        self.assertFalse(vec3(-1,-1,0).inbxy(py))
+        self.assertFalse(vec3(0,0,0).inbxy(py))
+        self.assertFalse(vec3(1,0,0).inbxy(py))
+        self.assertTrue(vec3(1,1,0).inbxy(py))
+
+    def test_onbxy(self):
+        py = vec3(1,1,0).sq(2,2)
+        self.assertFalse(vec3(-1,-1,0).onbxy(py))
+        self.assertTrue(vec3(0,0,0).onbxy(py))
+        self.assertTrue(vec3(1,0,0).onbxy(py))
+        self.assertFalse(vec3(1,1,0).onbxy(py))
+        self.assertTrue(vec3(2,0,0).onbxy(py))
+
     def test_mag2(self):
         v1,v2,v3 = vec3(1,0,0),vec3(1,1,1),vec3(2,5,11)
         self.assertEqual(dpr.isnear(v1.mag2(),1),1)
@@ -345,7 +360,15 @@ class test_vec3(unittest.TestCase):
         self.assertTrue(dpr.isnear(d2,d3))
         self.assertTrue(self.origin.mid(self.one),pline[0].mid(pline[1]))
 
-    #def test_pring(self):
+    def test_pring(self):
+        p,r,n = vec3(0,0,0),4,8
+        ps = p.pring(r,n)
+        pm = ps[0].mid(ps[1])
+        alpha = numpy.pi*(2.0/n)
+        self.assertTrue(len(ps) == n)
+        self.assertTrue(p.d(ps[0].mid(ps[1])) == r)
+        self.assertTrue(dpr.isnear(ps[0].d(ps[1]),2*r*numpy.tan(alpha/2.0)))
+
     #def test_sq(self):
     #def test_com(self):
 

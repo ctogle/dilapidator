@@ -167,7 +167,13 @@ class model:
     def avert(self,p = None,n = None,u = None):
         if p is None:p = vec3(0,0,0)
         if n is None:n = vec3(0,0,1)
-        if u is None:u = vec3(0,0,0)
+        if u is None:
+            if   n.isnear(vec3(1,0,0)) or n.isnear(vec3(-1,0,0)):u = vec3(p.y,p.z,0)
+            elif n.isnear(vec3(0,1,0)) or n.isnear(vec3(0,-1,0)):u = vec3(p.x,p.z,0)
+            elif n.isnear(vec3(0,0,1)) or n.isnear(vec3(0,0,-1)):u = vec3(p.x,p.y,0)
+            else:
+                u = vec3(0,0,0)
+                print('no obvious projection for normal:',n,', defaulting u:',u)
         px = self.pset.ap(p)
         nx = self.nset.ap(n)
         ux = self.uset.ap(u)

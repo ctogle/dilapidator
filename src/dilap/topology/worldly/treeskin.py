@@ -39,6 +39,8 @@ class ltree(lsy.lsystem):
         ('F','F~[~FA]F'),
         ('A','[--////FQA]-<F[>>\\\\FQA]>+F[-\>>QA\[X]][</++QA/[Y]]Q'),
         ('X','F+Q'),('Y','F-Q')]))
+    loadouts.append(('Q',[
+        ('Q','<FF[)}+FQ][){Q]')]))
 
     def __init__(self,ldx,*args,**kwargs):
         axiom,rules = self.loadouts[ldx]
@@ -136,11 +138,17 @@ class knuckle:
             if r:self.tribridge(m,gm,bt,mid,'concrete1')
             vec3(0,0,0).com(mid).fulc(q1.flp(),mid)
 
+###############################################################################
+###############################################################################
+###############################################################################
+
 class tree(cx.context):
 
     def __init__(self,p,d,*args,ax = None,**kwargs):
+        self._def('name','treecontext',**kwargs)
+        self._def('params',(('iterations',(1,10,1)),),**kwargs)
         cx.context.__init__(self,*args,**kwargs)
-        self.lsys = ltree(0)._realize(p,d,ax)
+        self.lsys = ltree(1)._realize(p,d,ax)
 
     # do something which fills the scenegraph
     def generate(self,worn = 0):
@@ -152,8 +160,13 @@ class tree(cx.context):
         m = dmo.model()
         gm = m.atricube('generic')
         p = s.MARK[1].cp()
-        q = quat(0,0,0,0).av(0.0,vec3(0,0,1))
-        s = vec3(1,1,0.1)
+        tn = s.MARK[1].tov(e.MARK[1])
+        q = quat(0,0,0,0).uu(vec3(0,0,1),tn)
+        #w = 0.1*max((mw-(l/ml)**(0.25)),0.2)
+        #s = vec3(w,w,0.5*tn.mag())
+        #q = quat(0,0,0,0).av(0.0,vec3(0,0,1))
+        s = vec3(0.2,0.2,0.5*tn.mag())
+        m.trn(vec3(0,0,1))
         sgv = self.amodel(p,q,s,m,None)
 
     def branch(self,s,e,l,ml,mw):
@@ -175,8 +188,8 @@ class tree(cx.context):
         knuckles = []
         def walk(v,l,ml):
             ch = tr.below(v)
-            #if not ch:self.leaf(tr.above(v),v)
-            if not ch:self.branch(tr.above(v),v,l,ml,mw)
+            if not ch:self.leaf(tr.above(v),v)
+            #if not ch:self.branch(tr.above(v),v,l,ml,mw)
             else:
                 kn = knuckle(tr.above(v),v,l,ml,mw)
                 knuckles.append(kn)
@@ -220,159 +233,6 @@ class tree(cx.context):
             s = vec3(0.05,0.05,0.5*tn.mag())
             sgv = self.amodel(p,q,s,m,None)
         return self
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class treeskin(dmo.model):
-
-    def __init__(self,p,d,*args,ax = None,**kwargs):
-        dmo.model.__init__(self,*args,**kwargs)
-        self.lsys = ltree(0)._realize(p,d,ax)
-
-    def cube(self,gm):
-        v1  = gm.avert(*self.avert(vec3(-1,-1,-1)))
-        v2  = gm.avert(*self.avert(vec3( 1,-1,-1)))
-        v3  = gm.avert(*self.avert(vec3( 1, 1,-1)))
-        v4  = gm.avert(*self.avert(vec3(-1, 1,-1)))
-        v5  = gm.avert(*self.avert(vec3(-1,-1, 1)))
-        v6  = gm.avert(*self.avert(vec3( 1,-1, 1)))
-        v7  = gm.avert(*self.avert(vec3( 1, 1, 1)))
-        v8  = gm.avert(*self.avert(vec3(-1, 1, 1)))
-        f1  = gm.aface(v1,v3,v2)
-        f2  = gm.aface(v1,v4,v3)
-        f3  = gm.aface(v5,v6,v7)
-        f4  = gm.aface(v5,v7,v8)
-        f5  = gm.aface(v4,v5,v8) 
-        f6  = gm.aface(v1,v5,v4) 
-        f7  = gm.aface(v1,v2,v6) 
-        f8  = gm.aface(v1,v6,v5) 
-        f9  = gm.aface(v2,v3,v6) 
-        f10 = gm.aface(v3,v7,v6) 
-        f11 = gm.aface(v3,v4,v7) 
-        f12 = gm.aface(v4,v8,v7) 
-
-    def skeleton(self):
-        gm = self.agfxmesh()
-
-        nps,nes = self.lsys.topology
-        for np in nps:print(np)
-        for ne in nes:print(ne)
-
-        for v in nps:
-            
-            m = dcu.cube().scale(vec3(1,1,1).uscl(0.1)).translate(v.p)
-
-            s._consume(m)
-
-        for e in self.es:
-            cq = quat(0,0,0,0).uu(vec3(0,0,1),
-                self.vs[e[0]].p.tov(self.vs[e[1]].p))
-
-            c = dcy.cylinder().translate_z(0.5)
-
-            c.xscl(0.05).yscl(0.05).rot(cq)
-            c.trn(self.vs[e[0]].p)
-
-            s._consume(c)
-
-        return s
-
-        self.cube(gm)
-        return self
-
-
-
-
-
-class treeskinmesh(dtm.trimesh):
-
-    def __init__(self,p,d,*args,ax = None,**kwargs):
-        dtm.trimesh.__init__(self,*args,**kwargs)
-        self.lsys = ltree(0)._realize(p,d,ax)
-
-    def cube(self,mod):
-        v1 = self.avert(*mod.avert(vec3(-1,-1,-1)))
-        v2 = self.avert(*mod.avert(vec3( 1,-1,-1)))
-        v3 = self.avert(*mod.avert(vec3( 1, 1,-1)))
-        v4 = self.avert(*mod.avert(vec3(-1, 1,-1)))
-        v5 = self.avert(*mod.avert(vec3(-1,-1, 1)))
-        v6 = self.avert(*mod.avert(vec3( 1,-1, 1)))
-        v7 = self.avert(*mod.avert(vec3( 1, 1, 1)))
-        v8 = self.avert(*mod.avert(vec3(-1, 1, 1)))
-        f1  = self.aface(v1,v3,v2)
-        f2  = self.aface(v1,v4,v3)
-        f3  = self.aface(v5,v6,v7)
-        f4  = self.aface(v5,v7,v8)
-        f5  = self.aface(v4,v5,v8) 
-        f6  = self.aface(v1,v5,v4) 
-        f7  = self.aface(v1,v2,v6) 
-        f8  = self.aface(v1,v6,v5) 
-        f9  = self.aface(v2,v3,v6) 
-        f10 = self.aface(v3,v7,v6) 
-        f11 = self.aface(v3,v4,v7) 
-        f12 = self.aface(v4,v8,v7) 
-
-    def pelt(self):
-        raise NotImplemented
-
-        s = dmo.model()
-        for f in self.fs:
-            if f is None:continue
-            v1 = self.vs[f[0]]
-            v2 = self.vs[f[1]]
-            v3 = self.vs[f[2]]
-            s._triangle(v1.p,v2.p,v3.p,[v1.n,v2.n,v3.n])
-        return s
-
-    def skeleton(self,mod):
-        mod.agfxmesh(self)
-        self.mod = mod
-
-        nps,nes = self.lsys.topology
-        for np in nps:print(np)
-        for ne in nes:print(ne)
-
-        self.cube(mod)
-        return self
-
-        #s = dmo.model()
-        for v in nps:
-            
-
-            m = dcu.cube().scale(dpv.one().scale_u(0.1)).translate(v.p)
-
-            s._consume(m)
-
-        for e in self.es:
-            cq = quat(0,0,0,0).uu(vec3(0,0,1),
-                self.vs[e[0]].p.tov(self.vs[e[1]].p))
-
-            c = dcy.cylinder().translate_z(0.5)
-
-            c.xscl(0.05).yscl(0.05).rot(cq)
-            c.trn(self.vs[e[0]].p)
-
-            s._consume(c)
-
-        return s
-
-        #m = dtm.meshme(nps,None,None,None,nes,[])
-        #m = dtl.box(5,5,5)
-        #m.triangulate()
-        #smod = m.skeleton()
-        #smod = m.pelt()
-        #self.model = smod
 
 
 

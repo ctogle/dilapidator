@@ -25,10 +25,10 @@ class scenevert(dvt.vert):
         for mod in self.models:mod.trn(t)
         return self
 
-    def graph(self,io,wtform):
+    def graph(self,io,wtform,**kws):
         s,r,t = wtform.scl,wtform.rot,wtform.pos
         self.scl(s).rot(r).trn(t)
-        for mod in self.models:io.build_model2(mod)
+        for mod in self.models:io.build_model2(mod,**kws)
         t = wtform.pos.cpf()
         r = wtform.rot.cpf()
         s = wtform.scl.cpr()
@@ -47,14 +47,14 @@ class scenegraph(dtr.tree):
         vrt = dtr.tree.avert(self,parent,ntf,*args,**kwargs)
         return vrt
 
-    def graphvert(self,vrt,ptf,io):
+    def graphvert(self,vrt,ptf,io,**kws):
         wtform = vrt.tform.true(ptf)
         print('vrt!\n',vrt.ix,wtform,'\nfrom\n',vrt.tform,'\nfrom\n',ptf)
-        vrt.graph(io,wtform)
-        for x in self.below(vrt):self.graphvert(x,wtform,io)
+        vrt.graph(io,wtform,**kws)
+        for x in self.below(vrt):self.graphvert(x,wtform,io,**kws)
 
-    def graph(self,io):
-        self.graphvert(self.root,None,io)
+    def graph(self,io,**kws):
+        self.graphvert(self.root,None,io,**kws)
       
 
 

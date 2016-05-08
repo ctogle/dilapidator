@@ -161,7 +161,7 @@ cdef void initialize(triangulation data,list bnd):
     #bnorm,btang = dpr.norm_c(b1,b2,b3),dpr.tangent_c(b1,b2,b3)
     bnorm = gtl.nrm_c(b1,b2,b3)
     btang = b1.tov(b2).nrm()
-    convexcom = gtl.com_c(bnd)
+    convexcom = vec3(0,0,0).com_c(bnd)
     convexrad = max([cx.d(convexcom) for cx in bnd])+1000
     c01delta = vec3(-1,-1,0).nrm().uscl(convexrad)
     c02delta = vec3( 1,-1,0).nrm().uscl(convexrad)
@@ -348,7 +348,7 @@ cdef void smooth_laplacian(triangulation data,dict vrings,int smooths,float d):
             ghost = data.point_on_boundary(x)
             ring = vrings[x]
             if ghost == -1 and ring:
-                rcom = gtl.com_c([data.points.ps[j] for j in ring])
+                rcom = vec3(0,0,0).com_c([data.points.ps[j] for j in ring])
                 #rdel = data.points.ps[x].tov_c(rcom).uscl_c(d)
                 rdel = data.points.ps[x].tov(rcom).uscl_c(d)
             else:rdel = vec3(0,0,0)
@@ -380,22 +380,23 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
     #    ebnd,ibnds = subdivide_edges(ebnd,ibnds)
     #    hminnnn,ebnd,ibnds = chew1_subdivide_polygon(ebnd,ibnds)
 
+
     #p0 = ebnd[0].cp_c()
     p0 = ebnd[0].cp()
     #pn = gtl.poly_nrm_c(ebnd)
     pn = gtl.poly_nrm(ebnd)
     prot = gtl.q_to_xy_c(pn)
     gtl.rot_poly_c((ebnd,ibnds),prot)
-
     data = triangulation(p0,pn)
+
     initialize(data,list(ebnd))
     plcedges = polygon_location(data,ebnd,ibnds)
 
-    #cover_polygon(data,ebnd,ibnds)
-    #ghost_border(data,plcedges)              
-    #constrain_delaunay(data)
-    #if refine:refine_chews_first(data,hmin)
-    #if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
+    cover_polygon(data,ebnd,ibnds)
+    ghost_border(data,plcedges)              
+    constrain_delaunay(data)
+    if refine:refine_chews_first(data,hmin)
+    if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
 
     prot.flp_c()
     for p in data.points.ps:p.rot(prot)
@@ -424,6 +425,55 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
 cpdef tuple triangulate(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
     return triangulate_c(ebnd,ibnds,hmin,refine,smooth)
 
+def split_nondelauney_edges(eb,ibs):
+    aps = list(eb)
+    for ib in ibs:aps.extend(list(ib))
+
+    def split_loop(loop):
+        x = 0
+        while x < len(loop):
+            p1,p2 = loop[x-1],loop[x]
+            found = False
+            for p in aps:
+                if p.isnear(p1) or p.isnear(p2):continue
+                cc = p1.mid(p2)
+                cr = cc.d(p1)
+                if p.inneighborhood(cc,cr):
+                    loop.insert(x,cc)
+                    found = True
+                    break
+            if found:continue
+            else:x += 1
+        return loop
+
+    neb = split_loop(list(eb))
+    nibs = [split_loop(list(ib)) for ib in ibs]
+    return tuple(neb),tuple(tuple(nib) for nib in nibs)
+
+def split_nondelauney_edges_chew1(eb,ibs):
+    els = [eb[x-1].d(eb[x]) for x in range(len(eb))]
+    for ib in ibs:els.extend([ib[x-1].d(ib[x]) for x in range(len(ib))])
+    hmin = min(els)*math.sqrt(3)
+
+    def split_loop(loop):
+        oloop = [loop[0]]
+        for x in range(1,len(loop)+1):
+            if x == len(loop):x = 0
+            p1,p2 = oloop[-1],loop[x]
+            el = p1.d(p2)
+            m = 1
+            while el/m > hmin:m += 1
+            divpts = p1.pline(p2,m-1)
+            if divpts:
+                for dvp in divpts:
+                    oloop.append(dvp)
+            if not x == 0:oloop.append(p2)
+
+        return oloop
+
+    neb = split_loop(list(eb))
+    nibs = [split_loop(list(ib)) for ib in ibs]
+    return hmin,tuple(neb),tuple(tuple(nib) for nib in nibs)
 
 
 

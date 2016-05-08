@@ -22,7 +22,6 @@ cdef float wrap_c(float v,float f,float c)
 cdef bint inrng_c(float a,float b,float c)
 cdef float adist_c(float a1,float a2)
 cdef tuple circumscribe_tri_c(vec3 p1,vec3 p2,vec3 p3)
-cdef vec3 com_c(ps)
 #cdef float ang_c(vec3 v1,vec3 v2)
 #cdef float ang_xy_c(vec3 v1,vec3 v2)
 #cdef float sang_xy_c(vec3 v1,vec3 v2)
@@ -81,9 +80,6 @@ cdef int winding_c(vec3 pt,tuple py)
 #cdef float orient3d_c(dpv.vector a,dpv.vector b,dpv.vector c,dpv.vector d)
 #cdef float incircle_c(dpv.vector a,dpv.vector b,dpv.vector c,dpv.vector d)
 #cdef float insphere_c(dpv.vector a,dpv.vector b,dpv.vector c,dpv.vector d,dpv.vector e)
-
-#cpdef vec3 com(ps)
-#cpdef list pline(vec3 s,vec3 e,int n)
 
 
 

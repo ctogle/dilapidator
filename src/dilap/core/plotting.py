@@ -8,14 +8,18 @@ import pdb
 ###############################################################################
 
 # create a mpl 2d axes object
-def plot_axes_xy():
-    ax = plt.figure().add_subplot(111)
+def plot_axes_xy(x = 5,f = None):
+    if f is None:ax = plt.figure().add_subplot(111)
+    else:ax = f.add_subplot(111)
+    ax.set_xlim([-x,x])
+    ax.set_ylim([-x,x])
     ax.set_aspect('equal')
     return ax
 
 # create a mpl 3d axes object
-def plot_axes(x = 5):
-    ax = plt.figure().add_subplot(111,projection = '3d')
+def plot_axes(x = 5,f = None):
+    if f is None:ax = plt.figure().add_subplot(111,projection = '3d')
+    else:ax = f.add_subplot(111,projection = '3d')
     ax.set_xlim([-x,x])
     ax.set_ylim([-x,x])
     ax.set_zlim([-(9.0/16.0)*x,(9.0/16.0)*x])
@@ -24,6 +28,13 @@ def plot_axes(x = 5):
 def plot_point_xy(pt,ax,mk = 'o',col = None):
     if col is None:col = 'black'
     ax.plot([pt.x],[pt.y],marker = mk,color = col)
+    return ax
+
+def plot_vector_xy(pt,tn,ax,mk = 'o',lw = 1.0,col = None):
+    tip = pt.cp().trn(tn)
+    ax = plot_point_xy(pt,ax,mk = mk,col = col)
+    ax = plot_edges_xy([pt,tip],ax,mk = mk,lw = lw,col = col)
+    ax = plot_point_xy(tip,ax,mk = 'd',col = col)
     return ax
 
 def plot_point_xy_annotate(pt,ax,text):

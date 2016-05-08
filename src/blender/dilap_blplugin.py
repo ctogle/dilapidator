@@ -147,6 +147,7 @@ def default_materials():
         materials['concrete2'] = material_image('concrete2','concrete2.png')
         materials['concrete3'] = material_image('concrete3','concrete3.jpg')
         
+    '''#
     for ke in materials.keys():
         if ke.startswith('brick'):
             m = materials[ke]
@@ -161,6 +162,7 @@ def default_materials():
             t.use_map_alpha = True
             #t.scale = (0.5,0.5,1.0)
         print('matdir',dir(materials['generic']))
+    '''#
     return materials
 
 # must exist for dilap context usage
@@ -263,6 +265,34 @@ def build_model2(mod,**kwargs):
     for fmx in range(len(mats)):
         fs_lookup[mats[fmx]] = fmx
 
+    for gfx in mod.gfxmeshes:
+        faces = gfx.faces
+        face_mats = [fs_lookup[gfx.fs_mats[f]] for f in faces]
+        oloc = (0,0,0)
+
+        #mesh = mesh_from_data(mname,ps,us,faces,face_mats,mats)
+        #def mesh_from_data(name,ps,us,faces,face_mats,mats):
+
+        mesh = bpy.data.meshes.new(mname)
+        if not mats is None:
+            [mesh.materials.append(materials[ma]) for ma in mats]
+        mesh.vertices.add(len(ps))
+        mesh.vertices.foreach_set('co',unpack_list(ps))
+        mesh.tessfaces.add(len(faces))
+        mesh.tessfaces.foreach_set('vertices_raw',unpack_face_list(faces))
+        mesh.tessfaces.foreach_set('material_index',face_mats)
+        mesh.tessface_uv_textures.new()
+        for fdx in range(len(faces)):
+            fa = faces[fdx]
+            mesh.tessface_uv_textures[0].data[fdx].uv1 = tuple(us[fa[0]])[:-1]
+            mesh.tessface_uv_textures[0].data[fdx].uv2 = tuple(us[fa[1]])[:-1]
+            mesh.tessface_uv_textures[0].data[fdx].uv3 = tuple(us[fa[2]])[:-1]
+        mesh.update()
+
+
+
+
+    '''#
     faces = mod.gfxmeshes[0].faces
     face_mats = [fs_lookup[mod.gfxmeshes[0].fs_mats[f]] for f in faces]
     #face_mats = [0]*len(faces)
@@ -287,6 +317,7 @@ def build_model2(mod,**kwargs):
         mesh.tessface_uv_textures[0].data[fdx].uv2 = tuple(us[fa[1]])[:-1]
         mesh.tessface_uv_textures[0].data[fdx].uv3 = tuple(us[fa[2]])[:-1]
     mesh.update()
+    '''#
 
 
 

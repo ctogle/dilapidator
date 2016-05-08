@@ -60,10 +60,6 @@ class test_tools(unittest.TestCase):
         self.assertEqual(gtl.isnear(gtl.adist(deg10*6,deg10*22),deg10*16),1)
         self.assertEqual(gtl.isnear(gtl.adist(deg10*6,deg10*32),deg10*10),1)
 
-    def test_com(self):
-        self.assertEqual(gtl.com(self.pslist),vec3(0,0,0))
-        self.assertEqual(gtl.com(self.pstupl),vec3(0,0,0))
-
     #def test_circumscribe_tri(self):
 
     '''#

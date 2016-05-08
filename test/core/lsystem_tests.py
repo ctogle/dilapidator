@@ -54,22 +54,60 @@ class test_lsystem(unittest.TestCase):
     def atest_ltree_loadout(self):
         p,d = pstack.pop(0),dstack.pop(0)
         l = ltr.ltree(0)._realize(p,d,ax)
+        p,d = pstack.pop(0),dstack.pop(0)
+        l = ltr.ltree(1)._realize(p,d,ax)
 
     def test_ltree(self):
+        '''#
         kws = {
+            'axiom':'F',
+            #'axiom':'G',
+            'rules':[
+                ('F','F=![+++++F][-------F]-![++++F][------F]-![+++F][-----F]-!F')],
+                #('G','<FF[)}+\\FG][)-{G]')],
+            'iterations':1,'seed':0,'polar':gtl.rad(10),'azimuthal':gtl.rad(55),
+                }
+        '''#
+        ldots = [
+                {
+            'axiom':'F',
+            'rules':[
+                #('F','F=![+++++F][-------F]-![++++F][------F]-![+++F][-----F]-!F')],
+                ('F','F[+F]F[-F]F')],
+            'iterations':3,'seed':0,'polar':gtl.rad(10),'azimuthal':gtl.rad(25),
+                },
+                {
             'axiom':'G',
             'rules':[
-                #('F','F=![+++++F][-------F]-![++++F][------F]-![+++F][-----F]-!F'),
-                #('F','F{{F'),
-                ('G','FF[)}FG][){G]')],
-            'iterations':1,'seed':0,
-            'polar':gtl.rad(12),
-            'azimuthal':gtl.rad(75),
+                ('G','<FF[)}+\\FG][)-{G]')],
+            'iterations':5,'seed':0,'polar':gtl.rad(10),'azimuthal':gtl.rad(55),
+                },
+                {
+            'axiom':'G',
+            'rules':[
+                ('G','FG[<}GF][))-{FG][F]')],
+            'iterations':3,'seed':0,'polar':gtl.rad(20),'azimuthal':gtl.rad(75),
+                },
+                {
+            'axiom':'Q',
+            'rules':[
+                ('Q','FQ[<}Q][))-{FQ][F]')],
+            'iterations':3,'seed':0,'polar':gtl.rad(20),'azimuthal':gtl.rad(75),
+                },
+                {
+            'axiom':'A',
+            'rules':[
+                ('F','F~[~FA]F'),
+                ('A','[--////FQA]-<F[>>\\\\FQA]>+F[-\>>QA\[X]][</++QA/[Y]]Q'),
+                ('X','F+Q'),('Y','F-Q')],
+            'iterations':3,'seed':0,'polar':gtl.rad(20),'azimuthal':gtl.rad(75),
                 }
-        for x in range(5):
-            kws['iterations'] += 1
+                ]
+        for x in range(len(ldots)):
             p,d = pstack.pop(0),dstack.pop(0)
+            kws = ldots[x]
             l = ltr.ltree(0,**kws)._realize(p,d,ax)
+
         #p,d = pstack.pop(0),dstack.pop(0)
         #l = ltr.ltree(0,**kws)._realize(p,d,ax)
 

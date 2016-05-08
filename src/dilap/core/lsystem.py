@@ -100,7 +100,7 @@ class lsystem(db.base):
         self._def('maxrho',10.0,**kwargs)
         self._def('polar',numpy.pi/12.0,**kwargs)
         self._def('minpolar',0.0,**kwargs)
-        self._def('maxpolar',numpy.pi,**kwargs)
+        self._def('maxpolar',numpy.pi/2.0,**kwargs)
         self._def('azimuthal',numpy.pi/24.0,**kwargs)
         self._def('minazimuthal',0.0,**kwargs)
         self._def('maxazimuthal',2.0*numpy.pi,**kwargs)
@@ -108,6 +108,7 @@ class lsystem(db.base):
         # grammer dependent rules/axiom
         self._def('axiom','',**kwargs)
         self._def('rules',[],**kwargs)
+        self.rules = [r for r in self.rules if not r is None]
 
         # hard limit on total number of final steps
         self._def('truncate',5000,**kwargs)

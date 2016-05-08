@@ -29,6 +29,7 @@ class test_triangulate(unittest.TestCase):
 
     def setUp(self):pass
 
+    '''#
     ###########################################################################
     ### extra triangulating functions
     ###########################################################################
@@ -81,15 +82,45 @@ class test_triangulate(unittest.TestCase):
         neb = split_loop(list(eb))
         nibs = [split_loop(list(ib)) for ib in ibs]
         return hmin,tuple(neb),tuple(tuple(nib) for nib in nibs)
+    '''#
 
     def tribnd(self,eb,ibs,ref,smo):
         hmin = 1
-        eb,ibs = self.split_nondelauney_edges(eb,ibs)
-        if ref:hmin,eb,ibs = self.split_nondelauney_edges_chew1(eb,ibs)
+        eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
+        if ref:hmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
         tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo)
         return tris,bnds
+
     ###########################################################################
     ###########################################################################
+
+    def test_doorwindow(self):
+        eb = vec3(0,0,0).sq(8,5)
+
+        ddp = 1.5/(2.0*8.0)
+        w1 = eb[0].lerp(eb[1],0.5-ddp)
+        w2 = eb[0].lerp(eb[1],0.5+ddp)
+        w = (w2,w2.cp().ytrn(3),w1.cp().ytrn(3),w1)
+        for wp in w:eb.insert(1,wp)
+
+        ddp = 1.5/(2.0*8.0)
+        w1 = eb[0].lerp(eb[5],0.25-ddp).ytrn(1)
+        w2 = eb[0].lerp(eb[5],0.25+ddp).ytrn(1)
+        w = (w2,w2.cp().ytrn(2),w1.cp().ytrn(2),w1)
+        #q = quat(0,0,0,0).uu(vec3(0,0,1),vec3(1,0,0))
+        #vec3(0,0,0).fulc(q,eb)
+
+        eb,ibs = tuple(eb),(tuple(w),)
+        tris,bnds = self.tribnd(eb,ibs,False,False)
+        self.show(tris,bnds)
+
+    def atest_nonxy(self):
+        q = quat(0,0,0,0).uu(vec3(0,0,1),vec3(1,0,0))
+        eb = vec3(5,1,-1).sq(2,4)
+        vec3(0,0,0).fulc(q,eb)
+        eb,ibs = tuple(eb),()
+        tris,bnds = self.tribnd(eb,ibs,False,False)
+        self.show(tris,bnds)
 
     def atest_squares(self):
         eb,ibs = tuple(vec3(5,1,-1).sq(2,4)),()
@@ -111,7 +142,7 @@ class test_triangulate(unittest.TestCase):
         self.assertTrue(len(tris) == 2)
         self.assertTrue(len(bnds) == 4)
 
-    def test_octagons(self):
+    def atest_octagons(self):
         eb,ibs = tuple(vec3(1,-2,-1).pring(5,8)),()
         '''#
         tris,bnds = self.tribnd(eb,ibs,False,False)
@@ -132,7 +163,7 @@ class test_triangulate(unittest.TestCase):
         ibs = (tuple(vec3(1,-2,-1).pring(1,8)),)
         #tris,bnds = self.tribnd(eb,ibs,False,False)
         #self.show_xy(tris,bnds)
-        tris,bnds = self.tribnd(eb,ibs,True,False)
+        tris,bnds = self.tribnd(eb,ibs,False,False)
         self.show_xy(tris,bnds)
 
     def atest_ushape(self):

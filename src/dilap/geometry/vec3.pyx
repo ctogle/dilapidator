@@ -185,6 +185,36 @@ cdef class vec3:
         if dy*dy > gtl.epsilonsq_c:return 0
         return 1
 
+    # is self within the edges between any two adjacent points in ps
+    cdef bint inbxy_c(self,ps):
+        cdef int wn = 0
+        cdef int px
+        cdef int pcnt = len(ps)
+        cdef float read
+        for px in range(pcnt):
+            read = gtl.orient2d_c(self,ps[px-1],ps[px])
+            if read == 0:return 0
+            if ps[px-1].y <= self.y:
+                if ps[px].y > self.y:
+                    if read > 0:wn += 1
+            else:
+                if ps[px].y <= self.y:
+                    if read < 0:wn -= 1
+        if wn > 0:return 1
+        else:return 0
+        return 1 if wn > 0 else 0
+
+    # is self on an edge between any two adjacent points in ps
+    cdef bint onbxy_c(self,ps):
+        cdef int px
+        cdef int pcnt = len(ps)
+        cdef vec3 p1,p2
+        for px in range(pcnt):
+            p1,p2 = ps[px-1],ps[px]
+            if p1.isnear_c(self):return 1
+            if gtl.inseg_xy_c(self,p1,p2):return 1
+        return 0
+
     # return the squared magintude of self
     cdef float mag2_c(self):
         cdef float x2 = self.x*self.x
@@ -355,9 +385,10 @@ cdef class vec3:
 
     # return a ring of points of radius r with n corners
     cdef list pring_c(self,float r,int n):
-        cdef vec3 st = vec3(0,0,0).xtrn_c(r)
-        cdef vec3 nv
         cdef float alpha = gtl.PI*(2.0/n)
+        cdef float sr = r/cos(alpha/2.0)
+        cdef vec3 st = vec3(0,0,0).xtrn_c(sr)
+        cdef vec3 nv
         cdef list points = []
         cdef int x
         for x in range(n):
@@ -376,7 +407,7 @@ cdef class vec3:
             vec3(self.x-hl,self.y+hw,self.z)]
         return sq
 
-    # compute the center of mass for a set of vectors
+    # translate self to the center of mass of a set of vectors
     cdef vec3 com_c(self,os):
         cdef int pcnt = len(os)
         cdef int px
@@ -473,6 +504,16 @@ cdef class vec3:
     cpdef bint isnearxy(self,vec3 o):
         '''determine if a point is numerically close to another in the xy plane'''
         return self.isnearxy_c(o)
+
+    # is self within the edges between any two adjacent points in ps
+    cpdef bint inbxy(self,ps):
+        '''determine if self is within the edges between any two adjacent points in ps'''
+        return self.inbxy_c(ps)
+
+    # is self on an edge between any two adjacent points in ps
+    cpdef bint onbxy(self,ps):
+        '''determine if self on an edge between any two adjacent points in ps'''
+        return self.onbxy_c(ps)
 
     # return the squared magintude of self
     cpdef float mag2(self):

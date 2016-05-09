@@ -158,6 +158,8 @@ class test_quat(unittest.TestCase):
         self.assertTrue(q1.rot(q2) == q3)
         self.assertTrue(q1.rot(q2) is q1)
 
+    #def test_rotps(self):
+
     def test_dot(self):
         a1,v1 = dpr.PI4,vec3(0,0,1)
         a2,v2 = dpr.PI2,vec3(0,1,0)

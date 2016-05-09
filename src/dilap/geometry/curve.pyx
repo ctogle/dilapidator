@@ -19,13 +19,6 @@ stuff = 'hi'
 
 
 
-
-
-
-
-
-
-
 __doc__ = '''dilapidator\'s implementation of a curve in R3'''
 # dilapidators implementation of a curve in R3
 cdef class curve:

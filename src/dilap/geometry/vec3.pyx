@@ -202,7 +202,6 @@ cdef class vec3:
                     if read < 0:wn -= 1
         if wn > 0:return 1
         else:return 0
-        return 1 if wn > 0 else 0
 
     # is self on an edge between any two adjacent points in ps
     cdef bint onbxy_c(self,ps):
@@ -309,6 +308,23 @@ cdef class vec3:
             pt = pts[px]
             pt.trn_c(self.flp_c()).rot_c(q).trn_c(self.flp_c())
         return self
+
+    # return a clockwise ordered version of a set of vectors
+    # fst : a vector whose angle is considered to be minimized
+    cdef list cwoxy_c(self,vec3 fst,ps):
+        cdef vec3 ftn = self.tov_c(fst)
+        cdef vec3 o,otn
+        cdef quat q
+        cdef list os = []
+        cdef int pcnt = len(ps)
+        cdef int px
+        for px in range(pcnt):
+            o = ps[px]
+            otn = self.tov_c(o)
+            q = quat(0,0,0,0).uu(ftn,otn)
+            print('cwoxy',o,q)
+            os.append(o)
+        return os
 
     # rotate around the x axis by an angle a and return self
     # NOTE: this is slower than using rot with the appropriate quaternion
@@ -584,6 +600,15 @@ cdef class vec3:
     cpdef vec3 fulc(self,quat q,pts):
         '''rotate a set of points around self'''
         return self.fulc_c(q,pts)
+
+    # return a clockwise ordered version of a set of vectors
+    # fst : a vector whose angle is considered to be minimized
+    cpdef list cwoxy(self,vec3 fst,ps):
+        '''
+        return a clockwise ordered version of a set of vectors
+        fst : a vector whose angle is considered to be minimized
+        '''
+        return self.cwoxy_c(fst,ps)
 
     # rotate around the x axis by an angle a and return self
     cpdef vec3 xrot(self,float a):

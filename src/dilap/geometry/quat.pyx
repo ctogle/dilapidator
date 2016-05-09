@@ -176,6 +176,16 @@ cdef class quat:
         self.w,self.x,self.y,self.z = qres.__iter__()
         return self
 
+    # rotate a set of vec3 points by self
+    cdef quat rotps_c(self,ps):
+        cdef vec3 p
+        cdef int px
+        cdef int pcnt = len(ps)
+        for px in range(pcnt):
+            p = ps[px]
+            p.rot_c(self)
+        return self
+
     # return the dot product of self and quat o
     cdef float dot_c(self,quat o):
         return self.w*o.w + self.x*o.x + self.y*o.y + self.z*o.z
@@ -293,6 +303,11 @@ cdef class quat:
     cpdef quat rot(self,quat o):
         '''rotate this quaternion by another quaternion'''
         return self.rot_c(o)
+
+    # rotate a set of vec3 points by self
+    cpdef quat rotps(self,ps):
+        '''rotate a set of vec3 points this quaternion'''
+        return self.rotps_c(ps)
 
     # return the dot product of self and quat o
     cpdef float dot(self,quat o):

@@ -4,6 +4,7 @@ import dilap.geometry.tools as gtl
 from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
 from dilap.geometry.pointset import pointset
+import dilap.geometry.polymath as pym
 import dilap.modeling.model as dmo
 import dilap.topology.trimesh as dtm
 import dilap.topology.tree as dtr
@@ -46,6 +47,7 @@ class building(cx.context):
         eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
         if ref:hmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
         tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo)
+        #tris,bnds = [],[]
         for tri in tris:
             p1,p2,p3 = tri
             n = gtl.nrm(p1,p2,p3)
@@ -219,19 +221,14 @@ class building(cx.context):
         sgv = self.amodel(None,None,None,m,None)
         gm = m.agfxmesh()
 
-        def subtract(b,t):
-            return b
-            pdb.set_trace()
-
         #ax = dtl.plot_axes()
-        for lx in range(2):
+        for lx in range(self.floors):
             lvl = self.rims[lx]
             #ax = dtl.plot_polygon(lvl,ax,lw = 2+2*lx)
-            if lx == 1:
+            if lx == self.floors-1:
                 tlvl = lvl
                 print('make doors if the level below is not fully eclipsed')
-            else:tlvl = subtract(lvl,self.rims[lx+1])
-
+            else:tlvl = pym.ebdxy(lvl,self.rims[lx+1])
             rbnd = (tuple(tlvl),())
             m = self.asurf(rbnd,m = m,gm = gm)
             for x in range(len(tlvl)):
@@ -240,7 +237,7 @@ class building(cx.context):
             itlvl = self.contract(tlvl,0.125)
             for x in range(len(itlvl)):
                 p1,p2 = itlvl[x-1],itlvl[x]
-                self.awall(p1,p2,2.0,None,m = m,gm = gm)
+                self.awall(p2,p1,2.0,None,m = m,gm = gm)
 
             # must zoffset tlvl and itlvl?
             #m = self.asurf((tlvl,(itlvl,)),m = m,gm = gm)
@@ -252,6 +249,8 @@ class building(cx.context):
         rmvs = []
 
         #( boundary, edges, level, wallwidth, wallheight, skirtlength, crownheight )
+
+        self.floors = 1
 
         rmv = vec3(0,0,0).sq(12,8),None,0,0.125,4.0,0.5,1.0
         rmvs.append(rmv)
@@ -265,8 +264,8 @@ class building(cx.context):
         rmv = vec3(0,10,0).sq(12,12),[0,2],0,0.125,4.0,0.5,1.0
         rmvs.append(rmv)
 
-        rmv = vec3(0,10,5.5).sq(12,12),[3],1,0.125,4.0,0.5,1.0
-        rmvs.append(rmv)
+        #rmv = vec3(0,10,5.5).sq(12,12),[3],1,0.125,4.0,0.5,1.0
+        #rmvs.append(rmv)
 
         for rmv in rmvs:self.rtopo.append(rmv)
 
@@ -278,11 +277,10 @@ class building(cx.context):
         #sgv = self.amodel(vec3(0,0,1),None,None,m,None)
         #gm = m.atricube('generic')
 
-        lvls = 2
         self.rmkws,self.rtopo,self.rims = [],[],[]
         self.rgraph()
         for rtp in self.rtopo:self.armkws(*rtp)
-        for lx in range(lvls):self.boundlevel(lx)
+        for lx in range(self.floors):self.boundlevel(lx)
         self.boundroof()
         for rmkws in self.rmkws:m = self.aroom(**rmkws)
         return self

@@ -291,6 +291,7 @@ class test_vec3(unittest.TestCase):
         self.assertEqual(v1.cp().rot(q2),v1)
 
     #def test_fulc(self):
+    #def test_cowxy(self):
 
     def test_xrot(self):
         self.same('xrot',self.origin,vec3(0,0,0),dpr.PI2)

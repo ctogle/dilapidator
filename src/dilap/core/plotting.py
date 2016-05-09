@@ -90,17 +90,17 @@ def plot_edges(points,ax = None,mk = None,lw = 1.0,center = False,col = None):
         plot_points(centers,ax)
     return ax
 
-def plot_polygon_xy(points,ax = None,center = False,lw = 1.0,col = None):
+def plot_polygon_xy(points,ax = None,center = False,mk = None,lw = 1.0,col = None):
     epts = list(points[:])
     epts.append(points[0])
-    ax = plot_edges_xy(epts,ax,lw = lw,col = col)
+    ax = plot_edges_xy(epts,ax,mk = mk,lw = lw,col = col)
     if center:plot_point_xy(vec3(0,0,0).com(points),ax,mk = 's',col = col)
     return ax
 
-def plot_polygon(points,ax = None,center = False,lw = 1.0,col = None):
+def plot_polygon(points,ax = None,center = False,mk = None,lw = 1.0,col = None):
     epts = list(points[:])
     epts.append(points[0])
-    ax = plot_edges(epts,ax,lw = lw,col = col)
+    ax = plot_edges(epts,ax,mk = mk,lw = lw,col = col)
     if center:plot_point(vec3(0,0,0).com(points),ax,mk = 's',col = col)
     return ax
 

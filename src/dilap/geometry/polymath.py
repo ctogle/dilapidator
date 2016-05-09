@@ -216,22 +216,30 @@ def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True):
 
 # does a segment intersect a boundary polygon
 # ie : if the intersection is strictly along the boundary, does it count
-def sintbxy(s1,s2,b,ie = True):
+def sintbxy(s1,s2,b,ie = True,ieb = True,col = True):
     for x in range(len(b)):
         b1,b2 = b[x-1],b[x]
-        if sintsxy(s1,s2,b1,b2,ie = ie,ieb = ie,col = ie):
+        if sintsxy(s1,s2,b1,b2,ie = ie,ieb = ieb,col = col):
             return 1
     return 0
 
 # where does a segment intersect a boundary polygon
 # ie : if the intersection is strictly along the boundary, does it count
-def sintbxyp(s1,s2,b,ie = True):
+def sintbxyp(s1,s2,b,ie = True,ieb = True,col = True):
+    def isnew(np):
+        for p in ips:
+            if p.isnear(np):return
+        ips.append(np)
+    ips = []
     for x in range(len(b)):
         b1,b2 = b[x-1],b[x]
-        ip = sintsxyp(s1,s2,b1,b2,ie = ie,ieb = ie,col = ie):
+        ip = sintsxyp(s1,s2,b1,b2,ie = ie,ieb = ieb,col = col)
         if not ip is None:
-            return ip
-    return 0
+            if type(ip) == type(()):
+                isnew(ip[0])
+                isnew(ip[1])
+            else:isnew(ip)
+    return ips
 
 ###############################################################################
 ###############################################################################
@@ -264,69 +272,147 @@ def bintbxy(b1,b2,ie = True):
 def bsegbxy(b1,b2):
     b1es = []
     unfn = [(b1[x-1],b1[x]) for x in range(len(b1))]
-
     while unfn:
         u1,u2 = unfn.pop(0)
-        ip = sintbxyp(u1,u2,b2)
-        if ip is None:
-            pdb.set_trace()
+        ips = sintbxyp(u1,u2,b2,ieb = False)
+        ips = [p for p in ips if not p.isnear(u1) and not p.isnear(u2)]
+        if len(ips) == 0:
+            b1es.append((u1,u2))
         else:
-            pdb.set_trace()
+            u1u2 = u1.tov(u2)
+            ipsprj = [ip.dot(u1u2) for ip in ips]
+            lst = u1
+            while ips:
+                ipx = ipsprj.index(min(ipsprj))
+                nxtprj = ipsprj.pop(ipx)
+                nxt = ips.pop(ipx)
+                b1es.append((lst,nxt))
+                lst = nxt
+            b1es.append((lst,u2))
+    #nb = tuple(be[1] for be in b1es)
+    return b1es
 
-    #b1es,b2es = [],[]
-    #b2es = [(b2[x-1],b2[x]) for x in range(len(b2))]
-    for b1x in range(len(b1)):
-        b1p1,b1p2 = b1[b1x-1],b1[b1x]
-        for b2x in range(len(b2)):
-            b2p1,b2p2 = b2[b2x-1],b2[b2x]
+# produce some number of closed loops from a set of edges
+def loopseg(es):
+    unfn = es[:]
+    nxt = unfn.pop(0)
+    lst = nxt
+    loops = [[nxt[0]]]
 
-            ip = sintsxyp(b1p1,b1p2,b2p1,b2p2,ie = True,ieb = False)
-            if ip is None:
-                b1es.append((b1p1,b1p2))
+    def pl():
+        ax = dtl.plot_axes_xy(10)
+        for e in unfn:ax = dtl.plot_edges_xy(e,ax,lw = 2,col = 'r')
+        for l in loops:
+            ax = dtl.plot_polygon_xy(l,ax,lw = 2)
+        ax = dtl.plot_edges_xy([nxt[1],u1],ax,col = 'g',lw = 5.0)
+        ax = dtl.plot_edges_xy([lst[1],u1],ax,col = 'b',lw = 3.0)
+        plt.show()
+
+    lost = False
+    while unfn:
+
+        if lost:
+            print('im lost!!',len(unfn))
+            pl()
+            #pdb.set_trace()
+            return loops
+
+        lost = True
+        nxtpotentials = []
+        lstpotentials = []
+        for ufx in range(len(unfn)):
+            u1,u2 = unfn[ufx]
+            if u1.isnear(nxt[1]):
+                nxtpotentials.append((u1,ufx,False))
+                lost = False
+                #pl()
+            elif u2.isnear(nxt[1]):
+                nxtpotentials.append((u2,ufx,True))
+                lost = False
+                #pl()
+            elif u2.isnear(lst[0]):
+                lstpotentials.append((u1,ufx,False))
+                lost = False
+                #pl()
+            elif u1.isnear(lst[0]):
+                lstpotentials.append((u2,ufx,True))
+                lost = False
+                #pl()
+
+        if len(nxtpotentials) == 0:
+            if len(lstpotentials) == 1:
+                p = lstpotentials[0]
+                loops[-1].insert(0,p[0])
+                if p[2]:lst = unfn.pop(p[1])[::-1]
+                else:lst = unfn.pop(p[1])
+            elif len(lstpotentials) > 1:
+                pdb.set_trace()
+        if len(nxtpotentials) == 1:
+            p = nxtpotentials[0]
+            loops[-1].append(p[0])
+            if p[2]:nxt = unfn.pop(p[1])[::-1]
+            else:nxt = unfn.pop(p[1])
+            #pl()
+        elif len(nxtpotentials) > 1:
+
+            ax = dtl.plot_axes_xy(10)
+            for p in nxtpotentials:
+                print('nxtpotential',p)
+                if p[2]:ax = dtl.plot_edges_xy([nxt[1],p[0]],ax,lw = 6,col = 'g')
+                else:ax = dtl.plot_edges_xy([nxt[1],p[0]],ax,lw = 6,col = 'g')
+            plt.show()
+            #pdb.set_trace()
+            
+            p = nxtpotentials[0]
+            loops[-1].append(p[0])
+            if p[2]:nxt = unfn.pop(p[1])[::-1]
+            else:nxt = unfn.pop(p[1])
+    return loops
 
 # compute difference of boundary polygons
 def ebdxy(b1,b2):
-    b1es,b2es = [],[]
-    #b2es = [(b2[x-1],b2[x]) for x in range(len(b2))]
-    for b1x in range(len(b1)):
-        b1p1,b1p2 = b1[b1x-1],b1[b1x]
-        for b2x in range(len(b2)):
-            b2p1,b2p2 = b2[b2x-1],b2[b2x]
+    b1segs = bsegbxy(b1,b2)
+    b2segs = bsegbxy(b2,b1)
+    bo = lambda s1,s2,b : s1.inbxy(b) or s2.inbxy(b) or (s1.onbxy(b) and s2.onbxy(b))
+    b1only = [p for p in b1segs if not bo(p[0],p[1],b2)]
 
-            ip = sintsxyp(b1p1,b1p2,b2p1,b2p2,ie = True,ieb = False)
-            if ip is None:
-                b1es.append((b1p1,b1p2))
+    #b2inb1 = [p for p in b2segs if bo(p[0],p[1],b1)]
+    #b2inb1 = [p for p in b2segs if p[0].inbxy(b1) or p[1].inbxy(b1) or (p[0].onbxy(b2) and p[1].onbxy(b2) and p[0].onbxy(b1) and p[1].onbxy(b1))]
+    #b2inb1 = [p for p in b2segs if p[0].inbxy(b1) or p[1].inbxy(b1) or (p[0].onbxy(b1) and p[1].onbxy(b1))]
+    b2inb1 = [p for p in b2segs if p[0].inbxy(b1) or p[1].inbxy(b1)]
 
-            if not ip is None:
+    #b2only = [p for p in b2segs if not p[0].inbxy(b1) and not p[1].inbxy(b1)]
+    #b1inb2 = [p for p in b1segs if p[0].inbxy(b2) or p[1].inbxy(b2)]
 
-                ax = dtl.plot_axes_xy(10)
-                ax = dtl.plot_edges_xy([b1p1,b1p2],ax,lw = 2.0,col = 'b')
-                ax = dtl.plot_edges_xy([b2p1,b2p2],ax,lw = 2.0,col = 'g')
-                plt.show()
-
-                pdb.set_trace()
-                
     #ax = dtl.plot_axes_xy(10)
-    #for e in b1es:ax = dtl.plot_edges_xy(e,ax,lw = 2.0,col = 'b')
-    #for e in b2es:ax = dtl.plot_edges_xy(e,ax,lw = 2.0,col = 'g')
+    #for bs in b1segs:
+    #    ax = dtl.plot_edges_xy(bs,ax,lw = 1.0,col = 'r')
+    #for bs in b2segs:
+    #    ax = dtl.plot_edges_xy(bs,ax,lw = 3.0,col = 'r')
+    #for bs in b1only:
+    #    ax = dtl.plot_edges_xy(bs,ax,lw = 5.0,col = 'b')
+    #for bs in b2inb1:
+    #    ax = dtl.plot_edges_xy(bs,ax,lw = 5.0,col = 'g')
     #plt.show()
 
-    return b1
+    dfs = loopseg(b1only+b2inb1)
+
+    '''#
+    ax = dtl.plot_axes_xy(10)
+    ax = dtl.plot_polygon_xy(b1,ax,lw = 1.0,col = None)
+    ax = dtl.plot_polygon_xy(b2,ax,lw = 1.0,col = None)
+    for df in dfs:
+        ax = dtl.plot_polygon_xy(df,ax,lw = 8.0,col = None)
+    plt.show()
+    '''#
+
+    if len(dfs) == 0:return None
+    elif len(dfs) == 1:return dfs[0]
+    else:return dfs
 
 ###############################################################################
 ###############################################################################
 ###############################################################################
-
-# is the interior of a boundary polygon disjoint from that of another
-def pdisjpxy(b1,b2):
-    print('do the interiors of any edge segments intersect?')
-    for b1x in range(len(b1)):
-        b1p1,b1p2 = b1[b1x-1],b1[b1x]
-        for b2x in range(len(b2)):
-            b2p1,b2p2 = b2[b2x-1],b2[b2x]
-            if gtl.segs_isect_perp(b1p1,b1p2,b2p1,b2p2):
-                return False
-    return True
 
 
 

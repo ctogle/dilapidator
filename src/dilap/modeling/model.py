@@ -173,7 +173,7 @@ class model:
             elif n.isnear(vec3(0,0,1)) or n.isnear(vec3(0,0,-1)):u = vec3(p.x,p.y,0)
             else:
                 u = vec3(0,0,0)
-                print('no obvious projection for normal:',n,', defaulting u:',u)
+                #print('no obvious projection for normal:',n,', defaulting u:',u)
         px = self.pset.ap(p)
         nx = self.nset.ap(n)
         ux = self.uset.ap(u)

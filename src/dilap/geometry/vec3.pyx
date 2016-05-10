@@ -99,7 +99,7 @@ cdef class vec3:
         cdef float sod = (self.x*o.x + self.y*o.y + self.z*o.z)/(sm*om)
         cdef float a
         if   gtl.isnear_c(sod, 1.0):a = 0.0
-        elif gtl.isnear_c(sod,-1.0):a = gtl.PI
+        elif gtl.isnear_c(sod,-1.0):a = numpy.pi
         else:a = numpy.arccos(sod)
         return a
 
@@ -112,7 +112,7 @@ cdef class vec3:
         cdef float sod = n1.x*n2.x + n1.y*n2.y + n1.z*n2.z
         cdef float a = 0.0
         if   gtl.isnear_c(sod, 1.0):pass
-        elif gtl.isnear_c(sod,-1.0):a = gtl.PI
+        elif gtl.isnear_c(sod,-1.0):a = numpy.pi
         else:a = numpy.arccos(sod)
         if vd < 0.0:a *= -1.0
         return a                    
@@ -141,7 +141,7 @@ cdef class vec3:
 
     # return the u,v barycentric coordinates of self given 3 corners of a triangle
     # everything is assumed to be in the xy plane
-    cdef tuple bary_xy_c(self,vec3 a,vec3 b,vec3 c): 
+    cdef tuple baryxy_c(self,vec3 a,vec3 b,vec3 c): 
         cdef float v0x =  c.x-a.x
         cdef float v0y =  c.y-a.y
         cdef float v1x =  b.x-a.x
@@ -193,7 +193,8 @@ cdef class vec3:
         cdef float read
         for px in range(pcnt):
             read = gtl.orient2d_c(self,ps[px-1],ps[px])
-            if read == 0:return 0
+            #if read == 0:return 0
+            if read == 0:pass
             if ps[px-1].y <= self.y:
                 if ps[px].y > self.y:
                     if read > 0:wn += 1
@@ -203,6 +204,47 @@ cdef class vec3:
         if wn > 0:return 1
         else:return 0
 
+    # determine if the point pt is inside the triangle abc
+    # assume all points are in the xy plane 
+    cdef bint intrixy_c(self,vec3 a,vec3 b,vec3 c):
+        cdef float u,v
+        if gtl.orient2d_c(a,b,c) == 0:
+            return 0
+            '''#
+            ab,bc,ca = a.d(b),b.d(c),c.d(a)
+            if ab > bc and ab > ca:
+                if self.d_c(a.mid_c(b)) < ab/2.0:return 1
+                else:return 0
+            elif bc > ca and bc > ab:
+                if self.d_c(b.mid_c(c)) < bc/2.0:return 1
+                else:return 0
+            elif ca > ab and ca > bc:
+                if self.d_c(c.mid_c(a)) < ca/2.0:return 1
+                else:return 0
+            '''#
+        else:
+            u,v = self.baryxy_c(a,b,c)
+            if u > 0 or abs(u) < gtl.epsilon:
+                if v > 0 or abs(v) < gtl.epsilon:
+                    if 1-u-v > 0 or abs(1-u-v) < gtl.epsilon:
+                        return 1
+            return 0
+
+    # is self on an edge between any two points
+    cdef bint onsxy_c(self,vec3 s1,vec3 s2,bint ie = 0):
+        if not gtl.orient2d_c(self,s1,s2) == 0:return 0
+        if self.isnear(s1) or self.isnear(s2):
+            if ie:return 1
+            else:return 0
+        #if (s1.x != s2.x): # S is not  vertical
+        if not gtl.isnear_c(s1.x,s2.x): # S is not  vertical
+            if (s1.x <= self.x and self.x <= s2.x):return 1
+            if (s1.x >= self.x and self.x >= s2.x):return 1
+        else: # S is vertical, so test y  coordinate
+            if (s1.y <= self.y and self.y <= s2.y):return 1
+            if (s1.y >= self.y and self.y >= s2.y):return 1
+        return 0
+
     # is self on an edge between any two adjacent points in ps
     cdef bint onbxy_c(self,ps):
         cdef int px
@@ -211,7 +253,8 @@ cdef class vec3:
         for px in range(pcnt):
             p1,p2 = ps[px-1],ps[px]
             if p1.isnear_c(self):return 1
-            if gtl.inseg_xy_c(self,p1,p2):return 1
+            if self.onsxy_c(p1,p2):return 1
+            #if gtl.inseg_xy_c(self,p1,p2):return 1
         return 0
 
     # return the squared magintude of self
@@ -283,7 +326,6 @@ cdef class vec3:
 
     # rotate by a quaternion q and return self
     cdef vec3 rot_c(self,quat q):
-        if gtl.isnear_c(q.w,0):return self
         cdef float row1x = q.w**2 + q.x**2 - q.y**2 - q.z**2
         cdef float row1y = 2*(q.x*q.y - q.w*q.z)
         cdef float row1z = 2*(q.x*q.z + q.w*q.y)
@@ -401,7 +443,7 @@ cdef class vec3:
 
     # return a ring of points of radius r with n corners
     cdef list pring_c(self,float r,int n):
-        cdef float alpha = gtl.PI*(2.0/n)
+        cdef float alpha = numpy.pi*(2.0/n)
         cdef float sr = r/cos(alpha/2.0)
         cdef vec3 st = vec3(0,0,0).xtrn_c(sr)
         cdef vec3 nv
@@ -502,9 +544,9 @@ cdef class vec3:
 
     # return the u,v barycentric coordinates of self given 3 corners of a triangle
     # everything is assumed to be in the xy plane
-    cpdef tuple bary_xy(self,vec3 a,vec3 b,vec3 c): 
+    cpdef tuple baryxy(self,vec3 a,vec3 b,vec3 c): 
         '''find the barycentric coords of this point in a triangle in the xy plane'''
-        return self.bary_xy_c(a,b,c)
+        return self.baryxy_c(a,b,c)
 
     # is vec3 o within an open ball of raidus e centered at self
     cpdef bint inneighborhood(self,vec3 o,float e):
@@ -525,6 +567,20 @@ cdef class vec3:
     cpdef bint inbxy(self,ps):
         '''determine if self is within the edges between any two adjacent points in ps'''
         return self.inbxy_c(ps)
+
+    # determine if the point pt is inside the triangle abc
+    # assume all points are in the xy plane 
+    cpdef bint intrixy(self,vec3 a,vec3 b,vec3 c):
+        '''
+        determine if the point pt is inside the triangle abc
+        assume all points are in the xy plane
+        '''
+        return self.intrixy_c(a,b,c)
+
+    # is self on an edge between any two points
+    cpdef bint onsxy(self,vec3 s1,vec3 s2,bint ie = 0):
+        '''is self on an edge between any two points'''
+        return self.onsxy_c(s1,s2,ie)
 
     # is self on an edge between any two adjacent points in ps
     cpdef bint onbxy(self,ps):

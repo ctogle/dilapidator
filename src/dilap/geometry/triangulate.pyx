@@ -10,6 +10,11 @@ import dilap.geometry.vec3 as dpv
 from dilap.geometry.vec3 cimport vec3
 from dilap.geometry.quat cimport quat
 
+import dilap.geometry.polymath as pym
+
+import dilap.core.plotting as dtl
+import matplotlib.pyplot as plt
+
 import math,numpy
 
 cdef class triangulation:
@@ -107,10 +112,12 @@ cdef class triangulation:
         self.add_ghost(v,u)
         self.add_ghost(u,w)
         onb = self.point_on_boundary(u)
-        if not onb == -1:self.add_triangle(u,v,w)
+        if not onb == -1:
+            self.add_triangle(u,v,w)
 
     # add a positively oriented triangle u,v,w
     cdef void add_triangle(self,int u,int v,int w):
+        vu,vv,vw = self.points.gps_c((u,v,w))
         self.triangles.append((u,v,w))
         self.eg_tri_lookup[(u,v)] = self.tricnt
         self.eg_tri_lookup[(v,w)] = self.tricnt
@@ -140,6 +147,7 @@ cdef class triangulation:
     # u is a new vertex; is the oriented triangle u,v,w delaunay?
     cdef void dig_cavity(self,int u,int v,int w):
         # find triangle wvx opposite the facet vw from u
+        vu,vv,vw = self.points.gps_c((u,v,w))
         x = self.adjacent(w,v)
         if x == -1:return
         elif x == -2:self.add_triangle(u,v,w)
@@ -185,10 +193,7 @@ cdef list point_location(triangulation data,vec3 y):
     cdef int pretricnt,nv,onb,tdx,gdx,u,v,w,x,tu
     cdef vec3 vu,vv,vw
     pretricnt = data.tricnt
-    #if data.points.find_point(y):return []
-    #if data.points.fp_c(y):
     if not data.points.fp_c(y) == -1:return []
-    #nv = data.points.add_point(y)
     nv = data.points.ap_c(y)
     onb = data.point_on_boundary(nv)
     if not onb == -1:
@@ -206,9 +211,8 @@ cdef list point_location(triangulation data,vec3 y):
         tri = data.triangles[tdx]
         if tri is None:continue
         else:u,v,w = tri
-        #vu,vv,vw = data.points.get_points(u,v,w)
         vu,vv,vw = data.points.gps_c((u,v,w))
-        if gtl.intri_xy_c(y,vu,vv,vw):
+        if y.intrixy_c(vu,vv,vw):
             data.insert_vertex(nv,u,v,w)
             return [x for x in range(pretricnt,data.tricnt)]
 
@@ -216,7 +220,6 @@ cdef list point_location(triangulation data,vec3 y):
         ghost = data.ghosts[gdx]
         if ghost is None:continue
         else:u,v,w = ghost
-        #vu,vv = data.points.get_points(u,v)
         vu,vv = data.points.gps_c((u,v))
         if not gtl.orient2d_c(vu,vv,y) < 0:
             data.insert_ghost_vertex(nv,u,v,w)
@@ -250,6 +253,15 @@ cdef list polygon_location(triangulation data,tuple ebnd,tuple ibnds):
         bnd.extend(loop_location(data,ibnds[ix]))
     return bnd
 
+# is a triangle basically inside a boundary polygon
+#cdef bint tinbxy(a,b,c,bnd):
+cpdef bint tinbxy(a,b,c,bnd):
+    if   not (a.inbxy(bnd) or a.onbxy(bnd)):return 0
+    elif not (b.inbxy(bnd) or b.onbxy(bnd)):return 0
+    elif not (c.inbxy(bnd) or c.onbxy(bnd)):return 0
+    if vec3(0,0,0).com_c((a,b,c)).inbxy(bnd):return 1
+    else:return 0
+
 # given the exterior bound and interior bounds (holes) of a concave polygon
 # remove triangles which are not part of the cover of the polygon
 cdef void cover_polygon(triangulation data,tuple ebnd,tuple ibnds):
@@ -258,13 +270,12 @@ cdef void cover_polygon(triangulation data,tuple ebnd,tuple ibnds):
         tri = data.triangles[tdx]
         if tri is None:continue
         else:u,v,w = tri
-        #ptri = tuple(data.points.get_points(u,v,w))
-        ptri = tuple(data.points.gps_c((u,v,w)))
+        pt1,pt2,pt3 = tuple(data.points.gps_c((u,v,w)))
         extras.append(tdx)
-        if gtl.polyinpoly_c(ebnd,ptri):
+        if tinbxy(pt1,pt2,pt3,ebnd):
             extras.remove(tdx)
             for ibnd in ibnds:
-                if gtl.polyinpoly_c(ibnd,ptri):
+                if tinbxy(pt1,pt2,pt3,ibnd):
                     extras.append(tdx)
                     break
     for x in extras:
@@ -283,7 +294,6 @@ cdef void ghost_border(triangulation data,list edges):
     for plce in edges:
         if plce is None:continue
         plce1,plce2 = plce
-        #e1,e2 = data.points.find_points(plce1,plce2)
         e1 = data.points.fp_c(plce1)
         e2 = data.points.fp_c(plce2)
         eadj = data.adjacent(e1,e2)
@@ -314,12 +324,8 @@ cdef void refine_chews_first(triangulation data,float h):
         if unfin is None:continue
         if not unfin in data.triangles:continue
         ufx1,ufx2,ufx3 = unfin
-        #v1,v2,v3 = data.points.get_points(ufx1,ufx2,ufx3)
-        try:
-          v1,v2,v3 = data.points.gps_c((ufx1,ufx2,ufx3))
-          tcp,tcr = gtl.circumscribe_tri_c(v1,v2,v3)
-        except TypeError:
-          print('fuckoff')
+        v1,v2,v3 = data.points.gps_c((ufx1,ufx2,ufx3))
+        tcp,tcr = gtl.circumscribe_tri_c(v1,v2,v3)
         if tcr/h > 1.0:
             ntxs = point_location(data,tcp)
             for ntx in ntxs:
@@ -357,6 +363,7 @@ cdef void smooth_laplacian(triangulation data,dict vrings,int smooths,float d):
             data.points.ps[x].trn_c(dels[x])
 
 # plot the triangles currently found in a triangulation
+'''#
 cdef void plot_triangulation(triangulation data,ax = None):
     import dilap.mesh.tools as dtl
     if ax is None:ax = dtl.plot_axes_xy()
@@ -366,6 +373,7 @@ cdef void plot_triangulation(triangulation data,ax = None):
         #tps = data.points.get_points(t1,t2,t3)
         tps = data.points.gps_c((t1,t2,t3))
         ax = dtl.plot_polygon_xy(tps,ax,center = True)
+'''#
 
 # given poly, a tuple containing vectors representing a polygon
 # provide a list of simplices which triangulates the polygon
@@ -380,12 +388,12 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
     #    ebnd,ibnds = subdivide_edges(ebnd,ibnds)
     #    hminnnn,ebnd,ibnds = chew1_subdivide_polygon(ebnd,ibnds)
 
-
     #p0 = ebnd[0].cp_c()
     p0 = ebnd[0].cp()
     #pn = gtl.poly_nrm_c(ebnd)
     pn = gtl.poly_nrm(ebnd)
-    prot = gtl.q_to_xy_c(pn)
+    #prot = gtl.q_to_xy_c(pn)
+    prot = quat(0,0,0,0).toxy_c(pn)
     gtl.rot_poly_c((ebnd,ibnds),prot)
     data = triangulation(p0,pn)
 
@@ -408,11 +416,14 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
         if tri is None:continue
         smp = tuple([data.points.ps[px] for px in tri])
         smps.append(smp)
+
+    if not smps:
+        print('empty surface!')
+
     gsts = []
     for gdx in range(data.ghostcnt):
         gst = data.ghosts[gdx]
         if gst is None:continue
-        #gpair = data.points.get_points(gst[0],gst[1])
         gpair = data.points.gps_c((gst[0],gst[1]))
         gsts.append(gpair)
     return smps,gsts

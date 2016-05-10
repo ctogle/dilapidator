@@ -15,7 +15,9 @@ from libc.math cimport tan
 from libc.math cimport acos
 from libc.math cimport asin
 from libc.math cimport hypot
-import numpy as np
+
+cimport numpy
+import numpy
 
 stuff = 'hi'
 
@@ -37,6 +39,7 @@ cdef class quat:
     ###########################################################################
 
     def __str__(self):return 'quat:'+str(tuple(self))
+    def __repr__(self):return 'quat:'+str(tuple(self))
     def __iter__(self):yield self.w;yield self.x;yield self.y;yield self.z
     def __mul__(self,o):return self.mul(o)
     def __add__(self,o):return self.add(o)
@@ -77,6 +80,14 @@ cdef class quat:
         cdef float a = x.ang_c(y)
         cdef vec3 v = x.crs_c(y)
         return self.av_c(a,v)
+
+    # set self to the quaternion that rotates v to (0,0,1) wrt the xy plane
+    cdef quat toxy_c(self,vec3 v):
+        if v.isnear(vec3(0,0,-1)):
+            self.w = 0;self.x = 1;self.y = 0;self.z = 0
+        elif not v.isnear(vec3(0,0,1)):self.uu_c(v,vec3(0,0,1))
+        else:self.av_c(0,vec3(0,0,1))
+        return self
 
     # return an independent copy of this quaternion
     cdef quat cp_c(self):
@@ -231,6 +242,11 @@ cdef class quat:
     cpdef quat uu(self,vec3 x,vec3 y):
         '''modify to represent a rotation from one vector to another'''
         return self.uu_c(x,y)
+
+    # set self to the quaternion that rotates v to (0,0,1) wrt the xy plane
+    cpdef quat toxy(self,vec3 v):
+        '''set self to the quaternion that rotates v to (0,0,1) wrt the xy plane'''
+        return self.toxy_c(v)
 
     # return an independent copy of this quaternion
     cpdef quat cp(self):

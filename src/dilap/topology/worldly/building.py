@@ -47,7 +47,9 @@ class building(cx.context):
         eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
         if ref:hmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
         tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo)
-        #tris,bnds = [],[]
+        #if not tris:
+        #    print('empty surface!')
+        #    return None
         for tri in tris:
             p1,p2,p3 = tri
             n = gtl.nrm(p1,p2,p3)
@@ -82,8 +84,8 @@ class building(cx.context):
         pn = vec3(0,0,1).crs(p1.tov(p2).nrm()).uscl(ww)
         iloop = [p.cp().trn(pn) for p in oloop]
         for lx in range(len(oloop)):
-            spy = ((oloop[lx-1],iloop[lx-1],iloop[lx],oloop[lx]),())
-            m = self.asurf(spy,m = m,gm = gm,rv = True if lx > 0 else False)
+            spy = ((iloop[lx-1],oloop[lx-1],oloop[lx],iloop[lx]),())
+            m = self.asurf(spy,m = m,gm = gm)
         return m
 
     def aroom(self,**kws):
@@ -197,13 +199,21 @@ class building(cx.context):
                     m,hpts = self.awall(sp1,sp2,sh,None,m = m,gm = gm)
                     m,hpts = self.awall(cp1,cp2,ch,None,m = m,gm = gm)
         tbnd = [(bnd[0],mbnd[0])]
+        lll = 0
         while not len(tbnd) == len(bnd):
             lst = tbnd[-1][0][1]
             for mbe,be in zip(mbnd,bnd):
+                lll += 1
+                if lll > 1000:
+                    print('oh dear god')
+                    break
                 if (be,mbe) in tbnd:continue
                 if lst.isnear(be[0]):
                     tbnd.append((be,mbe))
                     lst = tbnd[-1][0][1]
+            if lll > 1000:
+                print('oh dear god')
+                break
         self.rims.append([])
         for x in range(len(tbnd)):
             p1,p2 = tbnd[x-1][1]
@@ -244,6 +254,12 @@ class building(cx.context):
 
         #plt.show()
 
+    def plot(self,rmvs,ax = None):
+        if ax is None:ax = dtl.plot_axes()
+        for rmv in rmvs:
+            ax = dtl.plot_polygon(rmv[0],ax,lw = 2)
+        return ax
+
     def rgraph(self):
         print('make a wiregraph of rm bounds, rm edges, and rm levels')
         rmvs = []
@@ -258,14 +274,17 @@ class building(cx.context):
         rmv = vec3(10,0,0).sq(8,8),[0],0,0.125,4.0,0.5,1.0
         rmvs.append(rmv)
 
-        rmv = vec3(10,10,0).sq(8,12),[1],0,0.125,4.0,0.5,1.0
-        rmvs.append(rmv)
+        #rmv = vec3(10,10,0).sq(8,12),[1],0,0.125,4.0,0.5,1.0
+        #rmvs.append(rmv)
 
-        rmv = vec3(0,10,0).sq(12,12),[0,2],0,0.125,4.0,0.5,1.0
-        rmvs.append(rmv)
+        #rmv = vec3(0,10,0).sq(12,12),[0,2],0,0.125,4.0,0.5,1.0
+        #rmvs.append(rmv)
 
         #rmv = vec3(0,10,5.5).sq(12,12),[3],1,0.125,4.0,0.5,1.0
         #rmvs.append(rmv)
+
+        ax = self.plot(rmvs)
+        plt.show()
 
         for rmv in rmvs:self.rtopo.append(rmv)
 

@@ -251,6 +251,7 @@ def sintbxyp(s1,s2,b,ie = True,ieb = True,col = True):
 
 # is a boundary polygon contained within another polygon
 # ie : do edge intersections mean no containment
+# NOTE: WILL NOT WORK FOR ALL CONCAVE BOUNDARIES AS IS...
 def binbxy(b1,b2,ie = True):
     for p in b1:
         if ie and p.onbxy(b2):return 0
@@ -259,12 +260,12 @@ def binbxy(b1,b2,ie = True):
 
 # is a boundary polygon intersecting another boundary polygon
 # ie : do edge intersections count
-def bintbxy(b1,b2,ie = True):
+def bintbxy(b1,b2,ie = True,ieb = True,col = True):
     for b1x in range(len(b1)):
         b1p1,b1p2 = b1[b1x-1],b1[b1x]
         for b2x in range(len(b2)):
             b2p1,b2p2 = b2[b2x-1],b2[b2x]
-            if sintsxy(b1p1,b1p2,b2p1,b2p2,ie = ie,ieb = ie,col = ie):
+            if sintsxy(b1p1,b1p2,b2p1,b2p2,ie = ie,ieb = ieb,col = col):
                 return 1
     return 0
 

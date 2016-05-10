@@ -4,6 +4,9 @@ cimport dilap.geometry.tools as gtl
 
 from dilap.geometry.vec3 cimport vec3
 
+cimport numpy
+import numpy
+
 stuff = 'hi'
 
 
@@ -25,6 +28,7 @@ cdef class quat:
 
     cdef quat av_c(self,float a,vec3 v)
     cdef quat uu_c(self,vec3 x,vec3 y)
+    cdef quat toxy_c(self,vec3 v)
     cdef quat cp_c(self)
     cdef quat cpf_c(self)
     cdef bint isnear_c(self,quat o)
@@ -45,6 +49,7 @@ cdef class quat:
 
     cpdef quat av(self,float a,vec3 v)
     cpdef quat uu(self,vec3 x,vec3 y)
+    cpdef quat toxy(self,vec3 v)
     cpdef quat cp(self)
     cpdef quat cpf(self)
     cpdef bint isnear(self,quat o)

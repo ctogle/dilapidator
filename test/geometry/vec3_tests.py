@@ -152,7 +152,7 @@ class test_vec3(unittest.TestCase):
         self.assertEqual(v3.cp().prj(p2,pn2),vec3(0,-5,-1))
         self.assertTrue(v1.prj(p1,pn1) is v1)
 
-    #def test_bary_xy(self):
+    #def test_baryxy(self):
 
     def test_inneighborhood(self):
         v1,v2,v3,v4 = vec3(1,1,0),vec3(1,2,0),vec3(1,2,1),vec3(1,1,1)
@@ -191,6 +191,9 @@ class test_vec3(unittest.TestCase):
         self.assertFalse(vec3(0,0,0).inbxy(py))
         self.assertFalse(vec3(1,0,0).inbxy(py))
         self.assertTrue(vec3(1,1,0).inbxy(py))
+
+    #def test_intrixy(self):
+    #def test_onsxy(self):
 
     def test_onbxy(self):
         py = vec3(1,1,0).sq(2,2)

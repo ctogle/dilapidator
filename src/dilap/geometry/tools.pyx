@@ -207,6 +207,7 @@ cdef float incircle_c(vec3 a,vec3 b,vec3 c,vec3 d):
     cdef float inc = near_c(det1 - det2 + det3,0)
     return inc
 
+'''#
 # determine if the point pt is inside the triangle abc
 # assume all points are in the xy plane 
 cdef bint intri_xy_c(vec3 pt,vec3 a,vec3 b,vec3 c):
@@ -217,6 +218,7 @@ cdef bint intri_xy_c(vec3 pt,vec3 a,vec3 b,vec3 c):
             if 1-u-v > 0 or abs(1-u-v) < epsilon:
                 return 1
     return 0
+'''#
 
 # determine if the point pt is inside the concave polygon poly or on its boundary
 cdef bint onconcave_xy_c(vec3 pt,tuple py):
@@ -547,9 +549,9 @@ cpdef float incircle(vec3 a,vec3 b,vec3 c,vec3 d):
 
 # determine if the point pt is inside the triangle abc
 # assume all points are in the xy plane
-cpdef bint intri_xy(vec3 pt,vec3 a,vec3 b,vec3 c):
-    '''determine if a point lies within a triangle in the xy plane'''
-    return intri_xy_c(pt,a,b,c)
+#cpdef bint intri_xy(vec3 pt,vec3 a,vec3 b,vec3 c):
+#    '''determine if a point lies within a triangle in the xy plane'''
+#    return intri_xy_c(pt,a,b,c)
 
 # determine if the point pt is inside the concave polygon poly or on its boundary
 cpdef bint onconcave_xy(vec3 pt,tuple poly):

@@ -47,6 +47,12 @@ class test_quat(unittest.TestCase):
         self.assertTrue(dpr.isnear(q2.z,0))
         self.assertTrue(q3 == q4.cnj())
 
+    def test_toxy(self):
+        q1 = quat(0,0,0,0).toxy(vec3(0,0,-1))
+        #print('toxy\v\t',q1)
+        self.assertEqual(q1.w,0)
+        self.assertEqual(q1.x,1)
+
     def test_cp(self):
         q1 = quat(1,2,3,4)
         self.assertTrue(q1 is q1)

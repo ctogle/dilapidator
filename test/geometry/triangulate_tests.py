@@ -29,61 +29,6 @@ class test_triangulate(unittest.TestCase):
 
     def setUp(self):pass
 
-    '''#
-    ###########################################################################
-    ### extra triangulating functions
-    ###########################################################################
-    def split_nondelauney_edges(self,eb,ibs):
-        aps = list(eb)
-        for ib in ibs:aps.extend(list(ib))
-
-        def split_loop(loop):
-            x = 0
-            while x < len(loop):
-                p1,p2 = loop[x-1],loop[x]
-                found = False
-                for p in aps:
-                    if p.isnear(p1) or p.isnear(p2):continue
-                    cc = p1.mid(p2)
-                    cr = cc.d(p1)
-                    if p.inneighborhood(cc,cr):
-                        loop.insert(x,cc)
-                        found = True
-                        break
-                if found:continue
-                else:x += 1
-            return loop
-
-        neb = split_loop(list(eb))
-        nibs = [split_loop(list(ib)) for ib in ibs]
-        return tuple(neb),tuple(tuple(nib) for nib in nibs)
-
-    def split_nondelauney_edges_chew1(self,eb,ibs):
-        els = [eb[x-1].d(eb[x]) for x in range(len(eb))]
-        for ib in ibs:els.extend([ib[x-1].d(ib[x]) for x in range(len(ib))])
-        hmin = min(els)*math.sqrt(3)
-
-        def split_loop(loop):
-            oloop = [loop[0]]
-            for x in range(1,len(loop)+1):
-                if x == len(loop):x = 0
-                p1,p2 = oloop[-1],loop[x]
-                el = p1.d(p2)
-                m = 1
-                while el/m > hmin:m += 1
-                divpts = p1.pline(p2,m-1)
-                if divpts:
-                    for dvp in divpts:
-                        oloop.append(dvp)
-                if not x == 0:oloop.append(p2)
-
-            return oloop
-
-        neb = split_loop(list(eb))
-        nibs = [split_loop(list(ib)) for ib in ibs]
-        return hmin,tuple(neb),tuple(tuple(nib) for nib in nibs)
-    '''#
-
     def tribnd(self,eb,ibs,ref,smo):
         hmin = 1
         eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
@@ -94,7 +39,36 @@ class test_triangulate(unittest.TestCase):
     ###########################################################################
     ###########################################################################
 
-    def test_doorwindow(self):
+    def test_tinbxy(self):
+        a = vec3(6.0, 5.0, 0.0)
+        b = vec3(6.75, 4.0, 0.0)
+        c = vec3(7.5, 5.0, 0.0)
+        bnd = (
+            vec3(0.0, 0.0, 0.0),vec3(4.25, 0.0, 0.0),
+            vec3(4.25, 4.0, 0.0),vec3(6.75, 4.0, 0.0),
+            vec3(6.75, 0.0, 0.0),vec3(12.0, 0.0, 0.0),
+            vec3(12.0, 5.0, 0.0),vec3(9.0, 5.0, 0.0),
+            vec3(7.5, 5.0, 0.0),vec3(6.0, 5.0, 0.0),
+            vec3(4.5, 5.0, 0.0),vec3(3.0, 5.0, 0.0),
+            vec3(0.0, 5.0, 0.0))
+        #ax = dtl.plot_axes_xy(12)   
+        #ax = dtl.plot_polygon_xy(bnd,ax)
+        #ax = dtl.plot_polygon_xy((a,b,c),ax,col = 'r',lw = 2)
+        #plt.show()
+        self.assertTrue(dtg.tinbxy(a,b,c,bnd))
+
+    def test_door(self):
+        eb = vec3(6,2.5,0).sq(12,5)
+        eb.insert(1,vec3(6.75,0,0))
+        eb.insert(1,vec3(6.75,4,0))
+        eb.insert(1,vec3(4.25,4,0))
+        eb.insert(1,vec3(4.25,0,0))
+
+        eb,ibs = tuple(eb),()
+        tris,bnds = self.tribnd(eb,ibs,False,False)
+        self.show(tris,bnds)
+
+    def atest_doorwindow(self):
         eb = vec3(0,0,0).sq(8,5)
 
         ddp = 1.5/(2.0*8.0)

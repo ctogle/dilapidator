@@ -39,7 +39,7 @@ class scenegraph(dtr.tree):
     vertclass = scenevert
 
     def __init__(self):
-        ntf = tform(vec3(0,0,0),quat(0,0,0,1),vec3(1,1,1))
+        ntf = tform(vec3(0,0,0),quat(1,0,0,0),vec3(1,1,1))
         dtr.tree.__init__(self,ntf)
 
     def avert(self,p,q,s,*args,parent = None,**kwargs):

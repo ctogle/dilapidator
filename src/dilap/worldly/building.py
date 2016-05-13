@@ -252,6 +252,12 @@ class building(cx.context):
         dw,dh,dz = 1.5,3.0,0.0
         rv = self.bgraph.vs[rx]
         rb = rv[2]['bound']
+
+        rexits = rv[2]['exits']
+
+        # find exits which are connect interior rooms and fix topology accordingly
+        # exits appearing on exterior walls just become doors
+
         for adj in self.bgraph.vs[rx][1]:
             ov = self.bgraph.vs[adj]
             if ov is None:continue
@@ -260,15 +266,36 @@ class building(cx.context):
             for aw in aws:
                 rwx,owx = aw
                 ips = pym.sintsxyp(rb[rwx-1],rb[rwx],ob[owx-1],ob[owx])
+
+                for rex in rexits:
+                    #if rex.onsegxy(*ips):
+                    if gtl.onseg_xy(rex,ips[0],ips[1]):
+                        print('internal exit!',rex)
+
                 imp = ips[0].mid(ips[1])
                 ridp = 1-rb[rwx-1].d(imp)/rb[rwx-1].d(rb[rwx])
                 self.wallhole(rx,rwx-1,(adj,ridp,dw,dh,dz))
                 rv[2]['wtypes'][rwx-1] = 'i'
-        for wx in range(len(rv[2]['wholes'])):
-            wt = rv[2]['wtypes'][wx]
+
+        gadjs = self.bgraph.geoadj(rx)
+        for adj in gadjs:
+            ov = self.bgraph.vs[adj[0]]
+            if ov is None:continue
+            ob = ov[2]['bound']
+            aws = adjacentwalls(rb,ob,minovlp = 0)
+            for aw in aws:
+                rwx,owx = aw
+                if rv[2]['wtypes'][rwx-1] == 'e':
+                    rv[2]['wtypes'][rwx-1] = 'i'
+
+        for wx in range(len(rv[2]['wtypes'])):
+            wp1,wp2 = rb[wx-1],rb[wx]
+            wt = rv[2]['wtypes'][wx-1]
             if wt == 'e':
-                print('exterior wall!')
-                self.wallhole(rx,wx,(None,0.5,dw,2,1))
+                for rex in rexits:
+                    #if rex.onsegxy(wp1,wp2):
+                    if gtl.onseg_xy(rex,ips[0],ips[1]):
+                        print('external exit!',rex)
 
     # add the trimeshes of a room interior to a model
     def genrooms(self):
@@ -311,12 +338,15 @@ class building(cx.context):
                     for wpy in wpys:m.asurf(wpy,tm)
 
     # do something which fills the scenegraph
-    def generate(self,worn = 0,p = None,q = None,s = None):
+    def generate(self,worn = 0):
         self.floors = len(list(self.bgraph.fl_look.keys()))
 
         self.genrooms()
 
 
+        #self.bgraph.plot(self.bgraph.vs[-1][2]['bound'])
+        self.bgraph.plot()
+        plt.show()
 
 
 
@@ -382,38 +412,47 @@ class blggraph(db.base):
     def av(self,os,kws):
         vx = self.vcnt
         self.vcnt += 1
-        #self.ve_look[vx] = []
         self.vs.append([vx,os,kws])
         lvl = kws['level']
         if lvl in self.fl_look:self.fl_look[lvl].append(vx)
         else:self.fl_look[lvl] = [vx]
         return vx
 
-    def rv(self,rx,nvs = []):
+    # connect can be True, False, or a list of points supposedly along the footprint
+    def rv(self,rx,nvs = [],connect = False):
         ev = self.vs[rx]
         for res in ev[1]:
             if self.vs[res] is None:continue
             for nvx in nvs:
                 nv = self.vs[nvx]
-                if not res in nv[1]:nv[1].append(res)
-                if not nv[0] in self.vs[res][1]:self.vs[res][1].append(nv[0])
+                #if type(connect) == type([]):
+                if False:
+                    print('exits!',connect)
+                    nv[2]['exits'] = connect[:]
+                elif connect is True:
+                    if not res in nv[1]:nv[1].append(res)
+                    if not nv[0] in self.vs[res][1]:self.vs[res][1].append(nv[0])
+                else:
+                    nv[2]['exits'] = self.vs[rx][2]['exits'][:]
         self.vs[rx] = None
         
-    '''#
-    def ae(self,v1,v2):
-        ex = self.ecnt
-        self.ecnt += 1
-        self.ve_look[tuple(v1)].append(v2)
-        self.ve_look[tuple(v2)].append(v1)
-        self.ev_look[(v1,v2)] = ex
-        self.ev_look[(v2,v1)] = ex
-        self.es.append((v1,v2))
-        return ex
-    '''#
+    # given the index of a vertex, return the indices of vertices 
+    #   who are geometrically adjacent within the building
+    def geoadj(self,rx,minovlp = 0):
+        rv = self.vs[rx]
+        bd = rv[2]['bound']
+        fnd = []
+        for ra in range(self.vcnt):
+            av = self.vs[ra]
+            if av is None or av is rv:continue
+            ab = av[2]['bound']
+            adjwalls = adjacentwalls(bd,ab)
+            for adjw in adjwalls:fnd.append((ra,adjw))
+        return fnd
 
     # given the index of a vertex, return the indices of vertices 
-    #   who are topologically adjacent in the building
-    def adjacent(self,rx):
+    #   who are topologically and geometrically adjacent within the building
+    def anyadj(self,rx,minovlp = 0):
         rv = self.vs[rx]
         bd = rv[2]['bound']
         es = rv[1]
@@ -428,11 +467,7 @@ class blggraph(db.base):
 
     def __init__(self,*ags,**kws):
         self.vs = []
-        #self.ve_look = {}
         self.vcnt = 0
-        #self.es = []
-        #self.ev_look = {}
-        #self.ecnt = 0
 
         # fl_look is a lookup of vertices per floor of the building
         self.fl_look = {}
@@ -451,6 +486,8 @@ class blggraph(db.base):
                     if self.vs[re] is None:continue
                     rt = (rc,vec3(0,0,0).com(self.vs[re][2]['bound']))
                     ax = dtl.plot_edges_xy(rt,ax,col = 'g')
+            for exit in rmv[2]['exits']:
+                ax = dtl.plot_point_xy(exit,dtl.plot_point_xy_annotate(exit,ax,'exit'))
         if not fp is None:
             ax = dtl.plot_polygon_xy(fp,ax,lw = 2,col = 'r')
         return ax
@@ -493,6 +530,7 @@ class blggraph(db.base):
             'wtypes':['e' for x in range(wcnt)],
             'wheights':[wheight for x in range(wcnt)],
             'wwidths':[wwidth for x in range(wcnt)],
+            'exits':sv[2]['exits'][:],
                 }
         new = self.av(sv[1][:]+[sup],kws)
 
@@ -527,19 +565,27 @@ class blggraph(db.base):
 
         return nvs
 
-    def insert(self,rix,o):
+    # nest another graph within self by replacing vertex rix
+    def insert(self,rix,o,connect = False):
         rifp = self.vs[rix][2]['bound']
-        nvs = self.attach(None,None,o.rgraph(rifp))
-        self.rv(rix,nvs)
+        exits = self.vs[rix][2]['exits']
+        nvs = self.attach(None,None,o.rgraph(rifp,exits))
+        self.rv(rix,nvs,connect = exits)
         for vx in range(self.vcnt):
             self.verifyedges(vx)
-        for vx in range(self.vcnt):
-            self.verifyedges(vx)
+        #for vx in range(self.vcnt):
+        #    self.verifyedges(vx)
 
     # given a footprint boundary polygon in the xy plane
     # construct a graph of rooms which fit within the footprint
-    def rgraph(self,footprint = None):
+    def rgraph(self,footprint = None,exits = None):
         if footprint is None:footprint = vec3(0,0,0).sq(25,25)
+        if not type(exits) == type([]):exits = []
+
+        print('rgraphexits',exits)
+
+        # exits are locations on the boundary of footprint
+        # where a door will result in whichever room ends up there
 
         lvl,wheight,wwidth,skirt,crown = 0,4,0.125,0.5,1.0
         wcnt = len(footprint)
@@ -550,7 +596,7 @@ class blggraph(db.base):
             'wtypes':['e' for x in range(wcnt)],
             'wheights':[wheight for x in range(wcnt)],
             'wwidths':[wwidth for x in range(wcnt)],
-            'exit':True,
+            'exits':exits,
                 }
         rooms = [self.av([],kws)]
         lst = rooms[-1]
@@ -564,18 +610,16 @@ class blggraph(db.base):
             #self.plot(self.vs[lst][2]['bound'])
             #plt.show()
 
-            # pick room with most remaining area?
-
-            tos = rstack.pop(0)
-            new = self.splitr(tos)
+            tos,line = rstack.pop(0)
+            new = self.splitr(tos,line)
             rooms.append(new)
             lst = new
 
         for vx in range(self.vcnt):
             self.verifyedges(vx)
 
-        self.plot(self.vs[new][2]['bound'])
-        plt.show()
+        #self.plot(self.vs[new][2]['bound'])
+        #plt.show()
 
         return self
 
@@ -595,16 +639,18 @@ class blgfactory(dfa.factory):
     def __init__(self,*ags,**kws):
         self._def('bclass',building,**kws)
 
-    def new(self,fp,*ags,**kws):
-        blgg = blggraph(rstack = [0]).rgraph(fp)
-        blgg.insert(0,blggraph(rstack = [0,1,2,0]))
-        blgg.insert(1,blggraph(rstack = [0,1,2,0]))
+    def new(self,footprint,exits,*ags,**kws):
+        blgg = blggraph(rstack = [(0,None)]).rgraph(footprint,exits)
 
-        blgg.plot()
-        plt.show()
+        blg1 = blggraph(rstack = [(0,None),(1,None),(2,None),(0,None)])
+        blgg.insert(0,blg1,[])
 
-        #blgg = blggraph().rgraph(fp1)
-        #blgg = blggraph().rgraph(fp2).attach(None,None,blgg)
+        blg2 = blggraph(rstack = [(0,None),(1,None),(2,None),(0,None)])
+        blgg.insert(1,blg2,[])
+
+        #blgg.plot()
+        #plt.show()
+
         kws['bgraph'] = blgg
         n = self.bclass(*ags,**kws)
         return n

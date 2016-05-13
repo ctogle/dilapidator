@@ -1,8 +1,9 @@
 from dilap.geometry.vec3 import vec3
 import dilap.geometry.tools as gtl
 import dilap.core.lsystem as lsy
-import dilap.topology.worldly.treeskin as ltr
-import dilap.topology.worldly.building as blg
+#import dilap.topology.worldly.treeskin as ltr
+#import dilap.topology.worldly.building as blg
+import dilap.worldly.world as dwo
 
 import dilap.core.plotting as dtl
 
@@ -17,7 +18,7 @@ import pdb
 ###############################################################################
 
 l,w,n = 25,25,3
-ax = dtl.plot_axes(50)
+#ax = dtl.plot_axes(50)
 pd = it.product(range(n),range(n),range(1))
 pstack = [vec3(*p).scl(vec3(l,w,1)) for p in pd]
 dstack = [vec3(0,0,1) for x in range(len(pstack))]
@@ -39,8 +40,11 @@ class test_context(unittest.TestCase):
         cx.display()
         #plt.show()
 
-    def test_building(self):
+    def atest_building(self):
         cx = blg.building().generate()
+
+    def test_world(self):
+        cx = dwo.world().generate()
 
 ###############################################################################
 

@@ -49,6 +49,16 @@ cdef class pointset:
         if rng is None:rng = range(self.pcnt)
         return [self.ps[x] for x in rng]
 
+    # return a list with one copy of each distinct point
+    cdef list gpsset_c(self):
+        rng = range(self.pcnt)
+        uniq = []
+        for x in rng:
+            p = self.ps[x]
+            if not p in uniq:
+                uniq.append(p)
+        return uniq
+
     # add a point and return its index
     cdef int ap_c(self,np):
         cdef int px = self.pcnt
@@ -158,6 +168,10 @@ cdef class pointset:
     cpdef list gps(self,rng):
         '''create a list of every point in this pointset'''
         return self.gps_c(rng)
+
+    # return a list with one copy of each distinct point
+    cpdef list gpsset(self):
+        return self.gpsset_c()
 
     # add a point and return its index
     cpdef int ap(self,np):

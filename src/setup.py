@@ -44,8 +44,8 @@ for rpath in os.walk(resourcesrcd):
 pkgs = [
     'dilap.geometry',
     'dilap.topology',
-    'dilap.topology.worldly',
     'dilap.modeling',
+    'dilap.worldly',
     #'dilap.theworld',
 
     'dilap',

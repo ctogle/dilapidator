@@ -10,8 +10,6 @@ import dilap.geometry.vec3 as dpv
 from dilap.geometry.vec3 cimport vec3
 from dilap.geometry.quat cimport quat
 
-import dilap.geometry.polymath as pym
-
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 

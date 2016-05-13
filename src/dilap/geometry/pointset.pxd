@@ -23,6 +23,7 @@ cdef class pointset:
 
     cdef list gpscp_c(self,rng)
     cdef list gps_c(self,rng)
+    cdef list gpsset_c(self)
     cdef int ap_c(self,np)
     cdef list aps_c(self,list nps)
     cdef int np_c(self,np)
@@ -37,6 +38,7 @@ cdef class pointset:
 
     cpdef list gpscp(self,rng)
     cpdef list gps(self,rng)
+    cpdef list gpsset(self)
     cpdef int ap(self,np)
     cpdef list aps(self,list nps)
     cpdef int np(self,np)

@@ -70,12 +70,15 @@ class test_polymath(unittest.TestCase):
         perm(s1,s2,s3,s4,True)
         perm(s1,s2,s3,s4,False,ieb = False)
         #pl(s1,s2,s3,s4)
-
         s1,s2,s3,s4 = vec3(-1,1,0),vec3(1,1,0),vec3(0,1,0),vec3(0.5,1,0)
         perm(s1,s2,s3,s4,True)
         perm(s1,s2,s3,s4,True,ie = False)
         perm(s1,s2,s3,s4,True,ieb = False)
         perm(s1,s2,s3,s4,True,ie = False,ieb = False)
+        #pl(s1,s2,s3,s4)
+        s1,s2,s3,s4 = vec3(-1,0,0),vec3(0,0,0),vec3(-1,0,0),vec3(1,0,0)
+        perm(s1,s2,s3,s4,True)
+        perm(s1,s2,s3,s4,True,ie = False)
         #pl(s1,s2,s3,s4)
 
     def test_sintsxyp(self):
@@ -152,6 +155,9 @@ class test_polymath(unittest.TestCase):
         perm(s1,s2,s3,s4,(vec3(0,1,0),vec3(0.5,1,0)),ieb = False)
         perm(s1,s2,s3,s4,(vec3(0,1,0),vec3(0.5,1,0)),ie = False,ieb = False)
         #pl(s1,s2,s3,s4)
+        s1,s2,s3,s4 = vec3(-1,0,0),vec3(0,0,0),vec3(-1,0,0),vec3(1,0,0)
+        perm(s1,s2,s3,s4,(vec3(-1,0,0),vec3(0,0,0)))
+        #pl(s1,s2,s3,s4)
 
     def test_sintbxy(self):
         def pl(s1,s2,b):
@@ -209,7 +215,7 @@ class test_polymath(unittest.TestCase):
         self.assertFalse(pym.binbxy(b1,b3))
         self.assertFalse(pym.binbxy(b1,b4))
 
-    def test_bintbxy(self):
+    def atest_bintbxy(self):
         def pl(b1,b2):
             ax = dtl.plot_axes_xy(10)
             ax = dtl.plot_polygon_xy(b1,ax,lw = 2.0,col = 'g')
@@ -306,7 +312,7 @@ class test_polymath(unittest.TestCase):
         #pl(b1,b2,br)
         self.assertTrue(len(br) == 6)
 
-    def test_ebdxy(self):
+    def atest_ebdxy(self):
         def pl(b1,b2,br):
             ax = dtl.plot_axes_xy(10)
             ax = dtl.plot_polygon_xy(b1,ax,col = 'b',lw = 5.0)

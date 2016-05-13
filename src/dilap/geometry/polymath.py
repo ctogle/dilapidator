@@ -4,7 +4,7 @@ import dilap.geometry.tools as gtl
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
-import numpy
+import numpy,math
 
 import pdb
 
@@ -101,7 +101,7 @@ def polyd(p1,p2):
 # ie  : do endpoint intersections count (end of one segment only)
 # ieb : do endpoint intersections count (end of both segments)
 # col : do colinear intersections counts
-def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True):
+def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True):
     # if segments are colinear and overlapping
     # elif segments are colinear and nonoverlapping
     # elif segments are skew and possibly overlapping
@@ -112,12 +112,12 @@ def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True):
     dscrss1 = ds.crs(s1tn)
     dss1area = gtl.near(dscrss1.mag(),0)
     if s1s2area == 0 and dss1area == 0:
+        if not col:return 0
         # if uncontained overlap
         # elif contained overlap
         # elif perfect overlap
         # elif single point overlap
         # else disjoint
-        if not col:return 0
         s1l = s1tn.mag()
         s1dots2 = s1tn.dot(s2tn)
         apara = gtl.near(s1dots2,0) < 0
@@ -129,10 +129,13 @@ def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True):
         if gtl.inrng(t0,0,1) or gtl.inrng(t1,0,1):return 1
         elif gtl.inrng(0,t0,t1) and gtl.inrng(1,t0,t1):return 1
         elif (t0 == 0 and t1 == 1) or (t0 == 1 and t1 == 0):return 1 if ieb else 0
+        elif (t0 == 0 and t1 > t0) or (t1 == 0 and t0 > t1):return 1
+        elif (t0 < t1 and t1 == 1) or (t1 < t0 and t0 == 1):return 1
         elif (t0 == 1 and t1 > t0) or (t0 < t1 and t1 == 0):return 1 if ie else 0
         else:return 0
     elif s1s2area == 0 and not dss1area == 0:return 0
     elif not s1s2area == 0:
+        if not skew:return 0
         # if intersection at endpoints of both segments but not counting
         # elif intersection at endpoint of only one segment but not counting
         # elif no proper intersection at neither segments endpoints
@@ -145,11 +148,22 @@ def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True):
         elif not (0 <= u and u <= 1) or not (0 <= t and t <= 1):return 0
         else:return 1
 
+# given 4 points and a tangent vector, 
+# extract the two whose projections are in between the extreme projections
+def prjmed(p1,p2,p3,p4,tn):
+    sp = [p1,p2,p3,p4]
+    ss = [p.dot(tn) for p in sp]
+    sx = list(range(len(ss)))
+    mm = ss.index(min(ss)),ss.index(max(ss))
+    ix1,ix2 = [j for j in sx if not j in mm]
+    ip1,ip2 = sp[ix1],sp[ix2]
+    return ip1,ip2
+
 # does one segment intersect another
 # ie  : do endpoint intersections count (end of one segment only)
 # ieb : do endpoint intersections count (end of both segments)
 # col : do colinear intersections counts
-def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True):
+def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True):
     # if segments are colinear and overlapping
     # elif segments are colinear and nonoverlapping
     # elif segments are skew and possibly overlapping
@@ -160,12 +174,13 @@ def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True):
     dscrss1 = ds.crs(s1tn)
     dss1area = gtl.near(dscrss1.mag(),0)
     if s1s2area == 0 and dss1area == 0:
+        if not col:return None
         # if uncontained overlap
-        # elif contained overlap
+        # elif contained overlap without either endpoint
         # elif perfect overlap
+        # elif single endpoint overlap and contained
         # elif single point overlap
         # else disjoint
-        if not col:return None
         s1l,s2l = s1tn.mag(),s2tn.mag()
         s1dots2 = s1tn.dot(s2tn)
         apara = gtl.near(s1dots2,0) < 0
@@ -175,24 +190,15 @@ def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True):
         t1 = gtl.near(gtl.near(t1,0),1)
         if apara:t0,t1 = t1,t0
         if gtl.inrng(t0,0,1) or gtl.inrng(t1,0,1):
-            sp = [s11,s12,s21,s22]
-            ss = [s11.dot(s1tn),s12.dot(s1tn),s21.dot(s1tn),s22.dot(s1tn)]
-            sx = [0,1,2,3]
-            mm = ss.index(min(ss)),ss.index(max(ss))
-            sx = [j for j in sx if not j in mm]
-            ip1,ip2 = sp[sx[0]],sp[sx[1]]
-            return ip1,ip2
+            return prjmed(s11,s12,s21,s22,s1tn)
         elif gtl.inrng(0,t0,t1) and gtl.inrng(1,t0,t1):
-            sp = [s11,s12,s21,s22]
-            ss = [s11.dot(s1tn),s12.dot(s1tn),s21.dot(s1tn),s22.dot(s1tn)]
-            sx = [0,1,2,3]
-            mm = ss.index(min(ss)),ss.index(max(ss))
-            sx = [j for j in sx if not j in mm]
-            ip1,ip2 = sp[sx[0]],sp[sx[1]]
-            return ip1,ip2
+            return prjmed(s11,s12,s21,s22,s1tn)
         elif (t0 == 0 and t1 == 1) or (t0 == 1 and t1 == 0):
-            if not ieb:return None
-            else:return (s11.cp(),s12.cp())
+            return None if not ieb else (s11.cp(),s12.cp())
+        elif (t0 == 0 and t1 > t0) or (t1 == 0 and t0 > t1):
+            return prjmed(s11,s12,s21,s22,s1tn)
+        elif (t0 < t1 and t1 == 1) or (t1 < t0 and t0 == 1):
+            return prjmed(s11,s12,s21,s22,s1tn)
         elif (t0 == 1 and t1 > t0) or (t0 < t1 and t1 == 0):
             if not ie:return None
             else:
@@ -202,6 +208,7 @@ def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True):
         else:return None
     elif s1s2area == 0 and not dss1area == 0:return None
     elif not s1s2area == 0:
+        if not skew:return 0
         # if intersection at endpoints of both segments but not counting
         # elif intersection at endpoint of only one segment but not counting
         # elif no proper intersection at neither segments endpoints
@@ -268,6 +275,62 @@ def bintbxy(b1,b2,ie = True,ieb = True,col = True):
             if sintsxy(b1p1,b1p2,b2p1,b2p2,ie = ie,ieb = ieb,col = col):
                 return 1
     return 0
+
+# given a sequence of segments with potential gaps, 
+# determine where the sg could first be attached
+#
+def placeseg(sgs,sg):
+    for sx in range(len(sgs)):
+        s = sgs[sx]
+        if s[0].isnear(sg[1]):
+            sgs.insert(sx,(sg[0],sg[1]))
+            return sgs
+        elif s[0].isnear(sg[0]):
+            sgs.insert(sx,(sg[1],sg[0]))
+            return sgs
+
+    print('failed to placeseg')
+    ax = dtl.plot_axes_xy(60)
+    for s in sgs:
+        ax = dtl.plot_edges_xy(s,ax,lw = 2,col = 'b')
+    ax = dtl.plot_edges_xy(sg,ax,lw = 4,col = 'g')
+    plt.show()
+
+    pdb.set_trace()
+
+# segment a boundary polygon based on intersections with a line segment
+# return two new boundary polygons
+def bsegsxy(b,s1,s2):
+    #bes = [(b[x-1].cp(),b[x].cp()) for x in range(len(b))]
+    bes = bsegbxy(b,(s1,s2))
+    left,right = [],[]
+    while bes:
+        u1,u2 = bes.pop(0)
+        u1o = gtl.orient2d(s1,s2,u1)
+        u2o = gtl.orient2d(s1,s2,u2)
+        if u1o == 0 and u2o == 0:pass
+        elif u1o > 0 or u2o > 0:left.insert(0,(u2,u1))
+        elif u1o < 0 or u2o < 0:right.append((u1,u2))
+        else:raise ValueError
+
+    ips = sintbxyp(s1,s2,b,col = False)
+    left = placeseg(left,(ips[0],ips[1]))
+    right = placeseg(right,(ips[1],ips[0]))
+    leftb = [left[x][1] for x in range(len(left))][::-1]
+    rightb = [right[x][1] for x in range(len(right))]
+    '''#
+    ax = dtl.plot_axes_xy(50)
+    ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'g')
+    ax = dtl.plot_edges_xy((s1,s2),ax,lw = 2)
+    for e in left:
+        ax = dtl.plot_edges_xy(e,ax,lw = 2,col = 'b')
+    for e in right:
+        ax = dtl.plot_edges_xy(e,ax,lw = 2,col = 'r')
+    ax = dtl.plot_polygon_xy(contract(leftb,0.25),ax,lw = 2,col = 'g')
+    ax = dtl.plot_polygon_xy(contract(rightb,0.25),ax,lw = 2,col = 'g')
+    plt.show()
+    '''#
+    return leftb,rightb
 
 # segment a boundary polygon based on intersections with another
 def bsegbxy(b1,b2):
@@ -416,6 +479,23 @@ def ebdxy(b1,b2):
 ###############################################################################
 
 
+
+
+# THIS SHOULD BE ELSEWHERE
+def contract(ps,ds):
+    fbnd = []
+    pns = []
+    for x in range(len(ps)):
+        p1,p2,p3 = ps[x-2],ps[x-1],ps[x]
+        pn = p2.cp().trn((p2.tov(p1).nrm().mid(p2.tov(p3).nrm())).nrm())
+        pns.append(pn)
+        #fbnd.append(p2.lerp(pn,math.sqrt(2)*ds))
+    for x in range(len(ps)):
+        p1,p2,p3 = ps[x-2],ps[x-1],ps[x]
+        #pn = p2.cp().trn((p2.tov(p1).nrm().mid(p2.tov(p3).nrm())).nrm())
+        fbnd.append(p2.lerp(pns[x],math.sqrt(2)*ds))
+    fbnd.append(fbnd.pop(0))
+    return fbnd
 
 
 

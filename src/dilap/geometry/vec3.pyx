@@ -139,6 +139,19 @@ cdef class vec3:
         cdef vec3 pj = n.cp_c().uscl_c(-d)
         return self.trn_c(pj)
 
+    # project a set of vectors onto this one, returning the min/max 
+    cdef tuple prjps_c(self,ps):
+        cdef pcnt = len(ps)
+        cdef int px
+        cdef float pj = ps[0].dot(self)
+        cdef float pmin = pj
+        cdef float pmax = pj
+        for px in range(1,pcnt):
+            pj = ps[px].dot(self)
+            if pj < pmin:pmin = pj
+            if pj > pmax:pmax = pj
+        return pmin,pmax
+
     # return the u,v barycentric coordinates of self given 3 corners of a triangle
     # everything is assumed to be in the xy plane
     cdef tuple baryxy_c(self,vec3 a,vec3 b,vec3 c): 
@@ -192,9 +205,8 @@ cdef class vec3:
         cdef int pcnt = len(ps)
         cdef float read
         for px in range(pcnt):
+            if self.onsxy_c(ps[px-1],ps[px],1):return 0
             read = gtl.orient2d_c(self,ps[px-1],ps[px])
-            #if read == 0:return 0
-            if read == 0:pass
             if ps[px-1].y <= self.y:
                 if ps[px].y > self.y:
                     if read > 0:wn += 1
@@ -541,6 +553,11 @@ cdef class vec3:
     cpdef vec3 prj(self,vec3 r,vec3 n):
         '''project this point into a plane'''
         return self.prj_c(r,n)
+
+    # project a set of vectors onto this one, returning the min/max 
+    cpdef tuple prjps(self,ps):
+        '''project a set of vectors onto this one, returning the min/max'''
+        return self.prjps_c(ps)
 
     # return the u,v barycentric coordinates of self given 3 corners of a triangle
     # everything is assumed to be in the xy plane

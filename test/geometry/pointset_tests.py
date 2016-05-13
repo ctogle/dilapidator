@@ -53,6 +53,8 @@ class test_pointset(unittest.TestCase):
         self.assertEqual(gps[2],self.pset.ps[4])
         self.assertTrue(gps[2] is self.pset.ps[4])
 
+    #def test_gpsset(self):
+
     def test_ap(self):
         pset = pointset()
         np = vec3(0,4,0)

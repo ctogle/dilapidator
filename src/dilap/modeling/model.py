@@ -1,10 +1,9 @@
 import dilap.geometry.tools as gtl
 
-#import dilap.mesh.triangulate as dtg
-
 from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
 from dilap.geometry.pointset import pointset
+import dilap.geometry.triangulate as dtg
 
 from dilap.topology.trimesh import trimesh
 from dilap.topology.polygonmesh import polygonmesh
@@ -250,6 +249,25 @@ class model:
             dels.append((p,sdel))
         for sd in dels:sd[0].trn(sd[1])
         if subdivbnd:self.subdivbnd(mesh)
+
+    # add a triangulated surface to a trimesh
+    def asurf(self,poly,tm = None,fm = 'generic',rv = False):
+        if tm is None:tm = self.agfxmesh()
+        eb,ibs = poly
+        hmin,ref,smo = 1,False,False
+        eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
+        if ref:hmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
+        tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo)
+        if not tris:print('asurf: empty surface')
+        for tri in tris:
+            p1,p2,p3 = tri
+            n = gtl.nrm(p1,p2,p3)
+            v1 = tm.avert(*self.avert(p1.cp(),n))
+            v2 = tm.avert(*self.avert(p2.cp(),n))
+            v3 = tm.avert(*self.avert(p3.cp(),n))
+            if rv:f1 = tm.aface(v1,v3,v2,fm) 
+            else:f1  = tm.aface(v1,v2,v3,fm) 
+        return self
 
     # translate the position pointset of the model
     def trn(self,v):

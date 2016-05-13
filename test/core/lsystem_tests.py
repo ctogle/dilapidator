@@ -1,6 +1,6 @@
 import dilap.core.plotting as dtl
 import dilap.core.lsystem as lsy
-import dilap.topology.worldly.treeskin as ltr
+import dilap.worldly.treeskin as ltr
 from dilap.geometry.vec3 import vec3
 import dilap.geometry.tools as gtl
 

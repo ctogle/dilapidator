@@ -42,19 +42,17 @@ __doc__ = '''General purpose tool functions...'''
 # if a is within c of b, return True
 # else return False
 cdef bint isnear_c(float a,float b):
-    #if abs(a-b) < epsilon:return 1
     cdef d = a-b
     d *= d
-    if d < epsilonsq_c:return 1
+    if d < epsilon_c:return 1
     else:return 0
 
 # if a is within c of b, return b
 # else return a
 cdef float near_c(float a,float b):
-    #if abs(a-b) < c:return b
     cdef d = a-b
     d *= d
-    if d < epsilonsq_c:return b
+    if d < epsilon_c:return b
     else:return a
 
 # convert an angle from degrees to radians

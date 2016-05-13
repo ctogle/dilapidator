@@ -152,6 +152,7 @@ class test_vec3(unittest.TestCase):
         self.assertEqual(v3.cp().prj(p2,pn2),vec3(0,-5,-1))
         self.assertTrue(v1.prj(p1,pn1) is v1)
 
+    #def test_prjps(self):
     #def test_baryxy(self):
 
     def test_inneighborhood(self):

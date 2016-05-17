@@ -33,6 +33,7 @@ class world(cx.context):
 
         fp = vec3(0,0,0).sq(48,64)
         ex = [vec3(0,-32,0),vec3(24,-16,0)]
+        #ex = [(0,0.5),(1,0.25)]
 
         blgcx = bfa.new(fp,ex)
         blgcx.generate(worn)

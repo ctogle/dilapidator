@@ -8,11 +8,11 @@ import pdb
 ###############################################################################
 
 # create a mpl 2d axes object
-def plot_axes_xy(x = 5,f = None):
+def plot_axes_xy(x = 5,o = (0,0),f = None):
     if f is None:ax = plt.figure().add_subplot(111)
     else:ax = f.add_subplot(111)
-    ax.set_xlim([-x,x])
-    ax.set_ylim([-x,x])
+    ax.set_xlim([-x+o[0],x+o[0]])
+    ax.set_ylim([-x+o[1],x+o[1]])
     ax.set_aspect('equal')
     return ax
 

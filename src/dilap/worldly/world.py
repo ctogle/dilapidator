@@ -31,11 +31,13 @@ class world(cx.context):
 
         bfa = blg.blgfactory()
 
-        fp = vec3(0,0,0).sq(48,64)
-        ex = [vec3(0,-32,0),vec3(24,-16,0)]
+        fp = vec3(0,0,0).sq(48,32)
+        #ex = [vec3(0,-32,0),vec3(24,-16,0)]
+        ex = []
+        lvls = 1
         #ex = [(0,0.5),(1,0.25)]
 
-        blgcx = bfa.new(fp,ex)
+        blgcx = bfa.new(fp,ex,lvls)
         blgcx.generate(worn)
         self.achild(blgcx)
 

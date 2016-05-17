@@ -1,5 +1,4 @@
 import dilap.core.base as db
-import dilap.core.lsystem as lsy
 import dilap.core.context as cx
 import dilap.geometry.tools as gtl
 from dilap.geometry.vec3 import vec3
@@ -381,45 +380,7 @@ class building(cx.context):
 ### graph structure to create building contexts from
 ###############################################################################
 
-'''#
-# split a boundary polygon into two boundary polygons using a single line segment
-def splitline(b,mindx = 8,mindy = 8,pos = None,ori = None):
-    x,y = vec3(1,0,0),vec3(0,1,0)
-    bx,by = x.prjps(b),y.prjps(b)
-    bxd = bx[1]-bx[0]
-    byd = by[1]-by[0]
-
-    if pos is None:
-        dx = random.uniform(0,bxd/2.0-mindx)
-        dy = random.uniform(0,byd/2.0-mindy)
-        dx = 0
-        dy = 0
-        spos = vec3(dx,dy,0).com(b)
-    elif type(pos) is type(0.0):
-        minbx,maxbx = bx[0]+mindx,bx[1]-mindx
-        dx = minbx + (maxbx - minbx)*pos
-        dy = minby + (maxby - minby)*pos
-        spos = vec3(dx,dy,0)
-
-    if ori is None:bdir = y.cp() if bxd > byd else x.cp()
-    elif ori == 'v':bdir = y.cp()
-    elif ori == 'h':bdir = x.cp()
-    else:raise ValueError
-
-    bdir.uscl(100)
-
-    s1,s2 = spos.cp().trn(bdir.flp()),spos.cp().trn(bdir.flp())
-
-    ax = dtl.plot_axes_xy(50)
-    ax = dtl.plot_polygon_xy(b,ax)
-    ax = dtl.plot_edges_xy((s1,s2),ax,col = 'r')
-    plt.show()
-
-    l,r = pym.bsegsxy(b,s1,s2)
-    return l,r
-'''#
-
-def splitb(b,pline = None,mindx = 8,mindy = 8,pos = None,ori = None):
+def splitb(b,pline = None,mindx = 5,mindy = 5,pos = None,ori = None):
     if pline is None:
 
         x,y = vec3(1,0,0),vec3(0,1,0)
@@ -485,12 +446,19 @@ class blggraph(db.base):
                 nv = self.vs[nvx]
                 if connect is True:
                     if not res in nv[1]:nv[1].append(res)
-                    if not nv[0] in self.vs[res][1]:self.vs[res][1].append(nv[0])
-                elif type(connect) is type(()) and connect[0] == nvx:
+                    if not nv[0] in self.vs[res][1]:
+                        self.vs[res][1].append(nv[0])
+                #elif type(connect) is type(()) and connect[0] == nvx:
+                elif type(connect) is type(()):
+                    offset = min(nvs)
+                    if res == connect[0] and nvx-offset == connect[1]:
+                        if not res in nv[1]:nv[1].append(res)
+                        if not nv[0] in self.vs[res][1]:
+                            self.vs[res][1].append(nv[0])
                     print('insert connection!',connect)
                 #elif False:nv[2]['exits'] = connect[:]
-                else:
-                    nv[2]['exits'] = self.vs[rx][2]['exits'][:]
+                #else:
+                #    nv[2]['exits'] = self.vs[rx][2]['exits'][:]
         self.vs[rx] = None
         
     # given the index of a vertex, return the indices of vertices 
@@ -522,13 +490,39 @@ class blggraph(db.base):
                 fnd.append((ra,adjw))
         return fnd
 
-    def __init__(self,*ags,**kws):
-        self.vs = []
-        self.vcnt = 0
+    # consider all rooms that room rx should be connected to based on edges
+    def verifyedges(self,rx):
+        dw,dh,dz = 1.5,3.0,0.0
+        rv = self.vs[rx]
+        if rv is None:return
+        rb = rv[2]['bound']
+        for adj in self.vs[rx][1]:
+            ov = self.vs[adj]
+            if ov is None:continue
+            ob = ov[2]['bound']
+            aws = adjacentwalls(rb,ob)
+            if not aws:
+                if adj in rv[1]:rv[1].remove(adj)
+                if rx in ov[1]:ov[1].remove(rx)
+        # remove any exits not along this wall
+    
+    # attach another graph to this one based on geometry
+    # srx/orx are the indices of the adjacent rooms in each graph
+    def attach(self,srx,orx,o):
+        vc = self.vcnt
+        nvs = []
+        for ox in range(o.vcnt):
+            if ox == orx:
+                print('bridge the graphs')
+                pdb.set_trace()
+            else:
+                ov = o.vs[ox]
+                okws = ov[2]
+                new = self.av([ovx+vc for ovx in ov[1]],okws)
+                nvs.append(new)
+        return nvs
 
-        # fl_look is a lookup of vertices per floor of the building
-        self.fl_look = {}
-        self._def('rstack',[],**kws)
+    ###########################################################################
 
     def plot(self,fp = None,ax = None):
         if ax is None:ax = dtl.plot_axes_xy(50)
@@ -549,82 +543,7 @@ class blggraph(db.base):
             ax = dtl.plot_polygon_xy(fp,ax,lw = 2,col = 'r')
         return ax
 
-    # consider all rooms that room rx should be connected to based on edges
-    #   if it is no longer tangential to a connected room, disconnect them
-    #   if it is still tangential to a connected room, confirm their portals 
-    def verifyedges(self,rx):
-        dw,dh,dz = 1.5,3.0,0.0
-        rv = self.vs[rx]
-        if rv is None:return
-        rb = rv[2]['bound']
-        for adj in self.vs[rx][1]:
-            ov = self.vs[adj]
-            if ov is None:continue
-            ob = ov[2]['bound']
-            aws = adjacentwalls(rb,ob)
-            if not aws:
-                if adj in rv[1]:rv[1].remove(adj)
-                if rx in ov[1]:ov[1].remove(rx)
-        # remove any exits not along this wall
-
-    # sup is a room - split it into 2 rooms and return the new one
-    def splitr(self,sup,**kws):
-        sv = self.vs[sup]
-        bd = sv[2]['bound']
-
-        # compute new boundaries
-        #l,r = splitb(bd,pline,8,8,None,None)
-        l,r = splitb(bd,**kws)
-
-        # set existing boundary
-        sv[2]['bound'] = tuple(l)
-
-        # create new room
-        new = self.defroom(r,sv[1][:]+[sup],exits = sv[2]['exits'][:])
-
-        # add edge for existing room
-        for vx in sv[1]:self.vs[vx][1].append(new)
-        sv[1].append(new)
-
-        # return the index of the new resulting room
-        return new
-    
-    # attach another graph to this one based on geometry
-    # srx/orx are the indices of the adjacent rooms in each graph
-    def attach(self,srx,orx,o):
-        # all edges indices in o have to be updated by +vc
-        # each room in o must be added to self
-        vc = self.vcnt
-
-        nvs = []
-        for ox in range(o.vcnt):
-            if ox == orx:
-                print('bridge the graphs')
-                pdb.set_trace()
-
-            else:
-                ov = o.vs[ox]
-                okws = ov[2]
-                new = self.av([ovx+vc for ovx in ov[1]],okws)
-                nvs.append(new)
-
-        #for vx in range(self.vcnt):
-        #    self.verifyedges(vx)
-
-        return nvs
-
-    # nest another graph within self by replacing vertex rix
-    def insert(self,rix,o,connect = True):
-        #rifp = self.vs[rix][2]['bound']
-        #exits = self.vs[rix][2]['exits']
-        #o.rgraph(rifp,exits)
-        #if type(connect) is type([]):
-        #    exits += connect
-        #    connect = False
-        nvs = self.attach(None,None,o)
-        self.rv(rix,nvs,connect = connect)
-        for vx in range(self.vcnt):self.verifyedges(vx)
-        return nvs
+    ###########################################################################
 
     def defroom(self,b,es,**kws):
         def defkw(k,d):
@@ -639,126 +558,51 @@ class blggraph(db.base):
         defkw('wwidths',[0.2 for x in range(wcnt)])
         return self.av(es,kws)
 
-    grammer = {
-        'S':self.seqsplit,
-            }
+    ###########################################################################
 
-    def seqsplit(self,tip,kws):
-        line = {'pos':kws['pos'],'ori':kws['ori']}
-        news = []
-        for tr in tip:
-            news.append(self.splitr(tr,**line))
-        rooms.extend(news)
-        if nxtsch == 'ext':tip.extend(news)
-        elif nxtsch == 'new':tip = news
-        return tip
+    def __init__(self,*ags,**kws):
+        self.vs = []
+        self.vcnt = 0
+        self.fl_look = {}
 
-    # given a footprint boundary polygon in the xy plane
-    # construct a graph of rooms which fit within the footprint
-    #   exits are locations on the boundary of footprint
-    #   where a door will result in whichever room ends up there
-    def rgraph(self,footprint = None,exits = None,rseq = '[0]SS'):
-        if footprint is None:footprint = vec3(0,0,0).sq(25,25)
-        if not type(exits) == type([]):exits = []
-        exits = [e for e in exits if e.onbxy(footprint)]
-        rooms = [self.defroom(footprint,[],exits = exits)]
-        #lst = rooms[-1]
+        self._def('stack',[],**kws)
 
-        def readto(c):
-            closex = rseq[cx:].find(c)+cx
-            read = rseq[cx+1:closex]
-            print('read',read)
-            return read,closex
+    ###########################################################################
 
-        rlen = len(rseq)
-        nxtsch = 'ext'
-        connectinserted = False
-        tip = []                    # tip holds the set of rooms being operated on
-        cx = 0                      # cx is the position of the cursor within rseq
-        p = 0.5                     # p is the position used for the split operation
-        o = 'v'
-        while cx < rlen:
-            c = rseq[cx]
+    # sup is a room - split it into 2 rooms and return the new one
+    def splitr(self,sup,**kws):
+        sv = self.vs[sup]
+        bd = sv[2]['bound']
+        l,r = splitb(bd,**kws)
+        sv[2]['bound'] = tuple(l)
+        new = self.defroom(r,sv[1][:]+[sup],exits = sv[2]['exits'][:])
+        # add edge for existing room
+        for vx in sv[1]:self.vs[vx][1].append(new)
+        sv[1].append(new)
+        return new
+    
+    ###########################################################################
 
-            if c == '[':            # set the set of rooms being operated on
-                tip,cx = readto(']')
-                tip = [int(v) for v in tip.split(',')]
-
-            elif c == '|':          # toggle the nxt scheme for how to set the operating set after an operation
-                nxtsch = 'ext' if nxtsch == 'new' else 'new'
-                tip = []
-
-            elif c == '-':          # toggle the cnt scheme for how to connect inserted graphs to existing topology
-                connectinserted = True if connectinserted is False else False
-
-            elif c == 'I':          # insert a subgraph
-                subrseq,cx = readto('>')
-                news = []
-                for tr in tip:
-                    subg = blggraph()
-                    print('trrr',tr)
-                    rifp = self.vs[tr][2]['bound']
-                    exits = self.vs[tr][2]['exits']
-                    subg.rgraph(rifp,exits,rseq = subrseq)
-                    news.extend(self.insert(tr,subg,connectinserted))
-                if nxtsch == 'ext':tip.extend(news)
-                elif nxtsch == 'new':tip = news
-                
-            elif c == 'S':          # split each room in the operating set
-                line = {'pos':p,'ori':o}
-                news = []
-                for tr in tip:
-                    news.append(self.splitr(tr,**line))
-                rooms.extend(news)
-                if nxtsch == 'ext':tip.extend(news)
-                elif nxtsch == 'new':tip = news
-
-            elif c == 'R':          # update the cut position randomly
-                p += random.uniform(-0.5,0.5)
-                print('randp',p)
-
-            elif c == '{':          # update the cut position/orientation
-                subrseq,cx = readto('}')
-                subrseq = subrseq.split(',')
-                p = float(subrseq[0])
-                o = subrseq[1]
-                if o == 'a':o = None
-                print('setpo',p,o)
-
-            cx += 1
-            
-            #lst = new
-
+    # nest another graph within self by replacing vertex rix
+    def insert(self,rix,o,connect = True):
+        nvs = self.attach(None,None,o)
+        self.rv(rix,nvs,connect = connect)
         for vx in range(self.vcnt):self.verifyedges(vx)
-        for vx in range(self.vcnt):self.verifyedges(vx)
-        return rooms
+        return nvs
 
+    ###########################################################################
 
-
-
-
-        '''#
-        rstack = self.rstack[:]
-        while rstack:
-
-            #self.plot(self.vs[lst][2]['bound'])
-            #plt.show()
-
-            tos,line = rstack.pop(0)
-            new = self.splitr(tos,**line)
+    def rgraph(self,fprint,exits,ax = None):
+        exits = [e for e in exits if e.onbxy(fprint)]
+        rooms = [self.defroom(fprint,[],exits = exits)]
+        oset = [0]
+        while self.stack:
+            rx,line = self.stack.pop(0)
+            new = self.splitr(rx,**line)
             rooms.append(new)
-            lst = new
+        for vx in range(self.vcnt):self.verifyedges(vx)
+        return rooms       
 
-        for vx in range(self.vcnt):
-            self.verifyedges(vx)
-
-        #self.plot(self.vs[new][2]['bound'])
-        #plt.show()
-
-        return rooms
-        '''#
-
-###############################################################################
 ###############################################################################
 ###############################################################################
 
@@ -774,56 +618,80 @@ class blgfactory(dfa.factory):
     def __init__(self,*ags,**kws):
         self._def('bclass',building,**kws)
         dfa.factory.__init__(self,*ags,**kws)
+    def new(self,footprint,exits,lvls,*ags,**kws):
+        n = self.house(footprint,exits,lvls,*ags,**kws)
+        n.bgraph.plot()
+        plt.show()
+        return n
 
-    # 
-    def test(self,footprint,exits,*ags,**kws):
-
-        blgg = blggraph(rstack = [(0,{'pos':0.5})]).rgraph(footprint,exits)
-
-        blg1 = blggraph(rstack = [
-            (0,{'pos':0.5,'ori':'h'}),
-            (1,{'pos':0.5,'ori':'v'}),
-            (2,{'pos':0.5,'ori':'h'}),
-            (0,{'pos':0.5,'ori':'v'})])
-        blgg.insert(0,blg1,[])
-
-        blg2 = blggraph(rstack = [
-            (0,{'pos':0.5,'ori':'v'}),
-            (1,{'pos':0.5,'ori':'h'}),
-            (2,{'pos':0.5,'ori':'v'}),
+    def apt(self,footprint,exits,lvls,*ags,**kws):
+        # find a point on footprint which is on the boundary of each exit
+        apt = blggraph(stack = [
+            (0,{'pos':0.3,'ori':'v'}),
             (0,{'pos':0.5,'ori':'h'})])
-        blgg.insert(1,blg2,[])
+        aptvs = apt.rgraph(footprint,exits)
+        apt.vs[0][1].remove(2)
+        apt.vs[2][1].remove(0)
+        return apt
 
+    def house(self,footprint,exits,lvls,*ags,**kws):
+        # a building has several necessary components,
+        # and other more flexible components
+        # rooms must exist which honor the positions of the exits
+
+        blgg = blggraph(stack = [
+            (0,{'pos':0.1,'ori':'v'}),
+            (1,{'pos':0.1,'ori':'h'}),
+            (1,{'pos':0.5,'ori':'v'})])
+        apts = blgg.rgraph(footprint,exits)
+
+        nonapts = [0,2]
+        for r in apts:
+            if r in nonapts:continue
+            b = blgg.vs[r][2]['bound']
+
+            a = self.apt(b,[],1)
+            avs = blgg.insert(r,a,(2,1))
+        
         kws['bgraph'] = blgg
         n = self.bclass(*ags,**kws)
         return n
 
-    # 
-    def hotel(self,footprint,exits,*ags,**kws):
 
-        aptl = '{0.5,h}[0]S{0.5,v}S[0]S'
-        aptr = '{0.5,h}[0]S{0.5,v}S[0]S'
 
-        aptl = '[0]S'
-        aptr = '[0]S'
-        rseq = '[0]SS-[0]I<'+aptl+'>'+'[3]I<'+aptr+'>'
-        rseq = '{0.5,h}[0]S[0]I<'+rseq+'>[1]I<'+rseq+'>'
 
-        print('rseq',rseq)
+    def hotel(self,footprint,exits,lvls,*ags,**kws):
+        exits = [e for e in exits if e.onbxy(fprint)]
+        rooms = [self.defroom(fprint,[],exits = exits)]
+
+        # theres how you get the geometrically appropriate loops
+        # and then how you connect them topologically
+
+        l,r = splitb(footprint,pos = 0.5,ori = 'h')
+
+        room1 = blggraph()
+        new = self.defroom(l,[],exits = exits)
+        new = self.defroom(r,[],exits = exits)
+
+        roomvs = room1.rgraph(footprint,exits,stack)
+
+        stack = [
+            ('W',[0]),
+            ('S',random.uniform(0.1,0.9),'v'),
+            ('W',[0]),
+            ('S',random.uniform(0.1,0.9),'h'),
+            ('W',[1]),
+            ('S',random.uniform(0.1,0.9),'h'),
+            #('W',[0,1]),
+            #('S',0.5,None),
+                ]
 
         hall = blggraph()
-        hallvs = hall.rgraph(footprint,exits,rseq)
+        hallvs = hall.rgraph(footprint,exits,stack)
 
         kws['bgraph'] = hall
 
         n = self.bclass(*ags,**kws)
-        return n
-
-    # 
-    def new(self,footprint,exits,*ags,**kws):
-        n = self.hotel(footprint,exits,*ags,**kws)
-        n.bgraph.plot()
-        plt.show()
         return n
 
 ###############################################################################

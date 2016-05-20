@@ -23,9 +23,9 @@ threePI = PI*3.0
 threePI2 = PI*3.0/2.0
 threePI4 = PI*3.0/4.0
 
-epsilon   = 0.0001
+epsilon   = 0.001
 epsilonsq = epsilon*epsilon
-cdef float epsilon_c   = 0.0001
+cdef float epsilon_c   = 0.001
 cdef float epsilonsq_c = epsilon*epsilon
 
 maxfloat = sys.float_info.max
@@ -406,19 +406,29 @@ cdef vec3 tng_c(vec3 c1,vec3 c2,vec3 c3):
 
 # return a vector normal to the polygon poly
 cdef vec3 poly_nrm_c(tuple poly):
-    cdef vec3 zero = vec3(0,0,0)
-    cdef vec3 c1,c2,c3,c1c2,c2c3
-    #cdef vec3 c2c3
-    cdef vec3 pn = zero
-    cdef int x = 0
-    while pn.isnear_c(zero):
-        c1,c2,c3 = poly[x-2],poly[x-1],poly[x]
+    cdef int pcnt = len(poly)
+    cdef int px
+    cdef float cang
+    cdef vec3 pn,c1,c2,c3,c1c2,c2c3
+    pn = vec3(0,0,0)
+
+    print('open')
+
+    for px in range(pcnt):
+        c1,c2,c3  = poly[px-2],poly[px-1],poly[px]
         c1c2 = c1.tov_c(c2)
         c2c3 = c2.tov_c(c3)
-        cang = c1c2.ang_c(c2c3)
-        if cang > 0.1 and cang < PI-0.1:
-            pn = c1c2.crs_c(c2c3).nrm_c()
-        x += 1
+        #cang = c1c2.ang_c(c2c3)
+        cang = c1c2.sang_c(c2c3,vec3(0,0,1))
+        print('cang',cang)
+        #if cang > 0.1 and cang < PI-0.1:
+        if cang > PI+0.1 and cang < PI-0.1:
+            pn.trn(c1c2.crs_c(c2c3).nrm_c())
+            print('ummm',pn.mag())
+
+    if pn.isnear(vec3(0,0,0)):
+        print('vmmm',pn.mag())
+        
     return pn.nrm_c()
 
 # determine the winding number of a point wrt a polygon

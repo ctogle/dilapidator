@@ -10,6 +10,8 @@ import dilap.geometry.vec3 as dpv
 from dilap.geometry.vec3 cimport vec3
 from dilap.geometry.quat cimport quat
 
+import dilap.geometry.polymath as pym
+
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
@@ -386,11 +388,9 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
     #    ebnd,ibnds = subdivide_edges(ebnd,ibnds)
     #    hminnnn,ebnd,ibnds = chew1_subdivide_polygon(ebnd,ibnds)
 
-    #p0 = ebnd[0].cp_c()
     p0 = ebnd[0].cp()
-    #pn = gtl.poly_nrm_c(ebnd)
-    pn = gtl.poly_nrm(ebnd)
-    #prot = gtl.q_to_xy_c(pn)
+    #pn = gtl.poly_nrm(ebnd)
+    pn = pym.bnrm(ebnd)
     prot = quat(0,0,0,0).toxy_c(pn)
     gtl.rot_poly_c((ebnd,ibnds),prot)
     data = triangulation(p0,pn)
@@ -415,8 +415,7 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
         smp = tuple([data.points.ps[px] for px in tri])
         smps.append(smp)
 
-    if not smps:
-        print('empty surface!')
+    if not smps:print('empty surface!')
 
     gsts = []
     for gdx in range(data.ghostcnt):

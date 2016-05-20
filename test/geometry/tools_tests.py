@@ -138,7 +138,14 @@ class test_tools(unittest.TestCase):
     #def test_q_to_xy(self):
     #def test_nrm(self):
     #def test_tng(self):
-    #def test_poly_nrm(self):
+
+    def test_poly_nrm(self):
+        fp = [vec3(0,0,0),
+            vec3(20,0,0),vec3(20,-20,0),vec3(40,-30,0),vec3(60,-30,0),
+            vec3(60,40,0),vec3(-60,40,0),vec3(-60,-30,0),vec3(-40,-30,0),
+            vec3(-20,-20,0),vec3(-20,0,0)]
+        self.assertTrue(gtl.poly_nrm(tuple(fp)).isnear(vec3(0,0,1)))
+
     #def test_winding(self):
 
 if __name__ == '__main__':

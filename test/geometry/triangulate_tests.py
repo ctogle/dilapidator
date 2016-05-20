@@ -18,13 +18,13 @@ class test_triangulate(unittest.TestCase):
 
     def show_xy(self,tris,bnds):
         ax = dtl.plot_axes_xy()
-        for t in tris:dtl.plot_polygon_xy(t,ax,True,2,'green')
-        for b in bnds:dtl.plot_edges_xy(b,ax,True,5,'blue')
+        for t in tris:dtl.plot_polygon_xy(t,ax,True,lw = 2,col = 'g')
+        for b in bnds:dtl.plot_edges_xy(b,ax,True,lw = 5,col = 'b')
         if self.doshow:plt.show()
     def show(self,tris,bnds):
         ax = dtl.plot_axes()
-        for t in tris:dtl.plot_polygon(t,ax,True,2,'green')
-        for b in bnds:dtl.plot_edges(b,ax,True,5,'blue')
+        for t in tris:dtl.plot_polygon(t,ax,True,lw = 2,col = 'g')
+        for b in bnds:dtl.plot_edges(b,ax,True,lw = 5,col = 'b')
         if self.doshow:plt.show()
 
     def setUp(self):pass
@@ -57,7 +57,7 @@ class test_triangulate(unittest.TestCase):
         #plt.show()
         self.assertTrue(dtg.tinbxy(a,b,c,bnd))
 
-    def test_door(self):
+    def atest_door(self):
         eb = vec3(6,2.5,0).sq(12,5)
         eb.insert(1,vec3(6.75,0,0))
         eb.insert(1,vec3(6.75,4,0))
@@ -140,22 +140,29 @@ class test_triangulate(unittest.TestCase):
         tris,bnds = self.tribnd(eb,ibs,False,False)
         self.show_xy(tris,bnds)
 
-    def atest_ushape(self):
-        eb = (
-            vec3(0,0,0),vec3(1,0,0),vec3(1,1,0),vec3(0.75,1,0),
-            vec3(0.75,0.5,0),vec3(0.25,0.5,0),vec3(0.25,1,0),vec3(0,1,0))
-        ibs = (tuple(p.cp().uscl(0.35).trn(vec3(0.1,0.1,0)) for p in eb),)
+    def test_ushape(self):
+        #eb = (
+        #    vec3(0,0,0),vec3(1,0,0),vec3(1,1,0),vec3(0.75,1,0),
+        #    vec3(0.75,0.5,0),vec3(0.25,0.5,0),vec3(0.25,1,0),vec3(0,1,0))
+        #ibs = (tuple(p.cp().uscl(0.35).trn(vec3(0.1,0.1,0)) for p in eb),)
+
+        eb = (vec3(0,0,0),
+            vec3(2,0,0),vec3(2,-2,0),vec3(4,-3,0),vec3(6,-3,0),
+            vec3(6,4,0),vec3(-6,4,0),vec3(-6,-3,0),vec3(-4,-3,0),
+            vec3(-2,-2,0),vec3(-2,0,0))
+        ibs = ()
 
         ax = dtl.plot_polygon_full_xy((eb,ibs))
         plt.show()
 
-        tris,bnds = self.tribnd(eb,(),False,False)
-        self.show_xy(tris,bnds)
-        tris,bnds = self.tribnd(ibs[0],(),False,False)
-        self.show_xy(tris,bnds)
+        tris,bnds = self.tribnd(eb,(),True,False)
+        self.show(tris,bnds)
 
-        tris,bnds = self.tribnd(eb,ibs,False,False)
-        self.show_xy(tris,bnds)
+        #tris,bnds = self.tribnd(ibs[0],(),False,False)
+        #self.show(tris,bnds)
+
+        #tris,bnds = self.tribnd(eb,ibs,False,False)
+        #self.show(tris,bnds)
 
 if __name__ == '__main__':
     unittest.main()

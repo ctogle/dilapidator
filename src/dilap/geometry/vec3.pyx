@@ -265,7 +265,7 @@ cdef class vec3:
         for px in range(pcnt):
             p1,p2 = ps[px-1],ps[px]
             if p1.isnear_c(self):return 1
-            if self.onsxy_c(p1,p2):return 1
+            if self.onsxy_c(p1,p2,1):return 1
             #if gtl.inseg_xy_c(self,p1,p2):return 1
         return 0
 
@@ -292,6 +292,16 @@ cdef class vec3:
         self.x += o.x
         self.y += o.y
         self.z += o.z
+        return self
+
+    # translate a set of vec3s by self
+    cdef vec3 trnos_c(self,os):
+        cdef int ocnt = len(os)
+        cdef int ox
+        cdef vec3 o
+        for ox in range(ocnt):
+            o = os[ox]
+            o.trn(self)
         return self
 
     # translate self in the x direction by d
@@ -623,6 +633,11 @@ cdef class vec3:
     cpdef vec3 trn(self,vec3 o):
         '''translate this point by a vector'''
         return self.trn_c(o)
+
+    # translate a set of vec3s by self
+    cpdef vec3 trnos(self,os):
+        '''translate a set of vec3s by self'''
+        return self.trnos_c(os)
 
     # translate self in the x direction by d
     cpdef vec3 xtrn(self,float d):

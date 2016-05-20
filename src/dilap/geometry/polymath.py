@@ -105,6 +105,7 @@ def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True):
     # if segments are colinear and overlapping
     # elif segments are colinear and nonoverlapping
     # elif segments are skew and possibly overlapping
+    #s11,s12,s21,s22 = s11.cpxy(),s12.cpxy(),s21.cpxy(),s22.cpxy()
     s1tn,s2tn = s11.tov(s12),s21.tov(s22)
     ds = s11.tov(s21)
     s1crss2 = s1tn.crs(s2tn)
@@ -167,6 +168,7 @@ def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True):
     # if segments are colinear and overlapping
     # elif segments are colinear and nonoverlapping
     # elif segments are skew and possibly overlapping
+    #s11,s12,s21,s22 = s11.cpxy(),s12.cpxy(),s21.cpxy(),s22.cpxy()
     s1tn,s2tn = s11.tov(s12),s21.tov(s22)
     ds = s11.tov(s21)
     s1crss2 = s1tn.crs(s2tn)
@@ -279,21 +281,23 @@ def bintbxy(b1,b2,ie = True,ieb = True,col = True):
 # given a sequence of segments with potential gaps, 
 # determine where the sg could first be attached
 #
-def placeseg(sgs,sg):
-    for sx in range(len(sgs)):
-        s = sgs[sx]
-        if s[0].isnear(sg[1]):
-            sgs.insert(sx,(sg[0],sg[1]))
-            return sgs
-        elif s[0].isnear(sg[0]):
-            sgs.insert(sx,(sg[1],sg[0]))
-            return sgs
+def placeseg(segs,s1,s2):
+    s1xy,s2xy = s1.cpxy(),s2.cpxy()
+    for sx in range(len(segs)):
+        os1,os2 = segs[sx]
+        os1xy,os2xy = os1.cpxy(),os2.cpxy()
+        if os1xy.isnear(s2xy):
+            segs.insert(sx,(s1,s2))
+            return segs
+        elif os1xy.isnear(s1xy):
+            segs.insert(sx,(s2,s1))
+            return segs
 
     print('failed to placeseg')
     ax = dtl.plot_axes_xy(60)
-    for s in sgs:
+    for s in segs:
         ax = dtl.plot_edges_xy(s,ax,lw = 2,col = 'b')
-    ax = dtl.plot_edges_xy(sg,ax,lw = 4,col = 'g')
+    ax = dtl.plot_edges_xy((s1xy,s2xy),ax,lw = 4,col = 'g')
     plt.show()
 
     pdb.set_trace()
@@ -314,10 +318,11 @@ def bsegsxy(b,s1,s2):
         else:raise ValueError
 
     ips = sintbxyp(s1,s2,b,col = False)
-    left = placeseg(left,(ips[0],ips[1]))
-    right = placeseg(right,(ips[1],ips[0]))
+    left = placeseg(left,ips[0],ips[1])
+    right = placeseg(right,ips[1],ips[0])
     leftb = [left[x][1] for x in range(len(left))][::-1]
     rightb = [right[x][1] for x in range(len(right))]
+
     '''#
     ax = dtl.plot_axes_xy(50)
     ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'g')
@@ -330,6 +335,7 @@ def bsegsxy(b,s1,s2):
     ax = dtl.plot_polygon_xy(contract(rightb,0.25),ax,lw = 2,col = 'g')
     plt.show()
     '''#
+
     return leftb,rightb
 
 # segment a boundary polygon based on intersections with another
@@ -341,7 +347,7 @@ def bsegbxy(b1,b2):
         ips = sintbxyp(u1,u2,b2,ieb = False)
         ips = [p for p in ips if not p.isnear(u1) and not p.isnear(u2)]
         if len(ips) == 0:
-            b1es.append((u1,u2))
+            b1es.append((u1.cp(),u2.cp()))
         else:
             u1u2 = u1.tov(u2)
             ipsprj = [ip.dot(u1u2) for ip in ips]
@@ -350,9 +356,9 @@ def bsegbxy(b1,b2):
                 ipx = ipsprj.index(min(ipsprj))
                 nxtprj = ipsprj.pop(ipx)
                 nxt = ips.pop(ipx)
-                b1es.append((lst,nxt))
+                b1es.append((lst.cp(),nxt.cp()))
                 lst = nxt
-            b1es.append((lst,u2))
+            b1es.append((lst.cp(),u2.cp()))
     #nb = tuple(be[1] for be in b1es)
     return b1es
 
@@ -478,8 +484,26 @@ def ebdxy(b1,b2):
 ###############################################################################
 ###############################################################################
 
+# return a vector normal to the boundary polygon b
+def bnrm(b):
+    pcnt = len(b)
+    pn = vec3(0,0,0)
+    for px in range(pcnt):
+        c1,c2,c3  = b[px-2],b[px-1],b[px]
+        c1c2 = c1.tov(c2)
+        c2c3 = c2.tov(c3)
+        cang = c1c2.ang(c2c3)
+        if cang > -numpy.pi+0.001 and cang < numpy.pi-0.001:
+            pn.trn(c1c2.crs(c2c3).nrm())
+    return pn.nrm()
 
-
+# make a new boundary polygon including the midpoints of every edge
+def bisectb(b):
+    nb = []
+    for x in range(len(b)):
+        nb.append(b[x-1])
+        nb.append(b[x-1].mid(b[x]))
+    return nb
 
 # THIS SHOULD BE ELSEWHERE
 def contract(ps,ds):
@@ -487,13 +511,21 @@ def contract(ps,ds):
     pns = []
     for x in range(len(ps)):
         p1,p2,p3 = ps[x-2],ps[x-1],ps[x]
-        pn = p2.cp().trn((p2.tov(p1).nrm().mid(p2.tov(p3).nrm())).nrm())
+        w1t = p1.tov(p2).nrm()
+        w2t = p2.tov(p3).nrm()
+        w1n = vec3(0,0,1).crs(w1t)
+        w2n = vec3(0,0,1).crs(w2t)
+        s11 = p1.cp().trn(w1n).trn(w1t.cp().uscl(-100))
+        s12 = p2.cp().trn(w1n).trn(w1t.cp().uscl( 100))
+        s21 = p2.cp().trn(w2n).trn(w2t.cp().uscl(-100))
+        s22 = p3.cp().trn(w2n).trn(w2t.cp().uscl( 100))
+        ip = sintsxyp(s11,s12,s21,s22,col = False)
+        if ip is None:pn = p2.cp().trn(w1n)
+        else:pn = ip.cp()
         pns.append(pn)
-        #fbnd.append(p2.lerp(pn,math.sqrt(2)*ds))
     for x in range(len(ps)):
         p1,p2,p3 = ps[x-2],ps[x-1],ps[x]
-        #pn = p2.cp().trn((p2.tov(p1).nrm().mid(p2.tov(p3).nrm())).nrm())
-        fbnd.append(p2.lerp(pns[x],math.sqrt(2)*ds))
+        fbnd.append(p2.lerp(pns[x],ds))
     fbnd.append(fbnd.pop(0))
     return fbnd
 

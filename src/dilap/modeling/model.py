@@ -259,6 +259,7 @@ class model:
         if ref:hmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
         tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo)
         if not tris:print('asurf: empty surface')
+        #else:print('trisurf: ',len(tris))
         for tri in tris:
             p1,p2,p3 = tri
             n = gtl.nrm(p1,p2,p3)

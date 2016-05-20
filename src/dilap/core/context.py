@@ -9,7 +9,7 @@ import dilap.modeling.model as dmo
 
 import dilap.io.io as dio
 
-import random
+import random,pdb
 
 ###############################################################################
 ### context corresponds to a procedurally generated world

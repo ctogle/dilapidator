@@ -645,6 +645,28 @@ cpdef int winding(vec3 pt,tuple py):
 
 
 
+def lexicographic(unops):
+    ufn = unops[:]
+    ops = []
+    while ufn:
+        xmin = 1e10
+        ymin = 1e10
+        ux = None
+        for x in range(len(ufn)):
+            u = ufn[x]
+            if u.x < xmin:
+                ux = x
+                xmin = u.x
+            elif u.x == xmin and u.y < ymin:
+                ux = x
+                xmin = u.x
+                ymin = u.y
+        ops.append(ufn.pop(ux))
+    return ops
+    
+
+
+
 
 
 

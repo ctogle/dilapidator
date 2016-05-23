@@ -235,12 +235,12 @@ cdef list loop_location(triangulation data,tuple loop):
     cdef int x
     for x in range(lcnt):
         p1,p2 = loop[x-1],loop[x]
-        #point_location(data,p1.xy())
-        #bnd.append((p1.xy(),p2.xy()))
-        #point_location(data,p1.cp_c())
-        #bnd.append((p1.cp_c(),p2.cp_c()))
-        point_location(data,p1.cp())
         bnd.append((p1.cp(),p2.cp()))
+    cdef list ptstack = [lp.cp() for lp in loop]
+    #cdef list ptstack = gtl.lexicographic([lp.cp() for lp in loop])
+    while ptstack:
+        p1 = ptstack.pop(0)
+        point_location(data,p1)
     return bnd
 
 # locate each loop associated with polygon
@@ -448,14 +448,23 @@ def split_nondelauney_edges(eb,ibs):
                 cr = cc.d(p1)
                 if p.inneighborhood(cc,cr):
                     loop.insert(x,cc)
+                    aps.append(cc)
                     found = True
                     break
             if found:continue
             else:x += 1
         return loop
 
-    neb = split_loop(list(eb))
-    nibs = [split_loop(list(ib)) for ib in ibs]
+    def handle_loop(loop):
+        nloop = split_loop(list(loop))
+        while True:
+            nxtnloop = split_loop(nloop)
+            if len(nxtnloop) == len(nloop):break
+            nloop = nxtnloop
+        return nloop
+
+    neb = handle_loop(eb)
+    nibs = [handle_loop(ib) for ib in ibs]
     return tuple(neb),tuple(tuple(nib) for nib in nibs)
 
 def split_nondelauney_edges_chew1(eb,ibs):

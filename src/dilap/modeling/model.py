@@ -251,23 +251,45 @@ class model:
         if subdivbnd:self.subdivbnd(mesh)
 
     # add a triangulated surface to a trimesh
-    def asurf(self,poly,tm = None,fm = 'generic',rv = False):
+    def asurf(self,poly,tm = None,fm = 'generic',rv = False,ref = False,smo = False):
         if tm is None:tm = self.agfxmesh()
         eb,ibs = poly
-        hmin,ref,smo = 1,False,False
-        eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
-        if ref:hmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
-        tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo)
-        if not tris:print('asurf: empty surface')
-        #else:print('trisurf: ',len(tris))
-        for tri in tris:
-            p1,p2,p3 = tri
-            n = gtl.nrm(p1,p2,p3)
-            v1 = tm.avert(*self.avert(p1.cp(),n))
-            v2 = tm.avert(*self.avert(p2.cp(),n))
-            v3 = tm.avert(*self.avert(p3.cp(),n))
-            if rv:f1 = tm.aface(v1,v3,v2,fm) 
-            else:f1  = tm.aface(v1,v2,v3,fm) 
+
+        av = lambda p,n : tm.avert(*self.avert(p.cp(),n))
+
+        if len(eb) < 5 and len(ibs) == 0 and not ref:
+
+            if len(eb) == 3:
+                p1,p2,p3 = eb
+                n = gtl.nrm(p1,p2,p3)
+                v1,v2,v3 = av(p1,n),av(p2,n),av(p3,n)
+                if rv:f1 = tm.aface(v1,v3,v2,fm) 
+                else:f1  = tm.aface(v1,v2,v3,fm) 
+
+            elif len(eb) == 4:
+                p1,p2,p3,p4 = eb
+                n = gtl.nrm(p1,p2,p3)
+                v1,v2,v3,v4 = av(p1,n),av(p2,n),av(p3,n),av(p4,n)
+                if rv:
+                    f1 = tm.aface(v1,v3,v2,fm) 
+                    f2 = tm.aface(v1,v4,v3,fm) 
+                else:
+                    f1  = tm.aface(v1,v2,v3,fm) 
+                    f2  = tm.aface(v1,v3,v4,fm) 
+
+        else:
+            eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
+            if ref:hmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
+            else:hmin = 1
+            tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo)
+            if not tris:print('asurf: empty surface')
+            for tri in tris:
+                p1,p2,p3 = tri
+                n = gtl.nrm(p1,p2,p3)
+                v1,v2,v3 = av(p1,n),av(p2,n),av(p3,n)
+                if rv:f1 = tm.aface(v1,v3,v2,fm) 
+                else:f1  = tm.aface(v1,v2,v3,fm) 
+
         return self
 
     # translate the position pointset of the model

@@ -16,6 +16,8 @@ import dilap.topology.face as dfc
 import dilap.modeling.factory as dfa
 import dilap.geometry.triangulate as dtg
 
+import dilap.worldly.blgsequencing as bseq
+
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
@@ -41,21 +43,31 @@ def awall(p1,p2,wh,hs,hp1 = None,hp2 = None):
     eb = [p1.cp(),p2.cp(),p2.cp().ztrn(wh),p1.cp().ztrn(wh)]
     ibs = []
 
-    for h in hs:
-        # which side of eb,where along it, how wide, how tall, dist from side
+    for hx in range(len(hs)):
+        h = hs[hx]
         dx,dp,dw,dh,dz = h
         ddp = dw/(2.0*hp1.d(hp2))
         d1,d2 = hp1.lerp(hp2,dp-ddp),hp1.lerp(hp2,dp+ddp)
-        h = [d2.cp().ztrn(dz),d2.cp().ztrn(dz+dh),
-            d1.cp().ztrn(dz+dh),d1.cp().ztrn(dz)]
-        portals.append(h)
-        if dz == 0:
-            for hp in h:eb.insert(1,hp)
-        else:ibs.append(h)
-
-    wpy = (tuple(eb),tuple(tuple(x) for x in ibs))
-    polys.append(wpy)
-
+        if dh+dz < wh:
+            h = [d2.cp().ztrn(dz),d2.cp().ztrn(dz+dh),
+                d1.cp().ztrn(dz+dh),d1.cp().ztrn(dz)]
+            portals.append(h)
+            if dz == 0:
+                for hp in h:eb.insert(1,hp)
+            else:ibs.append(h)
+        else:
+            tdz,tdh = 0,wh
+            h = [d2.cp().ztrn(tdz),d2.cp().ztrn(tdz+tdh),
+                d1.cp().ztrn(tdz+tdh),d1.cp().ztrn(tdz)]
+            portals.append(h)
+            ebextra = [d2.cp()]+eb[1:-3]+\
+                [eb[-3].cp(),eb[-3].cp().ztrn(wh),d2.cp().ztrn(wh)]
+            wpy = (tuple(ebextra),())
+            polys.append(wpy)
+            eb = [p1.cp(),d1.cp(),d1.cp().ztrn(wh),p1.cp().ztrn(wh)]
+    if eb:
+        wpy = (tuple(eb),tuple(tuple(x) for x in ibs))
+        polys.append(wpy)
     return polys,portals
 
 # return polygons constituting a trimesh of a portal 
@@ -87,47 +99,6 @@ def adjacentwalls(r1,r2,minovlp = 1):
     return adjs
 
 ###############################################################################
-### functions which add trimesh geometry to models
-###############################################################################
-
-def genroof(m,rmkws):
-    tm = m.agfxmesh()
-
-    return
-
-    for lx in range(self.floors):
-        lvl = self.rims[lx]
-        if lx == self.floors-1:
-            tlvl = lvl
-            print('make doors if the level below is not fully eclipsed')
-        else:tlvl = pym.ebdxy(lvl,self.rims[lx+1])
-
-        #ax = dtl.plot_axes_xy(10)
-        #ax = dtl.plot_polygon_xy(tlvl,ax,lw = 2)
-        #plt.show()
-
-        rbnd = (tuple(tlvl),())
-        m.asurf(rbnd,tm)
-
-        for x in range(len(tlvl)):
-            p1,p2 = tlvl[x-1],tlvl[x]
-
-            wpys,portals = awall(p1,p2,2,[])
-            for wpy in wpys:m.asurf(wpy,tm)
-
-        itlvl = pym.contract(tlvl,0.125)
-        for x in range(len(itlvl)):
-            p1,p2 = itlvl[x-1],itlvl[x]
-
-            wpys,portals = awall(p2,p1,2,[])
-            for wpy in wpys:m.asurf(wpy,tm)
-
-
-        # must zoffset tlvl and itlvl?
-        #m = self.asurf((tlvl,(itlvl,)),m = m,gm = gm)
-
-###############################################################################
-###############################################################################
 ###############################################################################
 
 
@@ -148,6 +119,16 @@ class building(cx.context):
         self.s = s
         cx.context.__init__(self,*ags,**kws)
 
+    def windowholes(self,r,w,wp1,wp2):
+        ww,wh,wz,wm = 4.0,3.0,1.0,2.0
+        wpd = wp1.d(wp2)
+        wcnt = int((wpd-1)/(ww+wm*2))
+        if wcnt < 1:return
+        wpoff = 1.0/wcnt
+        for wx in range(wcnt):
+            wp = (wx+1.0)/wcnt-wpoff/2
+            self.wallhole(r,w,('window',wp,ww,wh,wz))
+
     # insert a hole specification for a particular wall
     def wallhole(self,r,w,h):
         hp = h[1]
@@ -163,7 +144,6 @@ class building(cx.context):
 
     # add information to make doors for this room based on complete topology
     def holes(self,rx):
-        sl,sw = 8,8
         dw,dh,dz = 1.5,3.0,0.0
         rv = self.bgraph.vs[rx]
         rb = rv[2]['bound']
@@ -181,7 +161,13 @@ class building(cx.context):
                     ips = pym.sintsxyp(rb[rwx-1],rb[rwx],ob[owx-1],ob[owx])
                     imp = ips[0].mid(ips[1])
                     ridp = 1-rb[rwx-1].d(imp)/rb[rwx-1].d(rb[rwx])
-                    self.wallhole(rx,rwx-1,(adj,ridp,dw,dh,dz))
+                    if rv[2]['rtype'] == 'open' and ov[2]['rtype'] == 'open':
+                        tdh = dh*100
+                        tww = max(rv[2]['wwidths'][rwx-1],ov[2]['wwidths'][rwx-1])
+                        tdw = ips[0].d(ips[1])-2*tww
+                        self.wallhole(rx,rwx-1,(adj,ridp,tdw,tdh,dz)) 
+                    else:
+                        self.wallhole(rx,rwx-1,(adj,ridp,dw,dh,dz))
                     rv[2]['wtypes'][rwx-1] = 'i'
         gadjs = self.bgraph.geoadj(rx)
         for adj in gadjs:
@@ -200,18 +186,21 @@ class building(cx.context):
                 isexit = False
                 if rv[2]['level'] == 0:
                     for rex in rexits:
-                        if gtl.onseg_xy(rex,wp1,wp2) and not wp2.isnear(rex):
+                        if rex is True:pass
+                        elif gtl.onseg_xy(rex,wp1,wp2) and not wp2.isnear(rex):
                             print('external exit!',rex)
                             self.wallhole(rx,wx-1,('exit',0.5,dw,dh,dz))
                             isexit = True
                             break
-                if not isexit:
-                    self.wallhole(rx,wx-1,('window',0.5,dw,dh-1,dz+1))
+                wpd = wp1.d(wp2)
+                if not isexit and wpd > dw+2 and not rv[2]['rtype'] == 'closed':
+                    self.windowholes(rx,wx-1,wp1,wp2)
 
     def genshafts(self):
 
         def genwrap(shb,shx,skirt = True,crown = True):
             vkw = self.bgraph.vs[shvx][2]
+            fbnd = pym.contract(shb,wwi)
             for x in range(len(shb)):
                 b2,b1,w2,w1 = shb[x-1],shb[x],fbnd[x-1],fbnd[x]
                 hs,wt = vkw['wholes'][x-1],vkw['wtypes'][x-1]
@@ -232,12 +221,10 @@ class building(cx.context):
                     for wpy in wpys:m.asurf(wpy,tm)
 
         def genplatform(shb,shx):
-            platform = [p.cp() for p in shb]
-
-            buff,rw = 4,4
-
+            buff,rw = 6,6
+            fbnd = pym.contract(shb,wwi)
+            platform = [p.cp() for p in fbnd]
             r1,r2 = platform[2].cp(),platform[3].cp()
-
             rtn = r1.tov(r2).nrm().uscl(buff)
             rnm = vec3(0,0,1).crs(rtn).nrm().uscl(rw)
             r2,r1 = r2.trn(rtn.flp()),r1.trn(rtn.flp())
@@ -246,20 +233,20 @@ class building(cx.context):
             belv = self.bgraph.vs[sh[shx-1]][2]
             rh = max(belv['wheights'])+belv['skirt']+belv['crown']
             ramp = [r4,r1,r2,r3]
-            platform = pym.ebdxy(platform,ramp)
+            platform = pym.bisectb(pym.ebdxy(platform,ramp))
             ramp[0].ztrn(-rh)
             ramp[1].ztrn(-rh)
 
             m.asurf((ramp,()),tm)
             m.asurf((platform,()),tm)
 
-        def genbottom(shb,abvx):
-            shaftfloor = shb
+        def genbottom(shb):
+            shaftfloor = pym.contract(shb,wwi)
             m.asurf((shaftfloor,()),tm)
             genwrap(shb,shx-1,skirt = False,crown = shcnt > 1)
 
-        def gentop(shb,belx):
-            shaftceiling = [p.cp().ztrn(wht) for p in shb]
+        def gentop(shb):
+            shaftceiling = [p.cp().ztrn(wht) for p in pym.contract(shb,wwi)]
             m.asurf((shaftceiling,()),tm,rv = True)
             genplatform(shb,shx)
             genwrap(shb,shx+1,crown = False)
@@ -280,11 +267,10 @@ class building(cx.context):
                 shb = shv[2]['bound']
                 wht = max(shv[2]['wheights'])
                 wwi = min(shv[2]['wwidths'])
-                fbnd = pym.contract(shb,wwi)
 
-                if shx == 0:genbottom(fbnd,shx+1)
-                elif shx == shcnt-1:gentop(fbnd,shx-1)
-                else:genlink(fbnd,shx)
+                if shx == 0:genbottom(shb)
+                elif shx == shcnt-1:gentop(shb)
+                else:genlink(shb,shx)
 
     # add the trimeshes of a room interior to a model
     def genrooms(self):
@@ -295,6 +281,7 @@ class building(cx.context):
             # insert doors based on topology
             self.holes(vx)
 
+            # dont build the room here if it contains a shaft
             if vkw['shaft']:continue
 
             # add a new trimesh to the model
@@ -337,12 +324,28 @@ class building(cx.context):
         sgv = self.amodel(self.p,self.q,self.s,m,self.sgraph.root)
         tm = m.agfxmesh()
         z = 0
-        for lvx in range(self.bgraph.levels):
+
+        eww,ech = 0.2,0.5
+        fh = self.bgraph.floorheight
+
+        self.rims = []
+        for lvx in range(self.floors):
             fp = [p.cp().ztrn(z) for p in self.bgraph.footprint]
-            z += 7
-            rim = []
+            z += self.bgraph.floorheight
+            self.rims.append([])
             for fpx in range(len(fp)):
-                fp1,fp2 = fp[fpx-1],fp[fpx]
+                fp0,fp1,fp2 = fp[fpx-2],fp[fpx-1],fp[fpx]
+                wtn1 = fp0.tov(fp1)
+                wtn2 = fp1.tov(fp2)
+                tcrstz = gtl.near(wtn1.crs(wtn2).z,0)
+                if tcrstz > 0:
+                    wnm1 = vec3(0,0,1).crs(wtn1).nrm().uscl(-eww)
+                    wnm2 = vec3(0,0,1).crs(wtn2).nrm().uscl(-eww)
+                    crnp1 = fp1.cp().trn(wnm1).ztrn(-ech)
+                    crnp2 = fp1.cp().trn(wnm2).ztrn(-ech)
+                    wpys,portals = awall(crnp1,crnp2,fh,[])
+                    for wpy in wpys:m.asurf(wpy,tm)
+                    self.rims[-1].extend([crnp1.cp().ztrn(fh),crnp2.cp().ztrn(fh)])
                 for v in self.bgraph.vs:
                     if v is None:continue
                     vx,ves,vkw = v
@@ -352,109 +355,53 @@ class building(cx.context):
                         ips = pym.sintsxyp(fp1,fp2,vb1,vb2,ie = False,skew = False)
                         if not type(ips) is type(()):continue
                         hs = vkw['wholes'][vbx-1]
-                        if not hs:hs.append((0,0.5,1.5,2,1))
-                        ww,wh = vkw['wwidths'][vbx-1],vkw['wheights'][vbx-1]
-                        wtn = vb1.tov(vb2).crs(vec3(0,0,1)).nrm().uscl(ww)
+                        sh,ch = vkw['skirt'],vkw['crown']
+                        wh = self.bgraph.floorheight-sh-ch
+                        wtn = vb1.tov(vb2).crs(vec3(0,0,1)).nrm().uscl(eww)
                         wp1,wp2 = vb1.cp().trn(wtn),vb2.cp().trn(wtn)
                         wpys,portals = awall(wp1,wp2,wh,hs)
                         for wpy in wpys:m.asurf(wpy,tm)
                         for hps in portals:
-                            wpys = aportal(hps,wp1,wp2,ww)
+                            wpys = aportal(hps,wp1,wp2,eww)
                             for wpy in wpys:m.asurf(wpy,tm)
-                        sh,ch = vkw['skirt'],vkw['crown']
                         sp1,sp2 = wp1.cp().ztrn(-sh),wp2.cp().ztrn(-sh)
-                        cp1,cp2 = wp1.cp().ztrn(wh),wp2.cp().ztrn(wh)
+                        cp1,cp2 = wp1.cp().ztrn( wh),wp2.cp().ztrn( wh)
                         wpys,portals = awall(sp1,sp2,sh,[])
                         for wpy in wpys:m.asurf(wpy,tm)
                         wpys,portals = awall(cp1,cp2,ch,[])
                         for wpy in wpys:m.asurf(wpy,tm)
 
-                        # need last w2 and current w1
-                        if not rim:rim.append(wp1)
-                        elif not rim[-1].isnear(wp1):rim.append(wp1)
-                        if not rim:rim.append(wp2)
-                        elif not rim[-1].isnear(wp2):rim.append(wp2)
-
-            #if lvx == 0:
-            #    ax = dtl.plot_axes_xy(50)
-            #    ax = dtl.plot_polygon_xy(rim,ax)
-            #    plt.show()
-
-            #wpys,portals = awall(cp1,cp2,sh+wh+ch,[])
-            #for wpy in wpys:m.asurf(wpy,tm)
+    # generate a cover of the top of the top of the building
+    def genroof(self):
+        m = dmo.model()
+        sgv = self.amodel(self.p,self.q,self.s,m,self.sgraph.root)
+        tm = m.agfxmesh()
+        m.asurf((tuple(self.rims[-1]),()),tm)
 
     # do something which fills the scenegraph
     def generate(self,worn = 0):
         self.floors = len(list(self.bgraph.fl_look.keys()))
-
         self.genrooms()
         self.genshafts()
         self.genshell()
-
-        #self.genroof()
-
-        # create the models which cover the roof
-        #m = dmo.model()
-        #sgv = self.amodel(p,q,s,m,None)
-        #genroof(m,self.rmkws)
-
+        self.genroof()
         return self
 
 ###############################################################################
 ### graph structure to create building contexts from
 ###############################################################################
 
-def splitb(b,pline = None,mindx = 5,mindy = 5,pos = None,ori = None):
-    if pline is None:
-
-        x,y = vec3(1,0,0),vec3(0,1,0)
-        bx,by = x.prjps(b),y.prjps(b)
-        bxd = bx[1]-bx[0]
-        byd = by[1]-by[0]
-
-        if pos is None:
-            dx = random.uniform(0,bxd/2.0-mindx)
-            dy = random.uniform(0,byd/2.0-mindy)
-            spos = vec3(dx,dy,0).com(b)
-        elif type(pos) is type(0.0):
-            #minbx,maxbx = bx[0]+min(mindx,bxy/2.0),bx[1]-
-            minbx,maxbx = bx[0]+mindx,bx[1]-mindx
-            minby,maxby = by[0]+mindy,by[1]-mindy
-            dx = minbx + (maxbx - minbx)*pos
-            dy = minby + (maxby - minby)*pos
-            spos = vec3(dx,dy,0)
-
-        if ori is None:bdir = y.cp() if bxd > byd else x.cp()
-        elif ori == 'v':bdir = y.cp()
-        elif ori == 'h':bdir = x.cp()
-        else:raise ValueError
-
-        bdir.uscl(100)
-
-        s1,s2 = spos.cp().trn(bdir.flp()),spos.cp().trn(bdir.flp())
-
-        '''#
-        ax = dtl.plot_axes_xy(50)
-        ax = dtl.plot_polygon_xy(b,ax)
-        ax = dtl.plot_edges_xy((s1,s2),ax,col = 'r')
-        plt.show()
-        '''#
-
-        l,r = pym.bsegsxy(b,s1,s2)
-    else:
-        s1,s2 = pline
-        l,r = pym.bsegsxy(b,s1,s2)
-    return l,r
-
 class blggraph(db.base):
 
-    def av(self,os,kws):
+    def av(self,os,kws,null = False):
         vx = self.vcnt
         self.vcnt += 1
-        self.vs.append([vx,os,kws])
-        lvl = kws['level']
-        if lvl in self.fl_look:self.fl_look[lvl].append(vx)
-        else:self.fl_look[lvl] = [vx]
+        if null:self.vs.append(None)
+        else:
+            self.vs.append([vx,os,kws])
+            lvl = kws['level']
+            if lvl in self.fl_look:self.fl_look[lvl].append(vx)
+            else:self.fl_look[lvl] = [vx]
         return vx
 
     # connect can be True, False, or a list of points supposedly along the footprint
@@ -467,43 +414,16 @@ class blggraph(db.base):
             nv = self.vs[nvx]
             nv[2]['level'] = ev[2]['level']
         for res in ev[1]:
-            if self.vs[res] is None:continue
+            ringv = self.vs[res]
+            if ringv is None:continue
             for nvx in nvs:
                 nv = self.vs[nvx]
-                if connect is True:
-                    if not res in nv[1]:nv[1].append(res)
-                    if not nv[0] in self.vs[res][1]:
-                        self.vs[res][1].append(nv[0])
-                elif type(connect) is type(()):
-                    offset = min(nvs)
-                    if res == connect[0] and nvx-offset == connect[1]:
-                        if not res in nv[1]:nv[1].append(res)
-                        if not nv[0] in self.vs[res][1]:
-                            self.vs[res][1].append(nv[0])
-                    print('insert connection!',connect)
+                if True in nv[2]['exits']:
+                    self.ae(nvx,res)
+                    nv[2]['exits'].remove(True)
+                    break
         self.vs[rx] = None
         
-    # merge two vertices into a single vertex of their combined volume
-    def mv(self,r1x,r2x):
-        r1,r2 = self.vs[r1x],self.vs[r2x]
-        if r1[2]['level'] == r2[2]['level']:
-            print('merge vertices on the same floor',r1x,r2x)
-        else:
-            print('merge vertices on different floors',r1x,r2x)
-
-        vx = self.vcnt
-        self.vcnt += 1
-
-        pdb.set_trace()
-
-        self.vs.append([vx,os,kws])
-
-        lvl = kws['level']
-        if lvl in self.fl_look:self.fl_look[lvl].append(vx)
-        else:self.fl_look[lvl] = [vx]
-
-        return vx
-
     # add an edge between two vertices if it does not exists
     def ae(self,v1,v2):
         vv1,vv2 = self.vs[v1][1],self.vs[v2][1]
@@ -553,12 +473,21 @@ class blggraph(db.base):
         for adj in self.vs[rx][1]:
             ov = self.vs[adj]
             if ov is None:continue
+            if ov[2]['level'] != rv[2]['level']:
+                #self.shafts.append(rx)
+                continue
             ob = ov[2]['bound']
             aws = adjacentwalls(rb,ob)
             if not aws:
                 if adj in rv[1]:rv[1].remove(adj)
                 if rx in ov[1]:ov[1].remove(rx)
-        # remove any exits not along this wall
+        if rv[2]['shaft']:
+            #print('found shaft',rx)
+            if not self.shafts:
+                self.shafts.append([rx])
+            else:
+                #print('need to id correct shaft...')
+                self.shafts[-1].append(rx)
     
     # attach another graph to this one based on geometry
     # srx/orx are the indices of the adjacent rooms in each graph
@@ -571,18 +500,25 @@ class blggraph(db.base):
                 pdb.set_trace()
             else:
                 ov = o.vs[ox]
+                if ov is None:
+                    self.av(None,None,null = True)
+                    continue
                 okws = ov[2]
-                new = self.av([ovx+vc for ovx in ov[1]],okws)
+                newring = [ovx+vc for ovx in ov[1]]
+                new = self.av(newring,okws)
                 nvs.append(new)
         return nvs
 
     ###########################################################################
 
     def plotxy(self,fp = None,ax = None):
-        if ax is None:ax = dtl.plot_axes_xy(80)
+        if ax is None:ax = dtl.plot_axes_xy(50)
         for rmv in self.vs:
             if rmv is None:continue
-            ax = dtl.plot_polygon_xy(rmv[2]['bound'],ax,lw = 4)
+            if rmv[2]['level'] > 0:continue
+            bcol = 'b' if rmv[2]['shaft'] else None
+            rconb = pym.contract(rmv[2]['bound'],0.5)
+            ax = dtl.plot_polygon_xy(rconb,ax,lw = 4,col = bcol)
             rc = vec3(0,0,0).com(rmv[2]['bound'])
             rs = str(rmv[0])+','+str(rmv[1])
             ax = dtl.plot_point_xy(rc,dtl.plot_point_xy_annotate(rc,ax,rs))
@@ -592,13 +528,19 @@ class blggraph(db.base):
                     rt = (rc,vec3(0,0,0).com(self.vs[re][2]['bound']))
                     ax = dtl.plot_edges_xy(rt,ax,col = 'g')
             for exit in rmv[2]['exits']:
-                ax = dtl.plot_point_xy(exit,dtl.plot_point_xy_annotate(exit,ax,'exit'))
+                if exit is True:
+                    exitp = rc
+                    ax = dtl.plot_point_xy(exitp,
+                        dtl.plot_point_xy_annotate(exitp,ax,'exit'))
+                else:
+                    ax = dtl.plot_point_xy(exit,
+                        dtl.plot_point_xy_annotate(exit,ax,'exit'))
         if not fp is None:
             ax = dtl.plot_polygon_xy(fp,ax,lw = 2,col = 'r')
         return ax
 
     def plot(self,fp = None,ax = None):
-        if ax is None:ax = dtl.plot_axes(80)
+        if ax is None:ax = dtl.plot_axes(50)
         for rmv in self.vs:
             if rmv is None:continue
             ax = dtl.plot_polygon(rmv[2]['bound'],ax,lw = 4)
@@ -611,7 +553,13 @@ class blggraph(db.base):
                     rt = (rc,vec3(0,0,0).com(self.vs[re][2]['bound']))
                     ax = dtl.plot_edges(rt,ax,col = 'g')
             for exit in rmv[2]['exits']:
-                ax = dtl.plot_point(exit,dtl.plot_point_xy_annotate(exit,ax,'exit'))
+                if exit is True:
+                    exitp = rc
+                    ax = dtl.plot_point(exitp,
+                        dtl.plot_point_xy_annotate(exitp,ax,'exit'))
+                else:
+                    ax = dtl.plot_point(exit,
+                        dtl.plot_point_xy_annotate(exit,ax,'exit'))
         if not fp is None:
             ax = dtl.plot_polygon(fp,ax,lw = 2,col = 'r')
         return ax
@@ -622,13 +570,14 @@ class blggraph(db.base):
         def defkw(k,d):
             if not k in kws:kws[k] = d
         wcnt = len(b)
-        defkw('bound',tuple(b));defkw('exits',[])
+        dwh = self.floorheight-1.0
+        defkw('bound',tuple(b));defkw('exits',[]);defkw('rtype','room')
         defkw('floor',None);defkw('ceiling',None);defkw('shaft',False)
-        defkw('level',0);defkw('skirt',0.5);defkw('crown',1.0)
+        defkw('level',0);defkw('skirt',0.5);defkw('crown',0.5)
         defkw('fholes',[]);defkw('choles',[])
         defkw('wholes',[[] for x in range(wcnt)])
         defkw('wtypes',['e' for x in range(wcnt)])
-        defkw('wheights',[5 for x in range(wcnt)])
+        defkw('wheights',[dwh for x in range(wcnt)])
         defkw('wwidths',[0.2 for x in range(wcnt)])
         return self.av(es,kws)
 
@@ -639,19 +588,28 @@ class blggraph(db.base):
         self.vcnt = 0
         self.fl_look = {}
 
-        self._def('stack',[],**kws)
-        self._def('levels',1,**kws)
+        self._def('sequence',None,**kws)
         self._def('footprint',None,**kws)
-        self._def('floorheight',5,**kws)
+        self._def('floorheight',8,**kws)
         self._def('shafts',[],**kws)
 
     ###########################################################################
 
     # sup is a room - split it into 2 rooms and return the new one
-    def splitr(self,sup,connect = True,**kws):
+    def splitr(self,sup,line,connect = True):
         sv = self.vs[sup]
         bd = sv[2]['bound']
-        l,r = splitb(bd,**kws)
+        bprjx = vec3(1,0,0).prjps(bd)
+        bprjy = vec3(0,1,0).prjps(bd)
+        bprjz = vec3(0,0,1).prjps(bd)
+        lp = vec3(
+            bprjx[0]+line[0].x*(bprjx[1]-bprjx[0]),
+            bprjy[0]+line[0].y*(bprjy[1]-bprjy[0]),
+            bprjz[0]+line[0].z*(bprjz[1]-bprjz[0]))
+        sp1 = lp.cp().trn(line[1].cp().uscl( 1000))
+        sp2 = lp.cp().trn(line[1].cp().uscl(-1000))
+
+        l,r = pym.bsegsxy(bd,sp1,sp2)
         sv[2]['bound'] = tuple(l)
         newes = sv[1][:]+([sup] if connect else [])
         new = self.defroom(r,newes,
@@ -659,29 +617,92 @@ class blggraph(db.base):
             skirt = sv[2]['skirt'],crown = sv[2]['crown'])
         # add edge for existing room
         for vx in sv[1]:self.vs[vx][1].append(new)
-        if connect:
-            sv[1].append(new)
+        if connect:sv[1].append(new)
         return new
-    
-    ###########################################################################
 
     # nest another graph within self by replacing vertex rix
-    def insert(self,rix,o,connect = True):
+    def insert(self,rix,o):
         nvs = self.attach(None,None,o)
-        self.rv(rix,nvs,connect = connect)
+        self.rv(rix,nvs)
+        self.shafts = []
         for vx in range(self.vcnt):self.verifyedges(vx)
         return nvs
 
     ###########################################################################
 
-    def rgraph(self,fprint,ax = None,**kws):
-        self.footprint = fprint
-        rooms = [self.defroom(fprint,[],**kws)]
-        while self.stack:
-            rx,line = self.stack.pop(0)
-            new = self.splitr(rx,pline = line)
+    def graph(self,fp = None,**kws):
+        if not fp is None:self.footprint = fp
+        rooms = [self.defroom(self.footprint,[],**kws)]
+
+        def sqrd(seq,sx):
+            score = 1
+            sx += 1
+            while score > 0:
+                sx += 1
+                if seq[sx] == '<':
+                    score += 1
+                elif seq[sx] == '>':
+                    if score > 0:
+                        score -= 1
+            return sx
+
+        def level(subseq):
+            lrx = int(subseq)
+            lvkw = self.vs[lrx][2]
+            fh = self.floorheight
+            b = [p.cp().ztrn(fh) for p in lvkw['bound']]
+            nr = self.defroom(b,[],level = lvkw['level']+1)
+            self.ae(nr,lrx)
+
+        def split(subseq):
+            srx,spx,spy,spz,sdx,sdy,sdz = [float(v) for v in subseq.split(',')]
+            new = self.splitr(int(srx),(vec3(spx,spy,spz),vec3(sdx,sdy,sdz)),False)
             rooms.append(new)
-        for vx in range(self.vcnt):self.verifyedges(vx)
+
+        def rexit(subseq):
+            rx = int(subseq)
+            self.vs[rx][2]['exits'].append(True)
+
+        def edge(subseq):
+            ss = subseq.split(',')
+            self.ae(int(ss[0]),int(ss[1]))
+
+        def rtype(subseq):
+            ss = subseq.split(',')
+            self.vs[int(ss[0])][2]['rtype'] = ss[1]
+
+        def rins(subseq):
+            irx = int(subseq[:subseq.find(',')])
+            subgseq = subseq[subseq.find(',')+1:]
+            kws = {
+                'sequence':subgseq,
+                'floorheight':self.floorheight,
+                    }
+            subg = blggraph(**kws)
+            subg.graph(fp = self.vs[irx][2]['bound'])
+            for sgv in subg.vs:
+                if sgv is None:continue
+                sgv[2]['level'] = self.vs[irx][2]['level']
+            self.insert(irx,subg)
+
+        def shaft(subseq):
+            srx = int(subseq)
+            self.vs[srx][2]['shaft'] = True
+
+        grammer = {
+            'L':level,'S':split,'I':rins,'X':rexit,'E':edge,'V':shaft,'R':rtype,
+                }
+        seq = self.sequence[:]
+        scnt = len(seq)
+        sx = 0
+        while sx < scnt:
+            c = seq[sx]
+            if c in grammer:
+                ex = sqrd(seq,sx)
+                grammer[c](seq[sx+2:ex])
+            else:ex = sx+1
+            sx = ex
+        self.shafts = []
         for vx in range(self.vcnt):self.verifyedges(vx)
         return rooms       
 
@@ -700,54 +721,9 @@ class blgfactory(dfa.factory):
     def __init__(self,*ags,**kws):
         self._def('bclass',building,**kws)
         dfa.factory.__init__(self,*ags,**kws)
-    def new(self,exits,lvls,footprints,
-            fplanstacks,topocuts,topoadds,shafts,*ags,**kws):
-
-        skirt,crown,wheight,wwidth = 1,1,5,0.25
-
-        floorheight = skirt+crown+wheight
-        floorheights = [floorheight for x in range(lvls)]
-
-        blgg = blggraph(stack = [],levels = lvls,
-            floorheight = floorheight,footprint = footprints[0])
-
-        shafttopo = []
-        floorslots = []
-        for lvx in range(lvls):
-            lvbelow = [lvx-1] if lvx > 0 else []
-
-            fp,fplan,fshafts = footprints[lvx],fplanstacks[lvx],shafts[lvx]
-            ftopocuts,ftopoadds = topocuts[lvx],topoadds[lvx]
-            wcnt = len(fp)
-            whs = [wheight for x in range(wcnt)]
-            wws = [wwidth for x in range(wcnt)]
-
-            floorslots.append(blgg.defroom(fp,lvbelow,
-                exits = exits,level = lvx,wheights = whs,wwidths = wws,
-                skirt = skirt,crown = crown))
-
-            floor = blggraph(stack = fplan)
-            apts = floor.rgraph(fp,exits = exits,level = lvx,skirt = 1,crown = 1)
-            for ftc in ftopocuts:floor.re(*ftc)
-            for fta in ftopoadds:floor.ae(*fta)
-
-            vc = blgg.vcnt
-            blgg.insert(floorslots[-1],floor)
-
-            # HERE I ONLY KEEP THE FIRST SHAFT... FIX THIS LATER
-            shafttopo.append(fshafts[0]+vc)
-            if lvx == 0:
-                floor.plotxy(floor.vs[fshafts[0]][2]['bound'])
-                plt.show()
-
-        for lvx in range(1,lvls):
-            blgg.ae(shafttopo[lvx-1],shafttopo[lvx])
-            #blgg.mv(shafttopo[lvx-1],shafttopo[lvx])
-        blgg.shafts.append(shafttopo)
-
-        blgg.plot()
-        plt.show()
-
+    def new(self,*ags,**kws):
+        blgg = blggraph(**kws)
+        blgg.graph()
         kws['bgraph'] = blgg
         n = self.bclass(*ags,**kws)
         return n

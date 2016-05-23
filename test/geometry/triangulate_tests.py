@@ -2,6 +2,7 @@ from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
 
 import dilap.geometry.triangulate as dtg
+import dilap.geometry.polymath as pym
 
 #import dilap.mesh.tools as dtl
 import dilap.core.plotting as dtl
@@ -57,7 +58,14 @@ class test_triangulate(unittest.TestCase):
         #plt.show()
         self.assertTrue(dtg.tinbxy(a,b,c,bnd))
 
-    def atest_door(self):
+    def test_window(self):
+        eb = vec3(6,2.5,0).sq(12,5)
+        ib = vec3(6,2.5,0).sq(6,3)
+        eb,ibs = tuple(eb),(tuple(ib),)
+        tris,bnds = self.tribnd(eb,ibs,False,False)
+        self.show(tris,bnds)
+
+    def test_door(self):
         eb = vec3(6,2.5,0).sq(12,5)
         eb.insert(1,vec3(6.75,0,0))
         eb.insert(1,vec3(6.75,4,0))
@@ -66,9 +74,9 @@ class test_triangulate(unittest.TestCase):
 
         eb,ibs = tuple(eb),()
         tris,bnds = self.tribnd(eb,ibs,False,False)
-        self.show(tris,bnds)
+        #self.show(tris,bnds)
 
-    def atest_doorwindow(self):
+    def test_doorwindow(self):
         eb = vec3(0,0,0).sq(8,5)
 
         ddp = 1.5/(2.0*8.0)
@@ -86,37 +94,42 @@ class test_triangulate(unittest.TestCase):
 
         eb,ibs = tuple(eb),(tuple(w),)
         tris,bnds = self.tribnd(eb,ibs,False,False)
-        self.show(tris,bnds)
+        #self.show(tris,bnds)
 
-    def atest_nonxy(self):
+    def test_nonxy(self):
         q = quat(0,0,0,0).uu(vec3(0,0,1),vec3(1,0,0))
         eb = vec3(5,1,-1).sq(2,4)
         vec3(0,0,0).fulc(q,eb)
         eb,ibs = tuple(eb),()
         tris,bnds = self.tribnd(eb,ibs,False,False)
-        self.show(tris,bnds)
+        #self.show(tris,bnds)
 
-    def atest_squares(self):
+    def test_squares(self):
+        eb,ibs = tuple(vec3(5,1,-1).sq(0.2,4)),()
+        tris,bnds = self.tribnd(eb,ibs,False,False)
+        #self.show_xy(tris,bnds)
+        self.assertTrue(len(tris) == 2)
+        self.assertTrue(len(bnds) == 4)
         eb,ibs = tuple(vec3(5,1,-1).sq(2,4)),()
         tris,bnds = self.tribnd(eb,ibs,False,False)
-        self.show_xy(tris,bnds)
+        #self.show_xy(tris,bnds)
         self.assertTrue(len(tris) == 2)
         self.assertTrue(len(bnds) == 4)
         tris,bnds = self.tribnd(eb,ibs,True,False)
-        self.show_xy(tris,bnds)
+        #self.show_xy(tris,bnds)
         self.assertTrue(len(tris) == 4)
         self.assertTrue(len(bnds) == 6)
         eb,ibs = tuple(vec3(1,5,1).pring(2,4)),()
         tris,bnds = self.tribnd(eb,ibs,False,False)
-        self.show_xy(tris,bnds)
+        #self.show_xy(tris,bnds)
         self.assertTrue(len(tris) == 2)
         self.assertTrue(len(bnds) == 4)
         tris,bnds = self.tribnd(eb,ibs,True,False)
-        self.show_xy(tris,bnds)
+        #self.show_xy(tris,bnds)
         self.assertTrue(len(tris) == 2)
         self.assertTrue(len(bnds) == 4)
 
-    def atest_octagons(self):
+    def test_octagons(self):
         eb,ibs = tuple(vec3(1,-2,-1).pring(5,8)),()
         '''#
         tris,bnds = self.tribnd(eb,ibs,False,False)
@@ -138,7 +151,7 @@ class test_triangulate(unittest.TestCase):
         #tris,bnds = self.tribnd(eb,ibs,False,False)
         #self.show_xy(tris,bnds)
         tris,bnds = self.tribnd(eb,ibs,False,False)
-        self.show_xy(tris,bnds)
+        #self.show_xy(tris,bnds)
 
     def test_ushape(self):
         #eb = (
@@ -152,11 +165,11 @@ class test_triangulate(unittest.TestCase):
             vec3(-2,-2,0),vec3(-2,0,0))
         ibs = ()
 
-        ax = dtl.plot_polygon_full_xy((eb,ibs))
-        plt.show()
+        #ax = dtl.plot_polygon_full_xy((eb,ibs))
+        #plt.show()
 
         tris,bnds = self.tribnd(eb,(),True,False)
-        self.show(tris,bnds)
+        #self.show(tris,bnds)
 
         #tris,bnds = self.tribnd(ibs[0],(),False,False)
         #self.show(tris,bnds)

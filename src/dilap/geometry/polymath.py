@@ -317,6 +317,10 @@ def bsegsxy(b,s1,s2):
         elif u1o < 0 or u2o < 0:right.append((u1,u2))
         else:raise ValueError
 
+    if not left or not right:
+        print('seg missed bpoly?')
+        pdb.set_trace()
+
     ips = sintbxyp(s1,s2,b,col = False)
     left = placeseg(left,ips[0],ips[1])
     right = placeseg(right,ips[1],ips[0])

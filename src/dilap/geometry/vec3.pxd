@@ -3,8 +3,6 @@
 import dilap.geometry.tools as gtl
 cimport dilap.geometry.tools as gtl
 
-cimport dilap.geometry.triangulate as dtg
-
 from dilap.geometry.quat cimport quat
 
 stuff = 'hi'
@@ -64,6 +62,10 @@ cdef class vec3:
     cdef vec3 mid_c(self,vec3 o)
     cdef vec3 lerp_c(self,vec3 o,float ds)
     cdef list pline_c(self,vec3 o,int n)
+    cdef list spline_c(self,vec3 o,vec3 st,vec3 ot,int n)
+    cdef list ptime_c(self,list ps,list time,float alpha)
+    cdef list catmull_rom_c(self,list P,list T,int tcnt)
+    cdef float spline__FIXME_c(self,list p,list time,float t)
     cdef list pring_c(self,float r,int n)
     cdef list sq_c(self,float l,float w)
     cdef vec3 com_c(self,os)
@@ -114,6 +116,7 @@ cdef class vec3:
     cpdef vec3 mid(self,vec3 o)
     cpdef vec3 lerp(self,vec3 o,float ds)
     cpdef list pline(self,vec3 o,int n)
+    cpdef list spline(self,vec3 o,vec3 st,vec3 ot,int n)
     cpdef list pring(self,float r,int n)
     cpdef list sq(self,float l,float w)
     cpdef vec3 com(self,os)

@@ -3,6 +3,7 @@ import dilap.geometry.tools as dpr
 from dilap.geometry.vec3 import vec3 
 from dilap.geometry.quat import quat
 
+import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
 import unittest,numpy,math,random
@@ -364,6 +365,15 @@ class test_vec3(unittest.TestCase):
         self.assertTrue(dpr.isnear(d1,d2))
         self.assertTrue(dpr.isnear(d2,d3))
         self.assertTrue(self.origin.mid(self.one),pline[0].mid(pline[1]))
+
+    def test_spline(self):
+        e = vec3(10,10,1)
+        t1,t2 = vec3(1,0,0),vec3(0,-1,0)
+        pline = self.origin.spline(e,t1,t2,5)
+
+        ax = dtl.plot_axes(10)
+        ax = dtl.plot_edges(pline,ax,lw = 3,col = 'b')
+        plt.show()
 
     def test_pring(self):
         p,r,n = vec3(0,0,0),4,8

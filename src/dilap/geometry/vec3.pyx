@@ -6,8 +6,6 @@
 import dilap.geometry.tools as gtl
 cimport dilap.geometry.tools as gtl
 
-cimport dilap.geometry.triangulate as dtg
-
 from dilap.geometry.quat cimport quat
 
 from libc.math cimport sqrt
@@ -236,9 +234,9 @@ cdef class vec3:
             '''#
         else:
             u,v = self.baryxy_c(a,b,c)
-            if u > 0 or abs(u) < gtl.epsilon:
-                if v > 0 or abs(v) < gtl.epsilon:
-                    if 1-u-v > 0 or abs(1-u-v) < gtl.epsilon:
+            if u > 0 or abs(u) < gtl.epsilon_c:
+                if v > 0 or abs(v) < gtl.epsilon_c:
+                    if 1-u-v > 0 or abs(1-u-v) < gtl.epsilon_c:
                         return 1
             return 0
 
@@ -462,6 +460,68 @@ cdef class vec3:
             t = (x+1.0)/(n+1.0)
             line.append(self.lerp_c(o,t))
         return line
+
+    # return the n points appearing on a spline between self and o
+    #   st is the tangent vector as self
+    #   ot is the tangent vector at o (the end point)
+    cdef list spline_c(self,vec3 o,vec3 st,vec3 ot,int n):
+        n += 1
+        cdef vec3 p2 = self.cp().trn(st)
+        cdef vec3 p3 = o.cp().trn(ot)
+        cdef list cox = [self.x,p2.x,p3.x,o.x]
+        cdef list coy = [self.y,p2.y,p3.y,o.y]
+        cdef list coz = [self.z,p2.z,p3.z,o.z]
+        cdef list tim = [0.0,1.0,2.0,3.0]
+        cdef float alpha = 1.0/2.0
+
+        self.ptime_c([self,p2,p3,o],tim,alpha)
+
+        cox = self.catmull_rom_c(cox,tim,n)[1:-1]
+        coy = self.catmull_rom_c(coy,tim,n)[1:-1] 
+        coz = self.catmull_rom_c(coz,tim,n)[1:-1] 
+
+        cdef list spline = [vec3(*i) for i in zip(cox,coy,coz)]
+        return spline
+
+    cdef list ptime_c(self,list ps,list time,float alpha):
+        cdef float total = 0.0
+        cdef int idx
+        cdef list v1v2
+        for idx in range(1,4):
+            total += ps[idx-1].tov(ps[idx]).mag2()**(alpha)
+            time[idx] = total
+
+    # FIXXXXX
+    cdef list catmull_rom_c(self,list P,list T,int tcnt):
+        cdef int j
+        cdef int t
+        cdef float tt
+        cdef float p
+        cdef list spl = P[:1]
+        for j in range(1, len(P)-2):  # skip the ends
+            for t in range(tcnt):  # t: 0 .1 .2 .. .9
+                tt = float(t)/tcnt
+                tt = T[1] + tt*(T[2]-T[1])
+                p = self.spline__FIXME_c(
+                    [P[j-1], P[j], P[j+1], P[j+2]],
+                    [T[j-1], T[j], T[j+1], T[j+2]],tt)
+                spl.append(p)
+        spl.extend(P[-2:])
+        return spl
+
+    # FIXXXXX
+    cdef float spline__FIXME_c(self,list p,list time,float t):
+        L01 = p[0] * (time[1] - t) / (time[1] - time[0]) + p[1] * (t - time[0]) / (time[1] - time[0])
+        L12 = p[1] * (time[2] - t) / (time[2] - time[1]) + p[2] * (t - time[1]) / (time[2] - time[1])
+        L23 = p[2] * (time[3] - t) / (time[3] - time[2]) + p[3] * (t - time[2]) / (time[3] - time[2])
+        L012 = L01 * (time[2] - t) / (time[2] - time[0]) + L12 * (t - time[0]) / (time[2] - time[0])
+        L123 = L12 * (time[3] - t) / (time[3] - time[1]) + L23 * (t - time[1]) / (time[3] - time[1])
+        C12 = L012 * (time[2] - t) / (time[2] - time[1]) + L123 * (t - time[1]) / (time[2] - time[1])
+        return C12
+
+
+
+
 
     # return a ring of points of radius r with n corners
     cdef list pring_c(self,float r,int n):
@@ -745,6 +805,13 @@ cdef class vec3:
     cpdef list pline(self,vec3 o,int n):
         '''create a polyline between this and another'''
         return self.pline_c(o,n)
+
+    # return the n points appearing on a spline between self and o
+    #   st is the tangent vector as self
+    #   ot is the tangent vector at o (the end point)
+    cpdef list spline(self,vec3 o,vec3 st,vec3 ot,int n):
+        '''generate the n points appearing on a spline between self and o'''
+        return self.spline_c(o,st,ot,n)
 
     # return a ring of points of radius r with n corners
     cpdef list pring(self,float r,int n):

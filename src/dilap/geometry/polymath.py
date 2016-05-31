@@ -210,7 +210,7 @@ def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True):
         else:return None
     elif s1s2area == 0 and not dss1area == 0:return None
     elif not s1s2area == 0:
-        if not skew:return 0
+        if not skew:return None
         # if intersection at endpoints of both segments but not counting
         # elif intersection at endpoint of only one segment but not counting
         # elif no proper intersection at neither segments endpoints
@@ -221,6 +221,9 @@ def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True):
         if not ieb and ((u == 0 or u == 1) and (t == 0 or t == 1)):return None
         elif not ie and ((u == 0 or t == 0) or (u == 1 or t == 1)):return None
         elif not (0 <= u and u <= 1) or not (0 <= t and t <= 1):return None
+        # NOTE: THE ERROR HERE GETS TOO LARGE WHEN THE GEOMETRIC PROBLEM SCALES UP...
+        # NOTE: THE ERROR HERE GETS TOO LARGE WHEN THE GEOMETRIC PROBLEM SCALES UP...
+        # NOTE: THE ERROR HERE GETS TOO LARGE WHEN THE GEOMETRIC PROBLEM SCALES UP...
         else:return s11.cp().trn(s1tn.cp().uscl(t))
 
 # does a segment intersect a boundary polygon
@@ -366,6 +369,22 @@ def bsegbxy(b1,b2):
     #nb = tuple(be[1] for be in b1es)
     return b1es
 
+# given two boundary polygons, 
+# determine if any two edges are colinear and intersecting
+def badjbxy(b1,b2,minovlp = 1):
+    adjs = []
+    for b1x in range(len(b1)):
+        b1p1,b1p2 = b1[b1x-1],b1[b1x]
+        for b2x in range(len(b2)):
+            b2p1,b2p2 = b2[b2x-1],b2[b2x]
+            b1p1nr = b1p1.isnear(b2p1) or b1p1.isnear(b2p2)
+            b1p2nr = b1p2.isnear(b2p1) or b1p2.isnear(b2p2)
+            ips = sintsxyp(b1p1,b1p2,b2p1,b2p2,ie = False,skew = False)
+            if type(ips) == type(()):
+                if ips[0].d(ips[1]) > minovlp:
+                    adjs.append((b1x,b2x))
+    return adjs
+
 # produce some number of closed loops from a set of edges
 def loopseg(es):
     unfn = es[:]
@@ -374,7 +393,7 @@ def loopseg(es):
     loops = [[nxt[0]]]
 
     def pl():
-        ax = dtl.plot_axes_xy(10)
+        ax = dtl.plot_axes_xy(100)
         for e in unfn:ax = dtl.plot_edges_xy(e,ax,lw = 2,col = 'r')
         for l in loops:
             ax = dtl.plot_polygon_xy(l,ax,lw = 2)
@@ -443,33 +462,66 @@ def loopseg(es):
             else:nxt = unfn.pop(p[1])
     return loops
 
+###############################################################################
+###############################################################################
+
+###############################################################################
+### csg type functions for boundary polygons
+###############################################################################
+
+# compute the union of two boundary polygons
+def ebuxy(b1,b2):
+    print('EBUXY!',len(b1),len(b2))
+    b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
+    bo = lambda s1,s2,b : s1.inbxy(b) or s2.inbxy(b) or (s1.onbxy(b) and s2.onbxy(b))
+    b1inb2 = [p for p in b1segs if bo(p[0],p[1],b2)]
+    b2inb1 = [p for p in b2segs if bo(p[0],p[1],b1)]
+    b1only = [p for p in b1segs if not p in b1inb2]
+    b2only = [p for p in b2segs if not p in b2inb1]
+    dfs = loopseg(b1only+b2only)
+
+    '''#
+    ax = dtl.plot_axes_xy(10)
+    ax = dtl.plot_polygon_xy(b1,ax,lw = 1.0,col = None)
+    ax = dtl.plot_polygon_xy(b2,ax,lw = 1.0,col = None)
+    for df in dfs:
+        ax = dtl.plot_polygon_xy(df,ax,lw = 8.0,col = None)
+    plt.show()
+    '''#
+
+    if len(dfs) == 0:return None
+    elif len(dfs) == 1:return dfs[0]
+    else:return dfs
+
 # compute difference of boundary polygons
 def ebdxy(b1,b2):
-    b1segs = bsegbxy(b1,b2)
-    b2segs = bsegbxy(b2,b1)
+    b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
     bo = lambda s1,s2,b : s1.inbxy(b) or s2.inbxy(b) or (s1.onbxy(b) and s2.onbxy(b))
     b1only = [p for p in b1segs if not bo(p[0],p[1],b2)]
-
-    #b2inb1 = [p for p in b2segs if bo(p[0],p[1],b1)]
-    #b2inb1 = [p for p in b2segs if p[0].inbxy(b1) or p[1].inbxy(b1) or (p[0].onbxy(b2) and p[1].onbxy(b2) and p[0].onbxy(b1) and p[1].onbxy(b1))]
-    #b2inb1 = [p for p in b2segs if p[0].inbxy(b1) or p[1].inbxy(b1) or (p[0].onbxy(b1) and p[1].onbxy(b1))]
     b2inb1 = [p for p in b2segs if p[0].inbxy(b1) or p[1].inbxy(b1)]
-
-    #b2only = [p for p in b2segs if not p[0].inbxy(b1) and not p[1].inbxy(b1)]
-    #b1inb2 = [p for p in b1segs if p[0].inbxy(b2) or p[1].inbxy(b2)]
-
-    #ax = dtl.plot_axes_xy(10)
-    #for bs in b1segs:
-    #    ax = dtl.plot_edges_xy(bs,ax,lw = 1.0,col = 'r')
-    #for bs in b2segs:
-    #    ax = dtl.plot_edges_xy(bs,ax,lw = 3.0,col = 'r')
-    #for bs in b1only:
-    #    ax = dtl.plot_edges_xy(bs,ax,lw = 5.0,col = 'b')
-    #for bs in b2inb1:
-    #    ax = dtl.plot_edges_xy(bs,ax,lw = 5.0,col = 'g')
-    #plt.show()
-
     dfs = loopseg(b1only+b2inb1)
+
+    '''#
+    ax = dtl.plot_axes_xy(10)
+    ax = dtl.plot_polygon_xy(b1,ax,lw = 1.0,col = None)
+    ax = dtl.plot_polygon_xy(b2,ax,lw = 1.0,col = None)
+    for df in dfs:
+        ax = dtl.plot_polygon_xy(df,ax,lw = 8.0,col = None)
+    plt.show()
+    '''#
+
+    if len(dfs) == 0:return None
+    elif len(dfs) == 1:return dfs[0]
+    else:return dfs
+
+# compute the intersection of two boundary polygons
+def ebixy(b1,b2):
+    print('EBIXY!',len(b1),len(b2))
+    b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
+    bo = lambda s1,s2,b : s1.inbxy(b) or s2.inbxy(b) or (s1.onbxy(b) and s2.onbxy(b))
+    b1inb2 = [p for p in b1segs if bo(p[0],p[1],b2)]
+    b2inb1 = [p for p in b2segs if bo(p[0],p[1],b1)]
+    dfs = loopseg(b1inb2+b2inb1)
 
     '''#
     ax = dtl.plot_axes_xy(10)
@@ -501,6 +553,24 @@ def bnrm(b):
             pn.trn(c1c2.crs(c2c3).nrm())
     return pn.nrm()
 
+# return outward normals for each edge of a boundary polygon
+def bnrmsxy(b):
+    nms = []
+    for x in range(len(b)):
+        b1,b2 = b[x-1],b[x]
+        nms.append(b1.tov(b2).crs(vec3(0,0,1)).nrm())
+    return nms
+
+# compute the distance of a point to the line containing 
+# each edge of a boundary polygon
+def bdistpxy(b):
+    fpnms = pym.bnrmsxy(fp)
+    fpds = []
+    for x in range(len(fp)):
+        fpp,fpn = fp[x-1],fpnms[x]
+        fpds.append(abs(p.dot(fpn)-fpp.dot(fpn)))
+    return fpds
+
 # make a new boundary polygon including the midpoints of every edge
 def bisectb(b):
     nb = []
@@ -509,12 +579,12 @@ def bisectb(b):
         nb.append(b[x-1].mid(b[x]))
     return nb
 
-# THIS SHOULD BE ELSEWHERE
-def contract(ps,ds):
+# evenly contract a boundary polygon
+def contract(b,ds):
     fbnd = []
     pns = []
-    for x in range(len(ps)):
-        p1,p2,p3 = ps[x-2],ps[x-1],ps[x]
+    for x in range(len(b)):
+        p1,p2,p3 = b[x-2],b[x-1],b[x]
         w1t = p1.tov(p2).nrm()
         w2t = p2.tov(p3).nrm()
         w1n = vec3(0,0,1).crs(w1t)
@@ -523,12 +593,12 @@ def contract(ps,ds):
         s12 = p2.cp().trn(w1n).trn(w1t.cp().uscl( 100))
         s21 = p2.cp().trn(w2n).trn(w2t.cp().uscl(-100))
         s22 = p3.cp().trn(w2n).trn(w2t.cp().uscl( 100))
-        ip = sintsxyp(s11,s12,s21,s22,col = False)
+        ip = sintsxyp(s11,s12,s21,s22,ie = False,col = False)
         if ip is None:pn = p2.cp().trn(w1n)
         else:pn = ip.cp()
         pns.append(pn)
-    for x in range(len(ps)):
-        p1,p2,p3 = ps[x-2],ps[x-1],ps[x]
+    for x in range(len(b)):
+        p1,p2,p3 = b[x-2],b[x-1],b[x]
         fbnd.append(p2.lerp(pns[x],ds))
     fbnd.append(fbnd.pop(0))
     return fbnd

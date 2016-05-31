@@ -23,9 +23,9 @@ threePI = PI*3.0
 threePI2 = PI*3.0/2.0
 threePI4 = PI*3.0/4.0
 
-epsilon   = 0.001
+epsilon   = 0.0001
 epsilonsq = epsilon*epsilon
-cdef float epsilon_c   = 0.001
+cdef float epsilon_c   = 0.0001
 cdef float epsilonsq_c = epsilon*epsilon
 
 maxfloat = sys.float_info.max

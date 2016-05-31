@@ -78,8 +78,11 @@ cdef class quat:
     # between two vectors and return self
     cdef quat uu_c(self,vec3 x,vec3 y):
         cdef float a = x.ang_c(y)
-        cdef vec3 v = x.crs_c(y)
-        return self.av_c(a,v)
+        cdef vec3 v
+        if a == 0.0:self.w = 1;self.x = 0;self.y = 0;self.z = 0
+        else:
+            v = x.crs_c(y)
+            return self.av_c(a,v)
 
     # set self to the quaternion that rotates v to (0,0,1) wrt the xy plane
     cdef quat toxy_c(self,vec3 v):

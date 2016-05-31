@@ -4,104 +4,22 @@ import dilap.geometry.tools as gtl
 from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
 from dilap.geometry.pointset import pointset
-import dilap.geometry.polymath as pym
-import dilap.modeling.model as dmo
-import dilap.topology.trimesh as dtm
-import dilap.topology.tree as dtr
-import dilap.topology.vert as dvt
-import dilap.topology.edge as deg
-import dilap.topology.loop as dlp
-import dilap.topology.face as dfc
-
-import dilap.modeling.factory as dfa
 import dilap.geometry.triangulate as dtg
+import dilap.geometry.polymath as pym
+
+import dilap.modeling.model as dmo
+import dilap.modeling.factory as dfa
+
+import dilap.topology.trimesh as dtm
 
 import dilap.worldly.blgsequencing as bseq
+import dilap.worldly.polygen as pyg
 
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
 import numpy,math,random
 import pdb
-
-
-
-###############################################################################
-### functions which create geometry in the form of polygons
-###############################################################################
-
-# return geometry describing a wall from p1 to p2 of height wh with holes hs
-#   return polygons constituting a trimesh for the wall
-#   return boundary polygons where portals will connect to the wall
-def awall(p1,p2,wh,hs,hp1 = None,hp2 = None):
-    if hp1 is None:hp1 = p1
-    if hp2 is None:hp2 = p2
-    wn = p1.tov(p2).nrm().crs(vec3(0,0,1))
-    hp1.prj(p1,wn);hp2.prj(p2,wn)
-    polys,portals = [],[]
-
-    eb = [p1.cp(),p2.cp(),p2.cp().ztrn(wh),p1.cp().ztrn(wh)]
-    ibs = []
-
-    for hx in range(len(hs)):
-        h = hs[hx]
-        dx,dp,dw,dh,dz = h
-        ddp = dw/(2.0*hp1.d(hp2))
-        d1,d2 = hp1.lerp(hp2,dp-ddp),hp1.lerp(hp2,dp+ddp)
-        if dh+dz < wh:
-            h = [d2.cp().ztrn(dz),d2.cp().ztrn(dz+dh),
-                d1.cp().ztrn(dz+dh),d1.cp().ztrn(dz)]
-            portals.append(h)
-            if dz == 0:
-                for hp in h:eb.insert(1,hp)
-            else:ibs.append(h)
-        else:
-            tdz,tdh = 0,wh
-            h = [d2.cp().ztrn(tdz),d2.cp().ztrn(tdz+tdh),
-                d1.cp().ztrn(tdz+tdh),d1.cp().ztrn(tdz)]
-            portals.append(h)
-            ebextra = [d2.cp()]+eb[1:-3]+\
-                [eb[-3].cp(),eb[-3].cp().ztrn(wh),d2.cp().ztrn(wh)]
-            wpy = (tuple(ebextra),())
-            polys.append(wpy)
-            eb = [p1.cp(),d1.cp(),d1.cp().ztrn(wh),p1.cp().ztrn(wh)]
-    if eb:
-        wpy = (tuple(eb),tuple(tuple(x) for x in ibs))
-        polys.append(wpy)
-    return polys,portals
-
-# return polygons constituting a trimesh of a portal 
-def aportal(oloop,p1,p2,ww):
-    polys = []
-    pn = vec3(0,0,1).crs(p1.tov(p2).nrm()).uscl(ww)
-    iloop = [p.cp().trn(pn) for p in oloop]
-    for lx in range(len(oloop)):
-        polys.append(((iloop[lx-1],oloop[lx-1],oloop[lx],iloop[lx]),()))
-    return polys
-
-###############################################################################
-### functions which modify room instructions operationally 
-###############################################################################
-
-# given two rooms, determine which walls if any are shared by both rooms
-def adjacentwalls(r1,r2,minovlp = 1):
-    adjs = []
-    for r1x in range(len(r1)):
-        r1p1,r1p2 = r1[r1x-1],r1[r1x]
-        for r2x in range(len(r2)):
-            r2p1,r2p2 = r2[r2x-1],r2[r2x]
-            r1p1nr = r1p1.isnear(r2p1) or r1p1.isnear(r2p2)
-            r1p2nr = r1p2.isnear(r2p1) or r1p2.isnear(r2p2)
-            ips = pym.sintsxyp(r1p1,r1p2,r2p1,r2p2,ie = False,skew = False)
-            if type(ips) == type(()):
-                if ips[0].d(ips[1]) > minovlp:
-                    adjs.append((r1x,r2x))
-    return adjs
-
-###############################################################################
-###############################################################################
-
-
 
 
 
@@ -120,9 +38,9 @@ class building(cx.context):
         cx.context.__init__(self,*ags,**kws)
 
     def windowholes(self,r,w,wp1,wp2):
-        ww,wh,wz,wm = 4.0,3.0,1.0,2.0
+        ww,wh,wz,wm = 1.5,2.0,1.0,0.2
         wpd = wp1.d(wp2)
-        wcnt = int((wpd-1)/(ww+wm*2))
+        wcnt = int((wpd-1)/(ww+2*wm))
         if wcnt < 1:return
         wpoff = 1.0/wcnt
         for wx in range(wcnt):
@@ -144,7 +62,7 @@ class building(cx.context):
 
     # add information to make doors for this room based on complete topology
     def holes(self,rx):
-        dw,dh,dz = 1.5,3.0,0.0
+        dw,dh,dz = 1.5,3,0.0
         rv = self.bgraph.vs[rx]
         rb = rv[2]['bound']
         rexits = rv[2]['exits']
@@ -155,7 +73,7 @@ class building(cx.context):
             elif ov[2]['level'] < rv[2]['level']:rv[2]['shaft'] = True
             else:
                 ob = ov[2]['bound']
-                aws = adjacentwalls(rb,ob,minovlp = dw+2)
+                aws = pym.badjbxy(rb,ob,minovlp = dw+2)
                 for aw in aws:
                     rwx,owx = aw
                     ips = pym.sintsxyp(rb[rwx-1],rb[rwx],ob[owx-1],ob[owx])
@@ -166,15 +84,14 @@ class building(cx.context):
                         tww = max(rv[2]['wwidths'][rwx-1],ov[2]['wwidths'][rwx-1])
                         tdw = ips[0].d(ips[1])-2*tww
                         self.wallhole(rx,rwx-1,(adj,ridp,tdw,tdh,dz)) 
-                    else:
-                        self.wallhole(rx,rwx-1,(adj,ridp,dw,dh,dz))
+                    else:self.wallhole(rx,rwx-1,(adj,ridp,dw,dh,dz))
                     rv[2]['wtypes'][rwx-1] = 'i'
         gadjs = self.bgraph.geoadj(rx)
         for adj in gadjs:
             ov = self.bgraph.vs[adj[0]]
             if ov is None:continue
             ob = ov[2]['bound']
-            aws = adjacentwalls(rb,ob,minovlp = 0)
+            aws = pym.badjbxy(rb,ob,minovlp = 0)
             for aw in aws:
                 rwx,owx = aw
                 if rv[2]['wtypes'][rwx-1] == 'e':
@@ -206,18 +123,18 @@ class building(cx.context):
                 hs,wt = vkw['wholes'][x-1],vkw['wtypes'][x-1]
                 wh,ww = vkw['wheights'][x-1],vkw['wwidths'][x-1]
                 sh,ch = vkw['skirt'],vkw['crown']
-                wpys,portals = awall(w1,w2,wh,hs,b1.cp(),b2.cp())
+                wpys,portals = pyg.awall(w1,w2,wh,hs,b1.cp(),b2.cp())
                 for wpy in wpys:m.asurf(wpy,tm)
                 for hps in portals:
-                    wpys = aportal(hps,w1,w2,ww)
+                    wpys = pyg.aportal(hps,w1,w2,ww)
                     for wpy in wpys:m.asurf(wpy,tm)
                 if skirt:
                     sp1,sp2 = w1.cp().ztrn(-sh),w2.cp().ztrn(-sh)
-                    wpys,portals = awall(sp1,sp2,sh,[])
+                    wpys,portals = pyg.awall(sp1,sp2,sh,[])
                     for wpy in wpys:m.asurf(wpy,tm)
                 if crown:
                     cp1,cp2 = w1.cp().ztrn(wh),w2.cp().ztrn(wh)
-                    wpys,portals = awall(cp1,cp2,ch,[])
+                    wpys,portals = pyg.awall(cp1,cp2,ch,[])
                     for wpy in wpys:m.asurf(wpy,tm)
 
         def genplatform(shb,shx):
@@ -311,12 +228,12 @@ class building(cx.context):
                 wh,ww = vkw['wheights'][x-1],vkw['wwidths'][x-1]
 
                 # create wall surfaces
-                wpys,portals = awall(w1,w2,wh,hs,b1.cp(),b2.cp())
+                wpys,portals = pyg.awall(w1,w2,wh,hs,b1.cp(),b2.cp())
                 for wpy in wpys:m.asurf(wpy,tm)
 
                 # create portal surfaces
                 for hps in portals:
-                    wpys = aportal(hps,w1,w2,ww)
+                    wpys = pyg.aportal(hps,w1,w2,ww)
                     for wpy in wpys:m.asurf(wpy,tm)
 
     def genshell(self):
@@ -343,7 +260,7 @@ class building(cx.context):
                     wnm2 = vec3(0,0,1).crs(wtn2).nrm().uscl(-eww)
                     crnp1 = fp1.cp().trn(wnm1).ztrn(-ech)
                     crnp2 = fp1.cp().trn(wnm2).ztrn(-ech)
-                    wpys,portals = awall(crnp1,crnp2,fh,[])
+                    wpys,portals = pyg.awall(crnp1,crnp2,fh,[])
                     for wpy in wpys:m.asurf(wpy,tm)
                     self.rims[-1].extend([crnp1.cp().ztrn(fh),crnp2.cp().ztrn(fh)])
                 for v in self.bgraph.vs:
@@ -359,16 +276,16 @@ class building(cx.context):
                         wh = self.bgraph.floorheight-sh-ch
                         wtn = vb1.tov(vb2).crs(vec3(0,0,1)).nrm().uscl(eww)
                         wp1,wp2 = vb1.cp().trn(wtn),vb2.cp().trn(wtn)
-                        wpys,portals = awall(wp1,wp2,wh,hs)
+                        wpys,portals = pyg.awall(wp1,wp2,wh,hs)
                         for wpy in wpys:m.asurf(wpy,tm)
                         for hps in portals:
-                            wpys = aportal(hps,wp1,wp2,eww)
+                            wpys = pyg.aportal(hps,wp1,wp2,eww)
                             for wpy in wpys:m.asurf(wpy,tm)
                         sp1,sp2 = wp1.cp().ztrn(-sh),wp2.cp().ztrn(-sh)
                         cp1,cp2 = wp1.cp().ztrn( wh),wp2.cp().ztrn( wh)
-                        wpys,portals = awall(sp1,sp2,sh,[])
+                        wpys,portals = pyg.awall(sp1,sp2,sh,[])
                         for wpy in wpys:m.asurf(wpy,tm)
-                        wpys,portals = awall(cp1,cp2,ch,[])
+                        wpys,portals = pyg.awall(cp1,cp2,ch,[])
                         for wpy in wpys:m.asurf(wpy,tm)
 
     # generate a cover of the top of the top of the building
@@ -386,6 +303,11 @@ class building(cx.context):
         self.genshell()
         self.genroof()
         return self
+
+###############################################################################
+###############################################################################
+
+
 
 ###############################################################################
 ### graph structure to create building contexts from
@@ -445,7 +367,7 @@ class blggraph(db.base):
             av = self.vs[ra]
             if av is None or av is rv:continue
             ab = av[2]['bound']
-            adjwalls = adjacentwalls(bd,ab)
+            adjwalls = pym.badjbxy(bd,ab)
             for adjw in adjwalls:fnd.append((ra,adjw))
         return fnd
 
@@ -459,7 +381,7 @@ class blggraph(db.base):
         if not es:return fnd
         for ra in rv[1]:
             av = self.vs[ra]
-            adjwalls = adjacentwalls(rv[2]['bound'],av[2]['bound'])
+            adjwalls = pym.badjbxy(rv[2]['bound'],av[2]['bound'])
             for adjw in adjwalls:
                 fnd.append((ra,adjw))
         return fnd
@@ -477,7 +399,7 @@ class blggraph(db.base):
                 #self.shafts.append(rx)
                 continue
             ob = ov[2]['bound']
-            aws = adjacentwalls(rb,ob)
+            aws = pym.badjbxy(rb,ob)
             if not aws:
                 if adj in rv[1]:rv[1].remove(adj)
                 if rx in ov[1]:ov[1].remove(rx)

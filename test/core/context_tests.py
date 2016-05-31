@@ -44,7 +44,9 @@ class test_context(unittest.TestCase):
         cx = blg.building().generate()
 
     def test_world(self):
-        cx = dwo.world().generate()
+        #cx = dwo.world().generate()
+        wfa = dwo.worldfactory()
+        wcx = wfa.new()
 
 ###############################################################################
 

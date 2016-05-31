@@ -85,7 +85,8 @@ def teststage(**kws):
     #bfa = blg.blgfactory()
     #cx = bfa.new()
 
-    cx = dwo.world()
+    #cx = dwo.world()
+    cx = dwo.worldfactory().new()
     realize(cx,**kws)
 
 ###############################################################################

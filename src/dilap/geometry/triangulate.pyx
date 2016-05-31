@@ -4,7 +4,6 @@
 cimport dilap.geometry.tools as gtl
 import dilap.geometry.tools as gtl
 cimport dilap.geometry.pointset as dps
-
 cimport dilap.geometry.vec3 as dpv
 import dilap.geometry.vec3 as dpv
 from dilap.geometry.vec3 cimport vec3
@@ -32,7 +31,8 @@ cdef class triangulation:
             gx1,gx2,gx3 = gst
             #g1,g2 = self.points.get_points(gx1,gx2)
             g1,g2 = self.points.gps_c((gx1,gx2))
-            if gtl.inseg_xy_c(up,g1,g2):
+            #if gtl.inseg_xy_c(up,g1,g2):
+            if up.onsxy_c(g1,g2,ie = False):
                 return gdx
         return -1
 
@@ -380,44 +380,46 @@ cdef void plot_triangulation(triangulation data,ax = None):
 # poly contains an exterior bound and da tuple of interior bounds
 # bounds are ordered loops of points with no duplicates
 # bounds are possibly concave; interior bounds represent holes
-cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
+cdef triangulation tridata_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
     cdef vec3 p0,pn
     cdef quat prot
-
-    #if refine:
-    #    ebnd,ibnds = subdivide_edges(ebnd,ibnds)
-    #    hminnnn,ebnd,ibnds = chew1_subdivide_polygon(ebnd,ibnds)
-
     p0 = ebnd[0].cp()
-    #pn = gtl.poly_nrm(ebnd)
     pn = pym.bnrm(ebnd)
     prot = quat(0,0,0,0).toxy_c(pn)
     gtl.rot_poly_c((ebnd,ibnds),prot)
     data = triangulation(p0,pn)
-
     initialize(data,list(ebnd))
     plcedges = polygon_location(data,ebnd,ibnds)
-
     cover_polygon(data,ebnd,ibnds)
     ghost_border(data,plcedges)              
     constrain_delaunay(data)
     if refine:refine_chews_first(data,hmin)
     if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
-
     prot.flp_c()
     for p in data.points.ps:p.rot(prot)
     gtl.rot_poly_c((ebnd,ibnds),prot)
+    return data
 
-    smps = []
+cpdef triangulation tridata(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
+    return tridata_c(ebnd,ibnds,hmin,refine,smooth)
+
+# given poly, a tuple containing vectors representing a polygon
+# provide a list of simplices which triangulates the polygon
+# poly contains an exterior bound and da tuple of interior bounds
+# bounds are ordered loops of points with no duplicates
+# bounds are possibly concave; interior bounds represent holes
+cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
+    smps,gsts = [],[]
+    if hmin < 0.01:
+        print('HMIN IS TOO LOW:',hmin,' ->SKIPPING TRIANGULATION...')
+        return smps,gsts
+    data = tridata_c(ebnd,ibnds,hmin,refine,smooth)
     for tx in range(data.tricnt):
         tri = data.triangles[tx]
         if tri is None:continue
         smp = tuple([data.points.ps[px] for px in tri])
         smps.append(smp)
-
     if not smps:print('empty surface!')
-
-    gsts = []
     for gdx in range(data.ghostcnt):
         gst = data.ghosts[gdx]
         if gst is None:continue
@@ -465,6 +467,8 @@ def split_nondelauney_edges(eb,ibs):
 
     neb = handle_loop(eb)
     nibs = [handle_loop(ib) for ib in ibs]
+    #neb = split_loop(list(eb))
+    #nibs = [split_loop(list(ib)) for ib in ibs]
     return tuple(neb),tuple(tuple(nib) for nib in nibs)
 
 def split_nondelauney_edges_chew1(eb,ibs):

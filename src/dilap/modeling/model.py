@@ -174,6 +174,7 @@ class model:
                 u = vec3(0,0,0)
                 #print('no obvious projection for normal:',n,', defaulting u:',u)
         px = self.pset.ap(p)
+        #px = self.pset.np(p)
         nx = self.nset.ap(n)
         ux = self.uset.ap(u)
         return px,nx,ux
@@ -250,12 +251,61 @@ class model:
         for sd in dels:sd[0].trn(sd[1])
         if subdivbnd:self.subdivbnd(mesh)
 
+    def defuv(self,p,n):
+        if   n.isnear(vec3(1,0,0)) or n.isnear(vec3(-1,0,0)):u = vec3(p.y,p.z,0)
+        elif n.isnear(vec3(0,1,0)) or n.isnear(vec3(0,-1,0)):u = vec3(p.x,p.z,0)
+        elif n.isnear(vec3(0,0,1)) or n.isnear(vec3(0,0,-1)):u = vec3(p.x,p.y,0)
+        else:u = vec3(0,0,0)
+        return u
+
     # add a triangulated surface to a trimesh
-    def asurf(self,poly,tm = None,fm = 'generic',rv = False,ref = False,smo = False):
+    def asurf2(self,poly,tm = None,fm = 'generic',rv = False,
+                            ref = False,smo = False,hmin = 1):
         if tm is None:tm = self.agfxmesh()
         eb,ibs = poly
 
+        eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
+        if ref:
+            newhmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
+            if newhmin < hmin:
+                hmin = newhmin
+                print('newhmin < hmin ...',newhmin)
+        tdata = dtg.tridata(eb,ibs,hmin,ref,smo)
+
+        ngvs = []
+        n = None
+        for tri in tdata.triangles:
+            if tri is None:continue
+            u,v,w = tri
+            up,vp,wp = tdata.points.gps((u,v,w))
+            upx,vpx,wpx = self.pset.nps([up,vp,wp])
+
+            if n is None:
+                n = gtl.nrm(up,vp,wp)
+                nx = self.nset.np(n)
+
+            uu = self.defuv(up,n)
+            vu = self.defuv(vp,n)
+            wu = self.defuv(wp,n)
+            uux,vux,wux = self.pset.nps([up,vp,wp])
+
+            v1 = tm.avert(upx,nx,uux)
+            v2 = tm.avert(vpx,nx,vux)
+            v3 = tm.avert(wpx,nx,wux)
+            ngvs.append(v1);ngvs.append(v2);ngvs.append(v3)
+
+            if rv:f1 = tm.aface(v1,v3,v2,fm) 
+            else:f1  = tm.aface(v1,v2,v3,fm) 
+
+        return ngvs
+
+    # add a triangulated surface to a trimesh
+    def asurf(self,poly,tm = None,fm = 'generic',rv = False,
+                            ref = False,smo = False,hmin = 1):
+        if tm is None:tm = self.agfxmesh()
+        eb,ibs = poly
         av = lambda p,n : tm.avert(*self.avert(p.cp(),n))
+        ngvs = []
 
         if len(eb) < 5 and len(ibs) == 0 and not ref:
 
@@ -265,6 +315,7 @@ class model:
                 v1,v2,v3 = av(p1,n),av(p2,n),av(p3,n)
                 if rv:f1 = tm.aface(v1,v3,v2,fm) 
                 else:f1  = tm.aface(v1,v2,v3,fm) 
+                ngvs.append(v1);ngvs.append(v2);ngvs.append(v3)
 
             elif len(eb) == 4:
                 p1,p2,p3,p4 = eb
@@ -276,11 +327,18 @@ class model:
                 else:
                     f1  = tm.aface(v1,v2,v3,fm) 
                     f2  = tm.aface(v1,v3,v4,fm) 
+                ngvs.append(v1);ngvs.append(v2);ngvs.append(v3);ngvs.append(v4)
 
         else:
+            '''#
+            ngvs = self.asurf2(poly,tm,fm,rv,ref,smo,hmin)
+            '''#
             eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
-            if ref:hmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
-            else:hmin = 1
+            if ref:
+                newhmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
+                if newhmin < hmin:
+                    hmin = newhmin
+                    print('newhmin < hmin ...',newhmin)
             tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo)
             if not tris:print('asurf: empty surface')
             for tri in tris:
@@ -289,8 +347,9 @@ class model:
                 v1,v2,v3 = av(p1,n),av(p2,n),av(p3,n)
                 if rv:f1 = tm.aface(v1,v3,v2,fm) 
                 else:f1  = tm.aface(v1,v2,v3,fm) 
-
-        return self
+                ngvs.append(v1);ngvs.append(v2);ngvs.append(v3)
+                  
+        return ngvs
 
     # translate the position pointset of the model
     def trn(self,v):

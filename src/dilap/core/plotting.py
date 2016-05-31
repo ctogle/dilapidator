@@ -38,7 +38,7 @@ def plot_vector_xy(pt,tn,ax,mk = 'o',lw = 1.0,col = None):
     return ax
 
 def plot_point_xy_annotate(pt,ax,text):
-    ax.annotate(text,xy = (pt.x,pt.y),xytext = (-20, 20),
+    ax.annotate(text,xy = (pt.x,pt.y),xytext = (-2, 10),
         textcoords = 'offset points',ha = 'right',va = 'bottom',
         arrowprops = dict(arrowstyle = '->',
         connectionstyle = 'arc3,rad=0'))
@@ -66,41 +66,41 @@ def plot_points(points,ax = None,ms = None,cs = None,marker = None):
     for pdx in range(len(points)):plot_point(points[pdx],ax,ms[pdx],cs[pdx])  
     return ax
 
-def plot_edges_xy(points,ax = None,mk = None,lw = 1.0,center = False,col = None):
+def plot_edges_xy(points,ax = None,mk = None,lw = 1.0,ls = '-',center = False,col = None):
     if ax is None:ax = plot_axes_xy()
     if mk is None:mk = '+'
     if col is None:col = 'black'
     pts = [p.__iter__() for p in points]
     xs,ys,zs = zip(*pts)
-    ax.plot(xs,ys,marker = mk,lw = lw,color = col)
+    ax.plot(xs,ys,marker = mk,lw = lw,ls = ls,color = col)
     if center:
         centers = [points[x-1].mid(points[x]) for x in range(1,len(points))]
         plot_points_xy(centers,ax)
     return ax
 
-def plot_edges(points,ax = None,mk = None,lw = 1.0,center = False,col = None):
+def plot_edges(points,ax = None,mk = None,lw = 1.0,ls = '-',center = False,col = None):
     if ax is None:ax = plot_axes()
     if mk is None:mk = '+'
     if col is None:col = 'black'
     pts = [p.__iter__() for p in points]
     xs,ys,zs = zip(*pts)
-    ax.plot(xs,ys,zs,marker = mk,lw = lw,color = col)
+    ax.plot(xs,ys,zs,marker = mk,lw = lw,ls = ls,color = col)
     if center:
         centers = [points[x-1].mid(points[x]) for x in range(1,len(points))]
         plot_points(centers,ax)
     return ax
 
-def plot_polygon_xy(points,ax = None,center = False,mk = None,lw = 1.0,col = None):
+def plot_polygon_xy(points,ax = None,center = False,mk = None,lw = 1.0,ls = '-',col = None):
     epts = list(points[:])
     epts.append(points[0])
-    ax = plot_edges_xy(epts,ax,mk = mk,lw = lw,col = col)
+    ax = plot_edges_xy(epts,ax,mk = mk,lw = lw,ls = ls,col = col)
     if center:plot_point_xy(vec3(0,0,0).com(points),ax,mk = 's',col = col)
     return ax
 
-def plot_polygon(points,ax = None,center = False,mk = None,lw = 1.0,col = None):
+def plot_polygon(points,ax = None,center = False,mk = None,lw = 1.0,ls = '-',col = None):
     epts = list(points[:])
     epts.append(points[0])
-    ax = plot_edges(epts,ax,mk = mk,lw = lw,col = col)
+    ax = plot_edges(epts,ax,mk = mk,lw = lw,ls = ls,col = col)
     if center:plot_point(vec3(0,0,0).com(points),ax,mk = 's',col = col)
     return ax
 

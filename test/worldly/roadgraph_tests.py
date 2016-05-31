@@ -224,12 +224,12 @@ class test_roadgraph(unittest.TestCase):
 
         il = rg.loop(i3,i4,'ccw')
         self.assertEqual(il,[i3,i4,i5,i6,i3,i8])
-        pl(il)
+        #pl(il)
         il = rg.loop(i3,i4,'cw')
         self.assertEqual(il,[i3,i4,i5,i1,i7,i1,i2,i6])
-        pl(il)
+        #pl(il)
 
-    def atest_uloops(self):
+    def test_uloops(self):
         def pl():
             ax = rg.plot()
             for lp in loops:
@@ -253,14 +253,41 @@ class test_roadgraph(unittest.TestCase):
         r9 = rg.ae(i5,i6)
         loops = rg.uloops('ccw')
 
-        if True:pl()
+        #pl()
         self.assertEqual(len(loops),3)
 
         i7,r10 = rg.mev(i1,{'p':vec3(12,-20,0),'l':0},{})
         loops = rg.uloops('ccw')
 
-        if True:pl()
+        #pl()
         self.assertEqual(len(loops),3)
+
+    def test_polygon(self):
+        def pl():
+            ax = dtl.plot_axes_xy(50)
+            ax = dtl.plot_polygon_full_xy(py,ax,lw = 2,col = 'b')
+            plt.show()
+
+        rg = rdg.wgraph()
+
+        i1 = rg.av(p = vec3( 10,-5,0),l = 0)
+        i2 = rg.av(p = vec3( 10, 5,0),l = 0)
+        i3 = rg.av(p = vec3(-10, 5,0),l = 0)
+        i4 = rg.av(p = vec3(-10,-5,0),l = 0)
+        r1 = rg.ae(i1,i2)
+        r2 = rg.ae(i2,i3)
+        r3 = rg.ae(i3,i4)
+        r4 = rg.ae(i4,i1)
+        i5 = rg.av(p = vec3(2,-10,0),l = 0)
+        r5,r6 = rg.se(i1,i4,i5)
+        i6 = rg.av(p = vec3(-2,10,0),l = 0)
+        r7,r8 = rg.se(i2,i3,i6)
+        r9 = rg.ae(i5,i6)
+        i7,r10 = rg.mev(i1,{'p':vec3(12,-20,0),'l':0},{})
+        i8,r11 = rg.mev(i3,{'p':vec3(-5,0,0),'l':0},{})
+
+        py = rg.polygon(2,'ccw')
+        pl()
 
 ###############################################################################
 

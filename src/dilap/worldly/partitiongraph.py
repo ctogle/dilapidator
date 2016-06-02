@@ -17,21 +17,6 @@ import pdb
 ### utility functions
 ###############################################################################
 
-
-
-# read a sequence until proper ">" character is found
-def sqrd(seq,sx):
-    score = 1
-    sx += 1
-    while score > 0:
-        sx += 1
-        if seq[sx] == '<':score += 1
-        elif seq[sx] == '>':
-            if score > 0:score -= 1
-    return sx
-
-
-
 def checkseq(fp,h,seq,show = False,**kws):
     print('check-pseq:',seq)
     kws['footprint'] = fp
@@ -44,13 +29,9 @@ def checkseq(fp,h,seq,show = False,**kws):
         plt.show()
     return p
 
-
-
 ###############################################################################
 ### fundamental partition graph operations
 ###############################################################################
-
-
 
 def split(g,subseq):
     srx,spx,spy,sdx,sdy,sframe = [v for v in subseq.split(',')]
@@ -59,10 +40,55 @@ def split(g,subseq):
     fp = g.vs[int(srx)][1]['fp']
     if   sframe == 'root':  lp = g.tfp(lp,g.footprint)
     elif sframe == 'vertex':lp = g.tfp(lp,fp)
-    sp1 = lp.cp().trn(ld.cp().uscl( 100))
-    sp2 = lp.cp().trn(ld.cp().uscl(-100))
+    sp1 = lp.cp().trn(ld.cp().uscl( 10000))
+    sp2 = lp.cp().trn(ld.cp().uscl(-10000))
     l,r = pym.bsegsxy(fp,sp1,sp2)
     new = g.sv(int(srx),l,r,False,False)
+    return g
+
+# split a vertex by nesting a union of polygons as a void of the vertex
+def splotch(g,subseq):
+    irx,easement = [int(s) for s in subseq.split(',')]
+    print('SPLOTCH!',subseq)
+    iv = g.vs[irx]
+    fp = iv[1]['fp']
+
+    xprj = vec3(1,0,0).prjps(fp)
+    yprj = vec3(0,1,0).prjps(fp)
+    xlen = xprj[1]-xprj[0]
+    ylen = yprj[1]-yprj[0]
+    rad = max(xlen,ylen)/2.0
+    
+    r1 = vec3(0,10,0).com(fp).sq(30,40)
+    r2 = vec3(-10,-20,0).com(fp).sq(20,40)
+    r3 = vec3(0,-10,0).com(fp).sq(50,30)
+    rs = [r1,r2,r3]
+
+    r = rs.pop(0)
+    while rs:r = pym.ebuxy(r,rs.pop(0))
+
+    for j in range(10):r = pym.smoothxy(r,0.1)
+
+    r = pym.ebixy(fp,r)
+    l = fp
+
+    nv = g.sv(irx,l,r)
+
+    ax = dtl.plot_axes_xy(2*rad)
+    ax = dtl.plot_polygon_xy(fp,ax,lw = 6,col = None)
+    ax = dtl.plot_polygon_xy(r,ax,lw = 4,col = 'b')
+    ax = dtl.plot_polygon_xy(l,ax,lw = 2,col = 'g')
+    plt.show()
+
+    return g
+
+# contract the voids of a vertex
+def bleed(g,subseq):
+    irx,rad = subseq.split(',')
+    irx,rad = int(irx),float(rad)
+    voids = g.vs[irx][1]['voids']
+    for vx in range(len(voids)):
+        voids[vx] = pym.contract(voids[vx],rad)
     return g
 
 def merge(g,subseq):
@@ -261,6 +287,7 @@ class pgraph(db.base):
     # split a vertex based on intersection with a polyline (adds a vertex)
     def sv(self,vx,l,r,connect_split = True,connect_ring = True):
         sv = self.vs[vx]
+        if pym.binbxy(r,l):sv[1]['voids'].append(r)
         sv[1]['fp'] = l
         newes = []
         if connect_ring:newes.extend(sv[1]['edges'])
@@ -271,6 +298,7 @@ class pgraph(db.base):
             'edges':newes,'exits':[],'info':{},
                 }
         new = self.av(newkws)
+        if pym.binbxy(l,r):self.vs[new][1]['voids'].append(l)
         if connect_ring:
             for ringvx in sv[1]['edges']:
                 self.ae(new,ringvx)
@@ -316,7 +344,8 @@ class pgraph(db.base):
         
         self.grammer = {
             #'L':level,'S':split,'I':rins,'X':rexit,'E':edge,'V':shaft,'R':rtype,
-            'S':split,'M':merge,'I':insert,'X':addexit,'E':addedge,'R':settype,
+            'S':split,'J':splotch,'M':merge,'I':insert,
+            'X':addexit,'E':addedge,'R':settype,'V':bleed,
                 }
         if 'grammer' in kws:
             for eg in kws['grammer']:
@@ -325,7 +354,7 @@ class pgraph(db.base):
         rootkws = {
             'fp':[p.cp() for p in self.footprint],
             'height':self.height,'edges':[],'exits':[],
-            'type':[],'info':{},
+            'type':['ocean'],'info':{},'voids':[],
                 }
         self.av(rootkws)
 
@@ -338,7 +367,7 @@ class pgraph(db.base):
         while sx < scnt:
             c = seq[sx]
             if c in self.grammer:
-                ex = sqrd(seq,sx)
+                ex = db.seqread(seq,sx)
                 self.grammer[c](self,seq[sx+2:ex])
             else:ex = sx+1
             sx = ex

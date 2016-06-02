@@ -110,6 +110,16 @@ class wgraph(db.base):
         rwv = self.ae(w,v,**ruv[1])
         return ruv,rwv
 
+    # split an edge/road into two edges/roads
+    # make the third vertex by interpolating between the other two
+    def be(self,u,v,f = 0.5,**kws):
+        if not 'p' in kws:
+            up,vp = self.vs[u][1]['p'],self.vs[v][1]['p']
+            kws['p'] = up.lerp(vp,f)
+        nv = self.av(**kws)
+        nr1,nr2 = self.se(u,v,nv)
+        return nv,nr1,nr2
+
     ###################################
 
     # compute the counterclockwise angle between two edges
@@ -186,13 +196,14 @@ class wgraph(db.base):
                     seam.append(lpp1.cp().trn(lpnm1))
                     seam.append(lpp1.cp().trn(lpnm2))
                 else:
-                    s1 = lpp0.cp().trn(lpnm1).trn(lptn1.cp().uscl(-1000))
-                    s2 = lpp1.cp().trn(lpnm1).trn(lptn1.cp().uscl( 1000))
-                    s3 = lpp1.cp().trn(lpnm2).trn(lptn2.cp().uscl(-1000))
-                    s4 = lpp2.cp().trn(lpnm2).trn(lptn2.cp().uscl( 1000))
-                    ip = pym.sintsxyp(s1,s2,s3,s4,col = 0)
-                    if ip is None:cnm = lpnm1
-                    else:cnm = lpp1.tov(ip)
+                    if lpnm1.isnear(lpnm2):cnm = lpnm1
+                    else:
+                        s1 = lpp0.cp().trn(lpnm1).trn(lptn1.cp().uscl(-1000))
+                        s2 = lpp1.cp().trn(lpnm1).trn(lptn1.cp().uscl( 1000))
+                        s3 = lpp1.cp().trn(lpnm2).trn(lptn2.cp().uscl(-1000))
+                        s4 = lpp2.cp().trn(lpnm2).trn(lptn2.cp().uscl( 1000))
+                        ip = pym.sintsxyp(s1,s2,s3,s4,col = 0)
+                        cnm = lpp1.tov(ip)
                     seam.append(lpp1.cp().trn(cnm))
             if eseam is None:eseam = 0
             else:
@@ -201,6 +212,67 @@ class wgraph(db.base):
                     eseam = len(seams)-1
         py = (tuple(seams.pop(eseam)),tuple(tuple(s) for s in seams))
         return py
+
+    ###################################
+
+    def checkseq(self,fp,seq,show = False):
+        print('check-pseq:',seq)
+        easement = 2
+
+        def trimtofp(p1,p2,r = 5):
+            ips = pym.sintbxyp(p1,p2,fp)
+            if len(ips) > 0:
+                for ip in ips:
+                    if ip.isnear(p1):continue
+                    p2 = p1.lerp(ip,1-r/p1.d(ip))
+            return p2
+
+        def seed(rg,ss):
+            print('SEED',ss)
+            exp = fp[-1].lerp(fp[0],0.5)
+            exn = vec3(0,0,1).crs(fp[-1].tov(fp[0])).nrm()
+            ex1 = exp.cp()
+            ex2 = ex1.cp().trn(exn.cp().uscl(easement))
+            i1 = rg.av(p = ex1,l = 0)
+            i2,r1 = rg.mev(i1,{'p':ex2,'l':0},{})
+            return [i2]
+
+        def grow(rg,ss):
+            print('GROW',ss)
+            tip = nvs[-1]
+            tv = rg.vs[tip]
+            avs = [rg.vs[k] for k in rg.orings[tip]]
+            if len(avs) == 1:
+                op = tv[1]['p']
+                nptn = avs[0][1]['p'].tov(op).nrm().uscl(100)
+                np = op.cp().trn(nptn)
+                np = trimtofp(op,np,easement+10)
+                nv,nr = rg.mev(tip,{'p':np,'l':0},{})
+            return [nv]
+
+        def loop(rg,ss):
+            print('LOOP',ss)
+
+        grammer = {
+            'S':seed,
+            'G':grow,
+            'L':loop,
+                }
+
+        scnt = len(seq)
+        sx = 0
+        while sx < scnt:
+            c = seq[sx]
+            if c in grammer:
+                ex = db.seqread(seq,sx)
+                nvs = grammer[c](self,seq[sx+2:ex])
+            else:ex = sx+1
+            sx = ex
+        if show:
+            ax = self.plot()
+            ax = dtl.plot_polygon(fp,ax,col = 'r')
+            plt.show()
+        return self
 
     ###################################
 

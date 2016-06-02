@@ -563,13 +563,45 @@ def bnrmsxy(b):
 
 # compute the distance of a point to the line containing 
 # each edge of a boundary polygon
-def bdistpxy(b):
-    fpnms = pym.bnrmsxy(fp)
-    fpds = []
-    for x in range(len(fp)):
-        fpp,fpn = fp[x-1],fpnms[x]
-        fpds.append(abs(p.dot(fpn)-fpp.dot(fpn)))
-    return fpds
+def bdistpxy(b,p):
+    bnms = pym.bnrmsxy(b)
+    bds = []
+    for x in range(len(b)):
+        bpp,bpn = b[x-1],bnms[x]
+        bds.append(abs(p.dot(bpn)-bpp.dot(bpn)))
+    return bds
+
+'''#
+# find the distance from a point to the nearest wall of a boundary polygon
+#   return the index of the bounding edge and the distance to that edge
+def bnearpxy(b,p):
+    bds = pym.bdistpxy(b)
+    bpx = bds.index(min(bds))
+    return bpx,bds[bpx]
+'''#
+
+# find the nearest edge of a boundary polygon to a point
+# return the index of the edge and the associated distance
+def bnearpxy(b,p):
+    mind = 1e10
+    minx = None
+    for x in range(len(b)):
+        b1,b2 = b[x-1],b[x]
+        btn = b1.tov(b2)
+        b1p = b1.dot(btn)
+        b2p = b2.dot(btn)
+        ptn = p.dot(btn)
+        pd1 = p.d(b1)
+        pd2 = p.d(b2)
+        if pd1 < mind:mind,minx = pd1,x-1
+        if pd2 < mind:mind,minx = pd2,x
+        if (b1p <= ptn and ptn <= b2p) or (b1p >= ptn and ptn >= b2p):
+            bnm = vec3(0,0,1).crs(btn).nrm()
+            bed = abs(p.dot(bnm)-b1.dot(bnm))
+            if bed < mind:
+                mind = bed
+                minx = x
+    return minx,mind
 
 # make a new boundary polygon including the midpoints of every edge
 def bisectb(b):
@@ -589,10 +621,10 @@ def contract(b,ds):
         w2t = p2.tov(p3).nrm()
         w1n = vec3(0,0,1).crs(w1t)
         w2n = vec3(0,0,1).crs(w2t)
-        s11 = p1.cp().trn(w1n).trn(w1t.cp().uscl(-100))
-        s12 = p2.cp().trn(w1n).trn(w1t.cp().uscl( 100))
-        s21 = p2.cp().trn(w2n).trn(w2t.cp().uscl(-100))
-        s22 = p3.cp().trn(w2n).trn(w2t.cp().uscl( 100))
+        s11 = p1.cp().trn(w1n).trn(w1t.cp().uscl(-1000))
+        s12 = p2.cp().trn(w1n).trn(w1t.cp().uscl( 1000))
+        s21 = p2.cp().trn(w2n).trn(w2t.cp().uscl(-1000))
+        s22 = p3.cp().trn(w2n).trn(w2t.cp().uscl( 1000))
         ip = sintsxyp(s11,s12,s21,s22,ie = False,col = False)
         if ip is None:pn = p2.cp().trn(w1n)
         else:pn = ip.cp()
@@ -602,6 +634,17 @@ def contract(b,ds):
         fbnd.append(p2.lerp(pns[x],ds))
     fbnd.append(fbnd.pop(0))
     return fbnd
+
+# return an xy plane laplacian smoothed version of a boundary polygon
+def smoothxy(b,w = 0.1):
+    db = []
+    for x in range(len(b)):
+        b0,b1,b2 = b[x-2],b[x-1],b[x]
+        ecom = vec3(0,0,0).com((b0,b2))
+        db.append(b1.tov(ecom).uscl(w))
+    db.append(db.pop(0))
+    sb = [p.cp().trn(ds) for p,ds in zip(b,db)]
+    return sb
 
 
 

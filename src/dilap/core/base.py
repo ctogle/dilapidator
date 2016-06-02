@@ -42,5 +42,17 @@ def measure_time(func_name,func,*args,**kwargs):
     took = en-st
     return ret,took
 
+# read a sequence until proper ">" character is found
+# NOTE: handles nested subsequences...
+def seqread(seq,sx):
+    score = 1
+    sx += 1
+    while score > 0:
+        sx += 1
+        if seq[sx] == '<':score += 1
+        elif seq[sx] == '>':
+            if score > 0:score -= 1
+    return sx
+
 
 

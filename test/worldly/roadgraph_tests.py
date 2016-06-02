@@ -37,7 +37,7 @@ class test_roadgraph(unittest.TestCase):
         i5 = rg.av(p = vec3(2,-10,0),l = 0)
         r5,r6 = rg.se(i1,i4,i5)
 
-        i1 = rg.rv(i1)
+        #i1 = rg.rv(i1)
 
         if False:
             ax = rg.plot()
@@ -65,19 +65,6 @@ class test_roadgraph(unittest.TestCase):
             ax = rg.plot()
             ax = dtl.plot_polygon(fp,ax,col = 'b')
             ax = dtl.plot_point(ex,ax,col = 'r')
-            plt.show()
-
-        def veri(rg,fp,p,r = 25):
-            fpnms = pym.bnrmsxy(fp)
-
-            fpds = pym.bdistpxy(fp)
-            fpix = fpds.index(min(fpds))
-            print('fpds',fpds,fpix)
-
-            ax = dtl.plot_axes_xy(100)
-            ax = dtl.plot_polygon_xy(fp,ax)
-            ax = dtl.plot_point_xy(p,ax,col = 'r')
-            ax = dtl.plot_edges_xy((fp[fpix-1],fp[fpix]),ax,lw = 3,col = 'g')
             plt.show()
 
         # given a footprint, a point within the footprint, and a point
@@ -143,7 +130,6 @@ class test_roadgraph(unittest.TestCase):
         i5,r4 = mr(rg,fp,i4)
         i6,r5 = mr(rg,fp,i5)
 
-        #veri(rg,fp,p2)
         #i2,r1 = rg.mev(i1,{'p':p2,'l':0},{})
 
         if False:pl()
@@ -287,7 +273,14 @@ class test_roadgraph(unittest.TestCase):
         i8,r11 = rg.mev(i3,{'p':vec3(-5,0,0),'l':0},{})
 
         py = rg.polygon(2,'ccw')
-        pl()
+        #pl()
+
+    def test_checkseq(self):
+
+        fp = vec3(0,0,0).pring(100,5)
+        seq = 'S<>G<>L<>'
+        
+        rg = rdg.wgraph().checkseq(fp,seq,True)
 
 ###############################################################################
 

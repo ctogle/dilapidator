@@ -284,15 +284,17 @@ def bintbxy(b1,b2,ie = True,ieb = True,col = True):
 # given a sequence of segments with potential gaps, 
 # determine where the sg could first be attached
 #
-def placeseg(segs,s1,s2):
+def placeseg(segs,s1,s2,r = 0.1):
     s1xy,s2xy = s1.cpxy(),s2.cpxy()
     for sx in range(len(segs)):
         os1,os2 = segs[sx]
         os1xy,os2xy = os1.cpxy(),os2.cpxy()
-        if os1xy.isnear(s2xy):
+        #if os1xy.isnear(s2xy):
+        if os1xy.d(s2xy) < r:
             segs.insert(sx,(s1,s2))
             return segs
-        elif os1xy.isnear(s1xy):
+        #elif os1xy.isnear(s1xy):
+        elif os1xy.d(s1xy) < r:
             segs.insert(sx,(s2,s1))
             return segs
 

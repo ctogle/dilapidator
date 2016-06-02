@@ -7,6 +7,8 @@ from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
 import dilap.geometry.polymath as pym
 
+import dilap.topology.planargraph as pgr
+
 import dilap.worldly.terrain as ter
 import dilap.worldly.treeskin as ltr
 import dilap.worldly.building as blg
@@ -60,11 +62,28 @@ class worldfactory(dfa.factory):
         #worldseq = 'J<0,2>C<1>'
 
         toposeq = 'FF'
-        worldseq = 'J<0,2>V<0,3>R<1,natural>L<1,50,-1,'+toposeq+'>T<2>'
+
+        contseq =  'R<0,natural>'
+        contseq += 'S<0,0.5,0.5,0,1,vertex>'
+        contseq += 'S<1,0.5,0.5,1,0,vertex>'
+        contseq += 'S<0,0.5,0.5,1,0,vertex>'
+        contseq += 'E<0,1>E<1,2>E<2,3>E<3,0>'
+        contseq += 'M<0,S<>G<>L<>,>'
+        contseq += 'T<2>'
+        #contseq += 'M<0>T<2>'
+
+
+        # USE SPLOTCH TO ESTABLISH A COASTLINE!!
+
+        # WHAT IS THE EXACT INTERPLAY OF THE 
+        # TERRAINMESH OBJECT AND THE CONTINENT SPLIT SEQUENCE....?
+
+
+        worldseq = 'J<0,2,AV>V<0,3>R<1,natural>L<1,50,-1,'+toposeq+'>I<1,'+contseq+'>'
 
         eg = {
           'L':cartographer,
-          'C':continent, # partitions an island (coasts, forests, mountains, etc)
+          #'C':continent, # partitions an island (coasts, forests, mountains, etc)
           'M':metropolis, # partition an area into a city...
           'T':stitch, # ensure the terrain seam of each region is functional
               }
@@ -136,10 +155,10 @@ class worldfactory(dfa.factory):
         else:ngvs = m.asurf((tseam,()),tm,ref = True,hmin = pg.stitchsize)
         #ngvs = m.asurf((tseam,()),tm,ref = True,hmin = pg.stitchsize)
 
-        if 'terrainmesh' in v[1]:
+        if 'terrainmesh' in v[1]['info']:
             for ngv in ngvs:
                 p = m.pset.ps[tm.verts[ngv][0]]
-                p.ztrn(v[1]['terrainmesh'](p.x,p.y))
+                p.ztrn(v[1]['info']['terrainmesh'](p.x,p.y))
 
         #for ngv in ngvs:
         #    p = m.pset.ps[tm.verts[ngv][0]]
@@ -162,14 +181,14 @@ class worldfactory(dfa.factory):
         print('pg.stitchsize',pg.stitchsize)
         ifp = pym.contract(fp,pg.stitchsize)
 
-        if True:ngvs = m.asurf((tseam,voids),tm,ref = True,hmin = pg.stitchsize)
-        else:ngvs = m.asurf((tseam,()),tm,ref = True,hmin = pg.stitchsize)
-        #ngvs = m.asurf((tseam,()),tm,ref = True,hmin = pg.stitchsize)
+        ngvs = m.asurf((tseam,voids),tm,ref = True,hmin = pg.stitchsize)
 
-        for ngv in ngvs:
-            p = m.pset.ps[tm.verts[ngv][0]]
-            p.ztrn(terrain_zfunc(p.x,p.y))
+        if 'terrainmesh' in v[1]['info']:
+            for ngv in ngvs:
+                p = m.pset.ps[tm.verts[ngv][0]]
+                p.ztrn(v[1]['info']['terrainmesh'](p.x,p.y))
 
+        '''#
         m = dmo.model()
         sgv = w.amodel(None,None,None,m,w.sgraph.root)
         tm = m.agfxmesh()
@@ -177,6 +196,7 @@ class worldfactory(dfa.factory):
             p1,p2 = ifp[x-1],ifp[x]
             p4,p3 = p1.cp().ztrn(10),p2.cp().ztrn(10)
             m.asurf(((p1,p2,p3,p4),()),tm,ref = False)
+        '''#
         #m.asurf(([p.cp().ztrn(10) for p in ifp],()),tm,ref = False)
 
     def vgen_corridor(self,w,v,pg):
@@ -189,17 +209,15 @@ class worldfactory(dfa.factory):
 
         xpj = vec3(1,0,0).prjps(fp)
         fpl = xpj[1]-xpj[0]
-        #ifp = vec3(0,0,0).com(fp).sq(fpl-pg.stitchsize,fpl-pg.stitchsize)
-        print('pg.stitchsize',pg.stitchsize)
-        ifp = pym.contract(fp,pg.stitchsize)
 
-        #if False:ngvs = m.asurf((tseam,(ifp,)),tm,fm = 'concrete1',ref = True,hmin = pg.stitchsize)
-        #else:ngvs = m.asurf((tseam,()),tm,ref = True,hmin = pg.stitchsize)
+        print('pg.stitchsize',pg.stitchsize)
+
         ngvs = m.asurf((tseam,()),tm,fm = 'concrete1',ref = True,hmin = pg.stitchsize)
 
-        for ngv in ngvs:
-            p = m.pset.ps[tm.verts[ngv][0]]
-            p.ztrn(terrain_zfunc(p.x,p.y))
+        if 'terrainmesh' in v[1]['info']:
+            for ngv in ngvs:
+                p = m.pset.ps[tm.verts[ngv][0]]
+                p.ztrn(v[1]['info']['terrainmesh'](p.x,p.y))
 
         return
 
@@ -225,7 +243,6 @@ class worldfactory(dfa.factory):
 ### sequences
 ###############################################################################
 
-
 # create a topography for use within a vertex 
 def cartographer(g,subseq):
     ss = subseq.split(',')
@@ -234,27 +251,8 @@ def cartographer(g,subseq):
     h = float(ss[1])
     tseq = ss[3]
     tm = ter.checkseq(fp,h,tseq,True)
-    tv[1]['terrainmesh'] = tm
+    tv[1]['info']['terrainmesh'] = tm
     return g
-
-
-
-# continent must partition an entire continent of "natural" space
-#   into "natural", "developed", and "corridor" regions
-def continent(g,subseq):
-    irx = int(subseq)
-    print('CONTINENT!',subseq)
-    seq = subseq+','
-    seq += 'R<0,natural>'
-    seq += 'S<0,0.5,0.5,0,1,vertex>'
-    seq += 'S<1,0.5,0.5,1,0,vertex>'
-    seq += 'S<0,0.5,0.5,1,0,vertex>'
-    seq += 'E<0,1>E<1,2>E<2,3>E<3,0>'
-    seq += 'M<0>T<5>'
-
-    #ptg.checkseq(g.vs[irx][1]['fp'],20,seq,True,grammer = g.grammer)
-
-    ptg.insert(g,seq)
 
 # given a "natural" space, 
 # create a sequence which generates a "developed" space
@@ -266,7 +264,8 @@ def continent(g,subseq):
 #   this should include the vertex where this road should find
 #       another metropolitan area
 def metropolis(g,subseq):
-    irx = int(subseq)
+    irx,rseq,bseq = subseq.split(',')
+    irx = int(irx)
     iv = g.vs[irx]
     print('METROPOLIS!',subseq)
 
@@ -280,48 +279,32 @@ def metropolis(g,subseq):
     iv[1]['type'] = ['developed']
     fp = iv[1]['fp']
 
+    rg = pgr.graph()
+    rg = rdg.checkseq(rg,fp,rseq,True)
 
-    seq = 'S<>G<>L<>'
-    rg = rdg.wgraph().checkseq(fp,seq,True)
+    rgpy = rg.polygon(1,'ccw')
 
-    '''#
-    mc = vec3(0,0,0).com(fp)
-    exp = fp[-1].lerp(fp[0],0.5)
-    exn = vec3(0,0,1).crs(fp[-1].tov(fp[0])).nrm()
+    rgpyi = list(rgpy[0])
+    #rgpyi = pym.ebixy(fp,rgpy[0])
+    if pym.bnrm(rgpyi).z < 0:
+        rgpyi.reverse()
+        rgpy = (tuple(rgpyi),rgpy[1])
 
-    exits = [
-        (exp.cp(),exn.cp()),
-            ]
+    easement_py = pym.ebdxy(fp,rgpyi)
+    #easement_py = fp
 
-
-
-    ex = exits[0]
-
-    ex1 = ex[0].cp()
-    ex2 = ex1.cp().trn(ex[1].cp().uscl(easement))
-
-    rg = rdg.wgraph()
-    i1 = rg.av(p = ex1,l = 0)
-    i2,r1 = rg.mev(i1,{'p':ex2,'l':0},{})
-    i3,r2 = rg.mev(i2,{'p':mc,'l':0},{})
-
-    up,vp = rg.vs[i2][1]['p'],rg.vs[i3][1]['p']
-    i4,r3,r4 = rg.be(i2,i3,f = 0.8,l = 0)
-    '''#
-
-    rgpy = rg.polygon(3,'ccw')
-
+    #rgpyi = pym.ebixy(fp,rgpy[0])
 
     ax = rg.plot()
-    ax = dtl.plot_polygon(fp,ax,col = 'b',lw = 2)
-    ax = dtl.plot_polygon_full(rgpy,ax,col = 'r',lw = 2)
+    ax = dtl.plot_polygon(easement_py,ax,col = 'b',lw = 2)
+    #ax = dtl.plot_polygon(rgpyi,ax,col = 'g',lw = 2)
+    #ax = dtl.plot_polygon_full(rgpy,ax,col = 'r',lw = 2)
     plt.show()
-
     
-    easement_py = pym.ebdxy(fp,rgpy[0])
-
-    new = g.sv(irx,easement_py,rgpy[0])
+    new = g.sv(irx,easement_py,rgpyi)
     g.vs[new][1]['type'] = ['corridor']
+
+
 
     '''#
     mseq = subseq+','

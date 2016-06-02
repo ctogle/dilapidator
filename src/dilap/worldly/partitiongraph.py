@@ -48,8 +48,9 @@ def split(g,subseq):
 
 # split a vertex by nesting a union of polygons as a void of the vertex
 def splotch(g,subseq):
-    irx,easement = [int(s) for s in subseq.split(',')]
-    print('SPLOTCH!',subseq)
+    irx,easement,splotchseq = subseq.split(',')
+    irx,easement = int(irx),float(easement)
+    print('SPLOTCH!',subseq,splotchseq)
     iv = g.vs[irx]
     fp = iv[1]['fp']
 
@@ -208,11 +209,14 @@ class pgraph(db.base):
 
         print('merge vertices!',u,v)
 
+        raise NotImplemented
+
 
 
     # replace a vertex with the vertices of another graph
     def rvag(self,vx,og,connect_all = False):
         vc = self.vcnt
+        v = self.vs[vx]
         nvs = []
         for ox in range(og.vcnt):
             ov = og.vs[ox]
@@ -222,9 +226,10 @@ class pgraph(db.base):
             okws = ov[1]
             newring = [ovx+vc for ovx in okws['edges']]
             okws['edges'] = newring
+            if 'terrainmesh' in v[1]['info']:
+                okws['info']['terrainmesh'] = v[1]['info']['terrainmesh']
             new = self.av(okws)
             nvs.append(new)
-        v = self.vs[vx]
         for res in v[1]['edges']:
             ringv = self.vs[res]
             if ringv is None:continue
@@ -292,10 +297,13 @@ class pgraph(db.base):
         newes = []
         if connect_ring:newes.extend(sv[1]['edges'])
         if connect_split:newes.append(vx)
+        vinfo = {}
+        if 'terrainmesh' in sv[1]['info']:
+            vinfo['terrainmesh'] = sv[1]['info']['terrainmesh']
         newkws = {
             'fp':r,'voids':[],
             'height':sv[1]['height'],'type':sv[1]['type'][:],
-            'edges':newes,'exits':[],'info':{},
+            'edges':newes,'exits':[],'info':vinfo,
                 }
         new = self.av(newkws)
         if pym.binbxy(l,r):self.vs[new][1]['voids'].append(l)
@@ -343,7 +351,6 @@ class pgraph(db.base):
         self._def('sequence','',**kws)
         
         self.grammer = {
-            #'L':level,'S':split,'I':rins,'X':rexit,'E':edge,'V':shaft,'R':rtype,
             'S':split,'J':splotch,'M':merge,'I':insert,
             'X':addexit,'E':addedge,'R':settype,'V':bleed,
                 }

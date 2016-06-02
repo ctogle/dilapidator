@@ -36,15 +36,16 @@ class tmesh(db.base):
     # determine the one or two loops which locate this point topologically
     # find the vertex such that p is in the loop but non of the children
     def loc(self,p):
+        lst = None
         unfn = [self.root]
         while unfn:
             v = unfn.pop(0)
-            if p.onbxy(v.loop):
-                return v,[]
+            if p.onbxy(v.loop):return v,[]
             elif p.inbxy(v.loop):
                 chs = self.looptree.below(v)
                 unfn.extend(chs)
                 lst = v,chs
+        if lst is None:lst = self.root,[]
         return lst
 
     # given a parent loop, a zoffset, and a radial offset
@@ -115,6 +116,8 @@ def checkseq(fp,h,seq,show = False):
     return t
 
 ###############################################################################
+
+
 
 
 

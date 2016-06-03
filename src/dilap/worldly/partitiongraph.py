@@ -75,7 +75,7 @@ def splotch(g,subseq):
     r = dbl.block('C',rad/3.0,rad,rad)
     r = r[0]
 
-    #for j in range(10):r = pym.smoothxy(r,0.1)
+    for j in range(3):r = pym.smoothxy(r,0.1)
 
     #r = pym.ebixy(fp,r)
     l = fp

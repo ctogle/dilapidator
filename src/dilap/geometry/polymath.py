@@ -1,6 +1,8 @@
 from dilap.geometry.vec3 import vec3
 import dilap.geometry.tools as gtl
 
+import dilap.topology.planargraph as pgr
+
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
@@ -8,89 +10,6 @@ import numpy,math
 
 import pdb
 
-
-
-# compute union of two polygons
-def polyu(p1,p2):
-    raise NotImplemented
-    return p1
-
-# compute intersect of two polygons
-def polyi(p1,p2):
-    raise NotImplemented
-    return p1
-
-# compute difference of two polygons
-def polyd(p1,p2):
-    # if ext p1 contains ext p2, consider holes of p1 and ext of p2
-    eb1,eb2 = list(p1[0]),list(p2[0])
-
-    #if pdisjp(eb1,eb2):
-    #    print('p2 is nonoverlapping p1')
-    #    return p1
-
-    if binbxy(eb1,eb2,ie = False):
-        print('eb1 contained by eb2')
-        raise ValueError
-
-    elif binbxy(eb2,eb1,ie = False):
-        print('eb2 contained by eb1')
-        print('if ib1s contact eb2, union, else just add to ib1')
-        return (tuple(eb1),(tuple(eb2),))
-
-    elif bintbxy(eb1,eb2,ie = True):
-        print('eb1 and eb2 intersect!')
-        neb = ebdxy(eb1,eb2)
-        return (tuple(neb),p1[1])
-
-    print('off record')
-    return p1
-
-
-    np1,np2 = [],[]
-    for x1 in range(len(eb1)):
-        ep11,ep12 = eb1[x1-1].cpxy(),eb1[x1].cpxy()
-
-        if ep11.inbxy(eb2):
-            print('ep11 inside boundary')
-        elif ep11.onbxy(eb2):
-            print('ep11 on boundary')
-            np1.append(ep11)
-        else:
-            print('ep11 outside boundary')
-            np1.append(ep11)
-            if ep12.inbxy(eb2):
-                print('find intersection and add that; look for p2 points?')
-
-        #for x2 in range(len(eb2)):
-        #    ep21,ep22 = eb2[x2-1].cpxy(),eb2[x2].cpxy()
-
-    for x2 in range(len(eb2)):
-        ep21,ep22 = eb2[x2-1].cpxy(),eb2[x2].cpxy()
-
-        if ep21.inbxy(eb1):
-            print('ep21 inside boundary')
-            np2.append(ep21)
-        elif ep21.onbxy(eb1):
-            print('ep21 on boundary')
-        else:
-            print('ep21 outside boundary')
-
-    if not np1:
-        print('polyd:p1 contained by p2')
-        raise ValueError
-        
-    #ax = dtl.plot_axes()
-    #ax = dtl.plot_polygon(eb2,ax)
-    #ax = dtl.plot_point(ep11,ax)
-    #plt.show()
-
-    print('compute polygon difference!')
-    nibs = []
-
-    if len(np2) == len(eb2):nibs.append(np2)
-
-    return tuple(np1),tuple(tuple(n) for n in nibs)
 
 
 ###############################################################################
@@ -281,71 +200,49 @@ def bintbxy(b1,b2,ie = True,ieb = True,col = True):
                 return 1
     return 0
 
-# given a sequence of segments with potential gaps, 
-# determine where the sg could first be attached
-#
-def placeseg(segs,s1,s2,r = 0.1):
-    s1xy,s2xy = s1.cpxy(),s2.cpxy()
-    for sx in range(len(segs)):
-        os1,os2 = segs[sx]
-        os1xy,os2xy = os1.cpxy(),os2.cpxy()
-        #if os1xy.isnear(s2xy):
-        if os1xy.d(s2xy) < r:
-            segs.insert(sx,(s1,s2))
-            return segs
-        #elif os1xy.isnear(s1xy):
-        elif os1xy.d(s1xy) < r:
-            segs.insert(sx,(s2,s1))
-            return segs
-
-    print('failed to placeseg')
-    ax = dtl.plot_axes_xy(60)
-    for s in segs:
-        ax = dtl.plot_edges_xy(s,ax,lw = 2,col = 'b')
-    ax = dtl.plot_edges_xy((s1xy,s2xy),ax,lw = 4,col = 'g')
-    plt.show()
-
-    pdb.set_trace()
+# produce some number of closed loops from a set of edges
+def sloops(es,epsilon = 0.1):
+    def fp(p):
+        for j in range(g.vcnt):
+            #if g.vs[j][1]['p'].isnear(p):
+            if g.vs[j][1]['p'].d(p) < epsilon:
+                return j
+        return g.av(p = p.cp())
+    g = pgr.graph()
+    for e1,e2 in es:
+        v1,v2 = fp(e1),fp(e2)
+        if not v2 in g.rings[v1]:
+            g.ae(v1,v2)
+    uls = g.uloops('ccw')
+    ols = [[g.vs[j][1]['p'].cp() for j in ul] for ul in uls]
+    for ol in ols:
+        if bnrm(ol).z < 0:ol.reverse()
+    return ols
 
 # segment a boundary polygon based on intersections with a line segment
 # return two new boundary polygons
 def bsegsxy(b,s1,s2):
     #bes = [(b[x-1].cp(),b[x].cp()) for x in range(len(b))]
     bes = bsegbxy(b,(s1,s2))
-    left,right = [],[]
+    left,right,center = [],[],[]
     while bes:
         u1,u2 = bes.pop(0)
         u1o = gtl.orient2d(s1,s2,u1)
         u2o = gtl.orient2d(s1,s2,u2)
-        if u1o == 0 and u2o == 0:pass
+        if u1o == 0 and u2o == 0:center.append((u1,u2))
         elif u1o > 0 or u2o > 0:left.insert(0,(u2,u1))
         elif u1o < 0 or u2o < 0:right.append((u1,u2))
         else:raise ValueError
-
     if not left or not right:
-        print('seg missed bpoly?')
-        pdb.set_trace()
-
-    ips = sintbxyp(s1,s2,b,col = False)
-    left = placeseg(left,ips[0],ips[1])
-    right = placeseg(right,ips[1],ips[0])
-    leftb = [left[x][1] for x in range(len(left))][::-1]
-    rightb = [right[x][1] for x in range(len(right))]
-
-    '''#
-    ax = dtl.plot_axes_xy(50)
-    ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'g')
-    ax = dtl.plot_edges_xy((s1,s2),ax,lw = 2)
-    for e in left:
-        ax = dtl.plot_edges_xy(e,ax,lw = 2,col = 'b')
-    for e in right:
-        ax = dtl.plot_edges_xy(e,ax,lw = 2,col = 'r')
-    ax = dtl.plot_polygon_xy(contract(leftb,0.25),ax,lw = 2,col = 'g')
-    ax = dtl.plot_polygon_xy(contract(rightb,0.25),ax,lw = 2,col = 'g')
-    plt.show()
-    '''#
-
-    return leftb,rightb
+        print('seg missed bpoly')
+        bs = [b]
+    else:
+        ips = sintbxyp(s1,s2,b,col = False)
+        icnt = len(ips)
+        iedges = [(ips[x-1].cp(),ips[x].cp()) for x in range(1,icnt) if x % 2 != 0]
+        if iedges:bs = sloops(left+iedges)+sloops(right+iedges)
+        else:bs = [b]
+    return bs
 
 # segment a boundary polygon based on intersections with another
 def bsegbxy(b1,b2):
@@ -368,7 +265,6 @@ def bsegbxy(b1,b2):
                 b1es.append((lst.cp(),nxt.cp()))
                 lst = nxt
             b1es.append((lst.cp(),u2.cp()))
-    #nb = tuple(be[1] for be in b1es)
     return b1es
 
 # given two boundary polygons, 
@@ -387,83 +283,6 @@ def badjbxy(b1,b2,minovlp = 1):
                     adjs.append((b1x,b2x))
     return adjs
 
-# produce some number of closed loops from a set of edges
-def loopseg(es):
-    unfn = es[:]
-    nxt = unfn.pop(0)
-    lst = nxt
-    loops = [[nxt[0]]]
-
-    def pl():
-        ax = dtl.plot_axes_xy(100)
-        for e in unfn:ax = dtl.plot_edges_xy(e,ax,lw = 2,col = 'r')
-        for l in loops:
-            ax = dtl.plot_polygon_xy(l,ax,lw = 2)
-        ax = dtl.plot_edges_xy([nxt[1],u1],ax,col = 'g',lw = 5.0)
-        ax = dtl.plot_edges_xy([lst[1],u1],ax,col = 'b',lw = 3.0)
-        plt.show()
-
-    lost = False
-    while unfn:
-
-        if lost:
-            print('im lost!!',len(unfn))
-            pl()
-            #pdb.set_trace()
-            return loops
-
-        lost = True
-        nxtpotentials = []
-        lstpotentials = []
-        for ufx in range(len(unfn)):
-            u1,u2 = unfn[ufx]
-            if u1.isnear(nxt[1]):
-                nxtpotentials.append((u1,ufx,False))
-                lost = False
-                #pl()
-            elif u2.isnear(nxt[1]):
-                nxtpotentials.append((u2,ufx,True))
-                lost = False
-                #pl()
-            elif u2.isnear(lst[0]):
-                lstpotentials.append((u1,ufx,False))
-                lost = False
-                #pl()
-            elif u1.isnear(lst[0]):
-                lstpotentials.append((u2,ufx,True))
-                lost = False
-                #pl()
-
-        if len(nxtpotentials) == 0:
-            if len(lstpotentials) == 1:
-                p = lstpotentials[0]
-                loops[-1].insert(0,p[0])
-                if p[2]:lst = unfn.pop(p[1])[::-1]
-                else:lst = unfn.pop(p[1])
-            elif len(lstpotentials) > 1:
-                pdb.set_trace()
-        if len(nxtpotentials) == 1:
-            p = nxtpotentials[0]
-            loops[-1].append(p[0])
-            if p[2]:nxt = unfn.pop(p[1])[::-1]
-            else:nxt = unfn.pop(p[1])
-            #pl()
-        elif len(nxtpotentials) > 1:
-
-            ax = dtl.plot_axes_xy(10)
-            for p in nxtpotentials:
-                print('nxtpotential',p)
-                if p[2]:ax = dtl.plot_edges_xy([nxt[1],p[0]],ax,lw = 6,col = 'g')
-                else:ax = dtl.plot_edges_xy([nxt[1],p[0]],ax,lw = 6,col = 'g')
-            plt.show()
-            #pdb.set_trace()
-            
-            p = nxtpotentials[0]
-            loops[-1].append(p[0])
-            if p[2]:nxt = unfn.pop(p[1])[::-1]
-            else:nxt = unfn.pop(p[1])
-    return loops
-
 ###############################################################################
 ###############################################################################
 
@@ -479,7 +298,7 @@ def ebuxy(b1,b2):
     b2inb1 = [p for p in b2segs if bo(p[0],p[1],b1)]
     b1only = [p for p in b1segs if not p in b1inb2]
     b2only = [p for p in b2segs if not p in b2inb1]
-    dfs = loopseg(b1only+b2only)
+    dfs = sloops(b1only+b2only)
     if len(dfs) == 0:return None
     elif len(dfs) == 1:return dfs[0]
     else:return dfs
@@ -490,7 +309,7 @@ def ebdxy(b1,b2):
     bo = lambda s1,s2,b : s1.inbxy(b) or s2.inbxy(b) or (s1.onbxy(b) and s2.onbxy(b))
     b1only = [p for p in b1segs if not bo(p[0],p[1],b2)]
     b2inb1 = [p for p in b2segs if p[0].inbxy(b1) or p[1].inbxy(b1)]
-    dfs = loopseg(b1only+b2inb1)
+    dfs = sloops(b1only+b2inb1)
     if len(dfs) == 0:return None
     elif len(dfs) == 1:return dfs[0]
     else:return dfs
@@ -501,12 +320,11 @@ def ebixy(b1,b2):
     bo = lambda s1,s2,b : s1.inbxy(b) or s2.inbxy(b) or (s1.onbxy(b) and s2.onbxy(b))
     b1inb2 = [p for p in b1segs if bo(p[0],p[1],b2)]
     b2inb1 = [p for p in b2segs if bo(p[0],p[1],b1)]
-    dfs = loopseg(b1inb2+b2inb1)
+    dfs = sloops(b1inb2+b2inb1)
     if len(dfs) == 0:return None
     elif len(dfs) == 1:return dfs[0]
     else:return dfs
 
-###############################################################################
 ###############################################################################
 ###############################################################################
 
@@ -540,15 +358,6 @@ def bdistpxy(b,p):
         bpp,bpn = b[x-1],bnms[x]
         bds.append(abs(p.dot(bpn)-bpp.dot(bpn)))
     return bds
-
-'''#
-# find the distance from a point to the nearest wall of a boundary polygon
-#   return the index of the bounding edge and the distance to that edge
-def bnearpxy(b,p):
-    bds = pym.bdistpxy(b)
-    bpx = bds.index(min(bds))
-    return bpx,bds[bpx]
-'''#
 
 # find the nearest edge of a boundary polygon to a point
 # return the index of the edge and the associated distance
@@ -615,6 +424,11 @@ def smoothxy(b,w = 0.1):
     db.append(db.pop(0))
     sb = [p.cp().trn(ds) for p,ds in zip(b,db)]
     return sb
+
+###############################################################################
+###############################################################################
+
+
 
 
 

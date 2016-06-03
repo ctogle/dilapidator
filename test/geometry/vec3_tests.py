@@ -109,8 +109,21 @@ class test_vec3(unittest.TestCase):
         self.assertTrue(dpr.isnear(v1.angxy(v4),0))
         self.assertTrue(dpr.isnear(v4.angxy(v1),0))
 
-    #def test_sang_xy(self):
-    #def test_xang_xy(self):
+    '''#
+    def test_sang_xy(self):
+        p1,p2 = vec3(1,1,1),vec3(0,1,0)
+        meth,nr = gtl.sang_xy,gtl.isnear
+        self.assertEqual(nr(meth(p1,p2), gtl.PI4),1)
+        self.assertEqual(nr(meth(p2,p1), gtl.PI4),0)
+        self.assertEqual(nr(meth(p2,p1),-gtl.PI4),1)
+    def test_xang_xy(self):
+        p1,p2,p3 = vec3(1, 1,1),vec3(0, 1,0),vec3(0,-1,0)
+        meth,nr = gtl.xang_xy,gtl.isnear
+        self.assertEqual(nr(meth(p1),gtl.PI4),1)
+        self.assertEqual(nr(meth(p2),gtl.PI4),0)
+        self.assertEqual(nr(meth(p2),gtl.PI2),1)
+        self.assertEqual(nr(meth(p3),gtl.threePI2),1)
+    '''#
 
     def test_dot(self):
         v1,v2,v3,v4 = vec3(1,1,0),vec3(-1,1,0),vec3(-1,0,0),vec3(1,1,1)
@@ -195,7 +208,23 @@ class test_vec3(unittest.TestCase):
         self.assertTrue(vec3(1,1,0).inbxy(py))
 
     #def test_intrixy(self):
+
     #def test_onsxy(self):
+    '''#
+    def test_onseg_xy(self):
+        p1,p2,p3 = vec3(1,1,0),vec3(0,1,0),vec3(2,2,0)
+        s1,s2 = vec3(0,0,0),vec3(2,2,0)
+        self.assertEqual(gtl.onseg_xy(p1,s1,s2),1)
+        self.assertEqual(gtl.onseg_xy(p2,s1,s2),0)
+        self.assertEqual(gtl.onseg_xy(p3,s1,s2),1)
+
+    def test_inseg_xy(self):
+        p1,p2,p3 = vec3(1,1,0),vec3(0,1,0),vec3(2,2,0)
+        s1,s2 = vec3(0,0,0),vec3(2,2,0)
+        self.assertEqual(gtl.inseg_xy(p1,s1,s2),1)
+        self.assertEqual(gtl.inseg_xy(p2,s1,s2),0)
+        self.assertEqual(gtl.inseg_xy(p3,s1,s2),0)
+    '''#
 
     def test_onbxy(self):
         py = vec3(1,1,0).sq(2,2)

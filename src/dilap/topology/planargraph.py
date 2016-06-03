@@ -4,7 +4,6 @@ from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
 
 import dilap.geometry.tools as gtl
-import dilap.geometry.polymath as pym
 
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
@@ -171,6 +170,10 @@ class graph(db.base):
     # return a full polygon representing the partitioning of 
     # the xy plane affected by the edges of this graph
     def polygon(self,r = 2,d = 'cw'):
+
+        # TEMPORARY HACK -> FIX THIS DAMNIT!!
+        import dilap.geometry.polymath as pym
+
         loops,seams,eseam = self.uloops(d),[],None
         for lp in loops:
             seam = []
@@ -203,8 +206,30 @@ class graph(db.base):
                 if pym.binbxy(seams[eseam],seam):
                     seams.append(eseam)
                     eseam = len(seams)-1
+        for sx in range(len(seams)):
+            if pym.bnrm(seams[sx]).z < 0:seams[sx].reverse()
         py = (tuple(seams.pop(eseam)),tuple(tuple(s) for s in seams))
         return py
+
+    ###################################
+
+    # plot the vertices and edges of the graph
+    def plotxy(self,ax = None,l = 10,s = 1.0):
+        if ax is None:ax = dtl.plot_axes_xy(l)
+        for j in range(self.vcnt):
+            i = self.vs[j]
+            if i is None:continue
+            ip = i[1]['p']
+            ax = dtl.plot_point_xy(ip,ax,col = 'r')
+        for k in self.rings:
+            vr = self.rings[k]
+            for ov in vr:
+                if vr[ov] is None:continue
+                re = (self.vs[k][1]['p'].cp(),self.vs[ov][1]['p'].cp())
+                rn = vec3(0,0,1).crs(re[0].tov(re[1])).nrm().uscl(s)
+                re = (re[0].trn(rn),re[1].trn(rn))
+                ax = dtl.plot_edges_xy(re,ax,lw = 2,col = 'g')
+        return ax
 
     ###################################
 

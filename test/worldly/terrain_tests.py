@@ -4,6 +4,8 @@ from dilap.geometry.quat import quat
 import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
 
+import dilap.topology.planargraph as pgr
+
 import dilap.worldly.roadgraph as rdg
 
 import dilap.core.plotting as dtl
@@ -24,7 +26,8 @@ class test_roadgraph(unittest.TestCase):
         fp = vec3(0,0,0).pring(100,5)
         seq = 'S<>G<>L<>'
         
-        rg = rdg.wgraph().checkseq(fp,seq,True)
+        rg = pgr.graph()
+        rg = rdg.checkseq(rg,fp,seq,True)
 
 ###############################################################################
 

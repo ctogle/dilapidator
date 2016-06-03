@@ -1,8 +1,9 @@
 from dilap.geometry.quat import quat
 from dilap.geometry.vec3 import vec3
+import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
 
-import dilap.geometry.tools as gtl
+import dilap.worldly.blockletters as dbl
 
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
@@ -311,6 +312,27 @@ class test_polymath(unittest.TestCase):
         br = pym.bsegbxy(b1,b2)
         #pl(b1,b2,br)
         self.assertTrue(len(br) == 6)
+
+    #def test_sloops(self):
+
+    def test_bsegsxy(self):
+        def pl(bs):
+            ax = dtl.plot_axes_xy(10)
+            ax = dtl.plot_polygon_xy(b,ax,col = 'g',lw = 2)
+            ax = dtl.plot_edges_xy((s1,s2),ax,col = 'r',lw = 1)
+            for bpy in bs:
+                bpy = pym.contract(bpy,0.1)
+                ax = dtl.plot_polygon_xy(bpy,ax,col = 'b',lw = 4)
+            plt.show()
+
+        b = vec3(0,0,0).pring(7,4)
+        s1,s2 = vec3(0,-10,0),vec3(0,10,0)
+        bs = pym.bsegsxy(b,s1,s2)
+        pl(bs)
+        b = dbl.block('C',1,3,3)[0]
+        s1,s2 = vec3(0,-10,0),vec3(0,10,0)
+        bs = pym.bsegsxy(b,s1,s2)
+        pl(bs)
 
     def atest_ebdxy(self):
         def pl(b1,b2,br):

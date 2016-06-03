@@ -44,8 +44,10 @@ def split(g,subseq):
     elif sframe == 'vertex':lp = g.tfp(lp,fp)
     sp1 = lp.cp().trn(ld.cp().uscl( 10000))
     sp2 = lp.cp().trn(ld.cp().uscl(-10000))
-    l,r = pym.bsegsxy(fp,sp1,sp2)
-    new = g.sv(int(srx),l,r,False,False)
+    nfps = pym.bsegsxy(fp,sp1,sp2)
+    l = nfps.pop(0)
+    #for r in nfps:new = g.sv(int(srx),l,r,False,False)
+    for r in nfps:new = g.sv(int(srx),l,r,True,True)
     return g
 
 # split a vertex by nesting a union of polygons as a void of the vertex
@@ -62,20 +64,20 @@ def splotch(g,subseq):
     ylen = yprj[1]-yprj[0]
     rad = max(xlen,ylen)/2.0
     
-    r1 = vec3(0,10,0).com(fp).sq(30,40)
-    r2 = vec3(-10,-20,0).com(fp).sq(20,40)
-    r3 = vec3(0,-10,0).com(fp).sq(50,30)
-    rs = [r1,r2,r3]
+    #r1 = vec3(0,10,0).com(fp).sq(30,40)
+    #r2 = vec3(-10,-20,0).com(fp).sq(20,40)
+    #r3 = vec3(0,-10,0).com(fp).sq(50,30)
+    #rs = [r1,r2,r3]
 
-    r = rs.pop(0)
-    while rs:r = pym.ebuxy(r,rs.pop(0))
+    #r = rs.pop(0)
+    #while rs:r = pym.ebuxy(r,rs.pop(0))
 
-    #r = dbl.block('C',rad/3.0,rad,rad)
-    #r = r[0]
+    r = dbl.block('C',rad/3.0,rad,rad)
+    r = r[0]
 
-    for j in range(10):r = pym.smoothxy(r,0.1)
+    #for j in range(10):r = pym.smoothxy(r,0.1)
 
-    r = pym.ebixy(fp,r)
+    #r = pym.ebixy(fp,r)
     l = fp
 
     nv = g.sv(irx,l,r)

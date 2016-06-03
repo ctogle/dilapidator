@@ -67,8 +67,8 @@ class worldfactory(dfa.factory):
         contseq += 'S<0,0.5,0.5,0,1,vertex>'
         contseq += 'S<1,0.5,0.5,1,0,vertex>'
         contseq += 'S<0,0.5,0.5,1,0,vertex>'
-        contseq += 'E<0,1>E<1,2>E<2,3>E<3,0>'
-        contseq += 'M<0,S<>G<>L<>,>'
+        #contseq += 'E<0,1>E<1,2>E<2,3>E<3,0>'
+        #contseq += 'M<0,S<>G<>L<>,>'
         contseq += 'T<2>'
         #contseq += 'M<0>T<2>'
 
@@ -290,10 +290,12 @@ def metropolis(g,subseq):
         rgpyi.reverse()
         rgpy = (tuple(rgpyi),rgpy[1])
 
-    easement_py = pym.ebdxy(fp,rgpyi)
-    #easement_py = fp
+    #easement_py = pym.ebdxy(fp,rgpyi)
+    easement_py = fp
 
     #rgpyi = pym.ebixy(fp,rgpy[0])
+
+    print('eas',easement_py)
 
     ax = rg.plot()
     ax = dtl.plot_polygon(easement_py,ax,col = 'b',lw = 2)

@@ -50,7 +50,7 @@ class test_partitiongraph(unittest.TestCase):
         seq = 'S<0,0.5,0.5,0,1,root>E<0,1>X<1,0.5,0.5,0.0,vertex>'
         ptg.checkseq(fp,100,seq)
 
-    def test_pgraph_continent(self):
+    def atest_pgraph_continent(self):
         fp = vec3(0,0,0).pring(100,8)
         #fp = vec3(0,0,0).sq(200,200)
         seq = 'C<0>'

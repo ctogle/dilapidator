@@ -473,7 +473,6 @@ def loopseg(es):
 
 # compute the union of two boundary polygons
 def ebuxy(b1,b2):
-    print('EBUXY!',len(b1),len(b2))
     b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
     bo = lambda s1,s2,b : s1.inbxy(b) or s2.inbxy(b) or (s1.onbxy(b) and s2.onbxy(b))
     b1inb2 = [p for p in b1segs if bo(p[0],p[1],b2)]
@@ -481,16 +480,6 @@ def ebuxy(b1,b2):
     b1only = [p for p in b1segs if not p in b1inb2]
     b2only = [p for p in b2segs if not p in b2inb1]
     dfs = loopseg(b1only+b2only)
-
-    '''#
-    ax = dtl.plot_axes_xy(10)
-    ax = dtl.plot_polygon_xy(b1,ax,lw = 1.0,col = None)
-    ax = dtl.plot_polygon_xy(b2,ax,lw = 1.0,col = None)
-    for df in dfs:
-        ax = dtl.plot_polygon_xy(df,ax,lw = 8.0,col = None)
-    plt.show()
-    '''#
-
     if len(dfs) == 0:return None
     elif len(dfs) == 1:return dfs[0]
     else:return dfs
@@ -502,38 +491,17 @@ def ebdxy(b1,b2):
     b1only = [p for p in b1segs if not bo(p[0],p[1],b2)]
     b2inb1 = [p for p in b2segs if p[0].inbxy(b1) or p[1].inbxy(b1)]
     dfs = loopseg(b1only+b2inb1)
-
-    '''#
-    ax = dtl.plot_axes_xy(10)
-    ax = dtl.plot_polygon_xy(b1,ax,lw = 1.0,col = None)
-    ax = dtl.plot_polygon_xy(b2,ax,lw = 1.0,col = None)
-    for df in dfs:
-        ax = dtl.plot_polygon_xy(df,ax,lw = 8.0,col = None)
-    plt.show()
-    '''#
-
     if len(dfs) == 0:return None
     elif len(dfs) == 1:return dfs[0]
     else:return dfs
 
 # compute the intersection of two boundary polygons
 def ebixy(b1,b2):
-    print('EBIXY!',len(b1),len(b2))
     b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
     bo = lambda s1,s2,b : s1.inbxy(b) or s2.inbxy(b) or (s1.onbxy(b) and s2.onbxy(b))
     b1inb2 = [p for p in b1segs if bo(p[0],p[1],b2)]
     b2inb1 = [p for p in b2segs if bo(p[0],p[1],b1)]
     dfs = loopseg(b1inb2+b2inb1)
-
-    '''#
-    ax = dtl.plot_axes_xy(10)
-    ax = dtl.plot_polygon_xy(b1,ax,lw = 1.0,col = None)
-    ax = dtl.plot_polygon_xy(b2,ax,lw = 1.0,col = None)
-    for df in dfs:
-        ax = dtl.plot_polygon_xy(df,ax,lw = 8.0,col = None)
-    plt.show()
-    '''#
-
     if len(dfs) == 0:return None
     elif len(dfs) == 1:return dfs[0]
     else:return dfs

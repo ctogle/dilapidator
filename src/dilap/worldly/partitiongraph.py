@@ -4,6 +4,8 @@ from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
 import dilap.geometry.polymath as pym
 
+import dilap.worldly.blockletters as dbl
+
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
@@ -67,6 +69,9 @@ def splotch(g,subseq):
 
     r = rs.pop(0)
     while rs:r = pym.ebuxy(r,rs.pop(0))
+
+    #r = dbl.block('C',rad/3.0,rad,rad)
+    #r = r[0]
 
     for j in range(10):r = pym.smoothxy(r,0.1)
 

@@ -185,8 +185,7 @@ class graph(db.base):
                 lpnm1 = vec3(0,0,1).crs(lptn1).uscl(r)
                 lpnm2 = vec3(0,0,1).crs(lptn2).uscl(r)
                 if lp0 == lp2:
-                    #stemoffset = lptn1.cp().uscl(r)
-                    stemoffset = lptn1.cp().uscl(0)
+                    stemoffset = lptn1.cp().uscl(r)
                     seam.append(lpp1.cp().trn(lpnm1+stemoffset))
                     seam.append(lpp1.cp().trn(lpnm2+stemoffset))
                 else:

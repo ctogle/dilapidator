@@ -250,7 +250,7 @@ def cartographer(g,subseq):
     fp = [p.cp().ztrn(float(ss[2])) for p in tv[1]['fp']]
     h = float(ss[1])
     tseq = ss[3]
-    tm = ter.checkseq(fp,h,tseq,True)
+    tm = ter.checkseq(fp,h,tseq,False)
     tv[1]['info']['terrainmesh'] = tm
     return g
 

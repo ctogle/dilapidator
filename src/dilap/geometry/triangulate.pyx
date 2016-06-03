@@ -43,9 +43,8 @@ cdef class triangulation:
         o2 = self.adjacent(v,u)
         if o1 == -1 or o2 == -1:return 1
         if o1 == -2 or o2 == -2:return 1
-        #up,vp,op1,op2 = self.points.get_points(u,v,o1,o2)
         up,vp,op1,op2 = self.points.gps_c((u,v,o1,o2))
-        if gtl.segs_isect_perp_c(up,vp,op1,op2):
+        if pym.sintsxy(up,vp,op1,op2,col = 0):
             if gtl.incircle_c(up,vp,op1,op2) > 0:return 0
             if gtl.incircle_c(vp,up,op2,op1) > 0:return 0
         return 1

@@ -5,8 +5,6 @@ import dilap.geometry.polymath as pym
 
 import dilap.topology.planargraph as pgr
 
-import dilap.worldly.roadgraph as rdg
-
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
@@ -22,7 +20,7 @@ class test_planargraph(unittest.TestCase):
 
     def test_avrvaerese(self):
 
-        rg = pgr.graph()
+        rg = pgr.planargraph()
 
         i1 = rg.av(p = vec3( 10,-5,0),l = 0)
         i2 = rg.av(p = vec3( 10, 5,0),l = 0)
@@ -46,7 +44,7 @@ class test_planargraph(unittest.TestCase):
             plt.show()
 
     def test_orings(self):
-        rg = pgr.graph()
+        rg = pgr.planargraph()
 
         i1 = rg.av(p = vec3(  0, 0,0),l = 0)
         i2 = rg.av(p = vec3( 10, 0,0),l = 0)
@@ -123,7 +121,7 @@ class test_planargraph(unittest.TestCase):
 
         fp = vec3(0,0,0).pring(50,8)
         ex = fp[-2].mid(fp[-1])
-        rg = pgr.graph()
+        rg = pgr.planargraph()
 
         i1 = rg.av(p = ex,l = 0)
         i2,r1 = mr(rg,fp,i1)
@@ -147,7 +145,7 @@ class test_planargraph(unittest.TestCase):
         p2 = vec3(0,100,0)
         p3 = vec3(100,100,0)
 
-        rg = pgr.graph()
+        rg = pgr.planargraph()
 
         i1 = rg.av(p = p1,l = 0)
         i2,r1 = rg.mev(i1,{'p':p2,'l':0},{})
@@ -162,7 +160,7 @@ class test_planargraph(unittest.TestCase):
             ax = rg.plot()
             ax = dtl.plot_polygon(ilp,ax,col = 'b',lw = 4)
             plt.show()
-        rg = pgr.graph()
+        rg = pgr.planargraph()
         i1 = rg.av(p = vec3( 10,-5,0),l = 0)
         i2 = rg.av(p = vec3( 10, 5,0),l = 0)
         i3 = rg.av(p = vec3(-10, 5,0),l = 0)
@@ -225,7 +223,7 @@ class test_planargraph(unittest.TestCase):
                 lpps = pym.contract(lpps,2)
                 ax = dtl.plot_polygon(lpps,ax,lw = 3,col = 'b')
             plt.show()
-        rg = pgr.graph()
+        rg = pgr.planargraph()
         i1 = rg.av(p = vec3( 10,-5,0),l = 0)
         i2 = rg.av(p = vec3( 10, 5,0),l = 0)
         i3 = rg.av(p = vec3(-10, 5,0),l = 0)
@@ -256,7 +254,7 @@ class test_planargraph(unittest.TestCase):
             ax = dtl.plot_polygon_full_xy(py,ax,lw = 2,col = 'b')
             plt.show()
 
-        rg = pgr.graph()
+        rg = pgr.planargraph()
 
         i1 = rg.av(p = vec3( 10,-5,0),l = 0)
         i2 = rg.av(p = vec3( 10, 5,0),l = 0)

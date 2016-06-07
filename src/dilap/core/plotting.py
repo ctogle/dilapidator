@@ -104,11 +104,11 @@ def plot_polygon(points,ax = None,center = False,mk = None,lw = 1.0,ls = '-',col
     if center:plot_point(vec3(0,0,0).com(points),ax,mk = 's',col = col)
     return ax
 
-def plot_polygon_full_xy(poly,ax = None,center = False,lw = 1.0,col = None):
+def plot_polygon_full_xy(poly,ax = None,center = False,lw = 1.0,ls = '-',col = None):
     if ax is None:ax = plot_axes_xy()
     ebnd,ibnds = poly
-    plot_polygon_xy(list(ebnd),ax,center = True,lw = lw,col = col)
-    for ib in ibnds:plot_polygon_xy(list(ib),ax,center = True,lw = lw,col = col)
+    plot_polygon_xy(list(ebnd),ax,center = True,lw = lw,ls = ls,col = col)
+    for ib in ibnds:plot_polygon_xy(list(ib),ax,center = True,lw = lw,ls = ls,col = col)
     return ax
 
 def plot_polygon_full(poly,ax = None,center = False,lw = 1.0,col = None):

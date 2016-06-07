@@ -202,17 +202,16 @@ def bintbxy(b1,b2,ie = True,ieb = True,col = True):
 
 # produce some number of closed loops from a set of edges
 def sloops(es,epsilon = 0.1):
-    def fp(p):
-        for j in range(g.vcnt):
-            #if g.vs[j][1]['p'].isnear(p):
-            if g.vs[j][1]['p'].d(p) < epsilon:
-                return j
-        return g.av(p = p.cp())
-    g = pgr.graph()
+    #def fp(p):
+    #    for j in range(g.vcnt):
+    #        #if g.vs[j][1]['p'].isnear(p):
+    #        if g.vs[j][1]['p'].d(p) < epsilon:
+    #            return j
+    #    return g.av(p = p.cp())
+    g = pgr.planargraph()
     for e1,e2 in es:
-        v1,v2 = fp(e1),fp(e2)
-        if not v2 in g.rings[v1]:
-            g.ae(v1,v2)
+        v1,v2 = g.fp(e1,epsilon),g.fp(e2,epsilon)
+        if not v2 in g.rings[v1]:g.ae(v1,v2)
     uls = g.uloops('ccw')
     ols = [[g.vs[j][1]['p'].cp() for j in ul] for ul in uls]
     for ol in ols:
@@ -328,6 +327,16 @@ def ebixy(b1,b2):
 ###############################################################################
 ###############################################################################
 
+# transform a point based on the xy projection of a boundary polygon
+def ptob(b,p):
+    x,y,z = vec3(1,0,0),vec3(0,1,0),vec3(0,0,1)
+    bpx,bpy,bpz = x.prjps(b),y.prjps(b),z.prjps(b)
+    bp = vec3(
+        bpx[0]+p.x*(bpx[1]-bpx[0]),
+        bpy[0]+p.y*(bpy[1]-bpy[0]),
+        bpz[0]+p.z*(bpz[1]-bpz[0]))
+    return bp
+
 # return a vector normal to the boundary polygon b
 def bnrm(b):
     pcnt = len(b)
@@ -388,6 +397,8 @@ def bisectb(b):
     for x in range(len(b)):
         nb.append(b[x-1])
         nb.append(b[x-1].mid(b[x]))
+    nb.append(nb.pop(0))
+    nb.append(nb.pop(0))
     return nb
 
 # evenly contract a boundary polygon

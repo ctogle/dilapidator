@@ -1,106 +1,19 @@
-import dilap.core.base as db
-
 from dilap.geometry.vec3 import vec3
-from dilap.geometry.quat import quat
 
-import dilap.geometry.tools as gtl
+import dilap.topology.wiregraph as dwg
 
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
-import math,numpy,random,pdb
+import math,numpy,pdb
 
 
 
 ###############################################################################
 ###############################################################################
 
-# planar wire graph class (purely topological)
-class graph(db.base):
-
-    ###################################
-    ### topological methods
-    ###################################
-
-    # add a new vertex and edge to another vertex
-    def mev(self,ov,vkws,ekws):
-        nv = self.av(**vkws)
-        ne = self.ae(ov,nv,**ekws)
-        return nv,ne
-
-    # add a new intersection to the graph
-    def av(self,**vkws):
-        j = self.vcnt
-        i = (j,vkws)
-        self.vs.append(i)
-        self.rings[j] = {}
-        self.orings[j] = []
-        self.vcnt += 1
-        return j
-
-    # remove vertex u
-    def rv(self,u):
-        i = self.vs[u]
-        ur = self.rings[u]
-        for v in list(ur.keys()):self.re(u,v)
-        self.vs[u] = None
-        del self.rings[u]
-        del self.orings[u]
-        return i
-
-    # and a new road to the graph
-    def ae(self,u,v,**ekws):
-        m = self.ecnt
-        ur,vr = self.rings[u],self.rings[v]
-        uor,vor = self.orings[u],self.orings[v]
-        r = (m,ekws)
-        self.es.append(r)
-        if not v in ur:ur[v] = r
-        if not u in vr:vr[u] = r
-        urcnt = len(uor)
-        if urcnt < 2:uor.append(v)
-        else:
-            w = uor[0]
-            nea = self.ea(u,w,v)
-            f = False
-            for eax in range(1,urcnt):
-                if nea < uor[eax]:
-                    uor.insert(eax,v)
-                    f = True
-                    break
-            if not f:uor.append(v)
-        vrcnt = len(vor)
-        if vrcnt < 2:vor.append(u)
-        else:
-            w = vor[0]
-            nea = self.ea(v,w,u)
-            f = False
-            for eax in range(1,vrcnt):
-                if nea < vor[eax]:
-                    vor.insert(eax,u)
-                    f = True
-                    break
-            if not f:vor.append(u)
-        self.ecnt += 1
-        return m
-
-    # remove an edge between u and v
-    def re(self,u,v):
-        r = self.rings[u][v]
-        if r is None:return r
-        self.es[r[0]] = None
-        del self.rings[u][v]
-        del self.rings[v][u]
-        if v in self.orings[u]:self.orings[u].remove(v)
-        if u in self.orings[v]:self.orings[v].remove(u)
-        return r
-
-    # split an edge/road into two edges/roads
-    def se(self,u,v,w):
-        ruv = self.re(u,v)
-        ruw = self.ae(u,w,**ruv[1])
-        rwv = self.ae(w,v,**ruv[1])
-        return ruv,rwv
+# planar wire graph class (topological + xy-projected geometry)
+class planargraph(dwg.wiregraph):
 
     # split an edge/road into two edges/roads
     # make the third vertex by interpolating between the other two
@@ -125,47 +38,14 @@ class graph(db.base):
         if sa < 0:sa = 2*numpy.pi-sa
         return sa
 
-    # return a list of vertex indices which form a loop
-    #   the first edge will be from u to v, turns of direction 
-    #   d (clockwise or counterclockwise) form the loop
-    def loop(self,u,v,d = 'cw'):
-        if not v in self.rings[u]:
-            raise ValueError
-        lp = [u,v]
-        while True:
-            uor = self.orings[lp[-2]]
-            vor = self.orings[lp[-1]]
-            uori = vor.index(lp[-2])
-            ror = vor[uori+1:]+vor[:uori]
-            if ror:
-                if d == 'cw':tip = ror[0]
-                elif d == 'ccw':tip = ror[-1]
-                else:raise ValueError
-            else:tip = lp[-2]
-            lp.append(tip)
-            if lp[-1] == lp[1] and lp[-2] == lp[0]:
-                lp.pop(-1)
-                lp.pop(-1)
-                return lp
+    # find a vertex within epsilon of p or create one
+    def fp(self,p,epsilon,**vkws):
+        for j in range(self.vcnt):
+            if self.vs[j][1]['p'].d(p) < epsilon:
+                return j
+        return self.av(p = p.cp(),**vkws)
 
-    # return a list of all unique loops of the graph
-    def uloops(self,d = 'cw'):
-        loops = {}
-        unfn = [x for x in range(self.ecnt)]
-        for vx in range(self.vcnt):
-            v = self.vs[vx]
-            if v is None:continue
-            for ox in self.orings[vx]:
-                r = self.rings[vx][ox]
-                rx,rkws = r
-                if rx in unfn:
-                    lp = self.loop(vx,ox,'ccw')
-                    lpk = tuple(set(lp))
-                    if not lpk in loops:loops[lpk] = lp
-                    unfn.remove(rx)
-                else:continue
-            if not unfn:break
-        return [loops[lpk] for lpk in loops]
+    ###################################
 
     # return a full polygon representing the partitioning of 
     # the xy plane affected by the edges of this graph
@@ -208,7 +88,8 @@ class graph(db.base):
                     eseam = len(seams)-1
         for sx in range(len(seams)):
             if pym.bnrm(seams[sx]).z < 0:seams[sx].reverse()
-        py = (tuple(seams.pop(eseam)),tuple(tuple(s) for s in seams))
+        #py = (tuple(seams.pop(eseam)),tuple(tuple(s) for s in seams))
+        py = [seams.pop(eseam),seams]
         return py
 
     ###################################
@@ -220,6 +101,7 @@ class graph(db.base):
             i = self.vs[j]
             if i is None:continue
             ip = i[1]['p']
+            ax = dtl.plot_point_xy_annotate(ip,ax,str(j))
             ax = dtl.plot_point_xy(ip,ax,col = 'r')
         for k in self.rings:
             vr = self.rings[k]
@@ -252,16 +134,6 @@ class graph(db.base):
         return ax
 
     ###################################
-
-    def __init__(self):
-        self.vs = []
-        self.vcnt = 0
-        self.es = []
-        self.ecnt = 0
-        self.rings = {}
-        self.orings = {}
-
-###############################################################################
 
 
 

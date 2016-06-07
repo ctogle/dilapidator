@@ -26,9 +26,14 @@ class test_blockletters(unittest.TestCase):
         ax = dtl.plot_polygon_full_xy(l,ax,lw = 2,col = 'g')
         plt.show()
 
-    def test_bnrm(self):
-        c = dbl.block('C',1,3,3)
-        self.plot(c,3,3)
+    def test_blocks(self):
+        w,sx,sy = 1,4,4
+        C = dbl.block('C',w,sx,sy)
+        self.plot(C,sx,sy)
+        H = dbl.block('H',w,sx,sy)
+        self.plot(H,sx,sy)
+        I = dbl.block('I',w,sx,sy)
+        self.plot(I,sx,sy)
 
 if __name__ == '__main__':
     unittest.main()

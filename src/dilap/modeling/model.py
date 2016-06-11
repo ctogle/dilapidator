@@ -259,7 +259,7 @@ class model:
         return u
 
     # add a triangulated surface to a trimesh
-    def asurf2(self,poly,tm = None,fm = 'generic',rv = False,
+    def _____asurf2(self,poly,tm = None,fm = 'generic',rv = False,
                             ref = False,smo = False,hmin = 1):
         if tm is None:tm = self.agfxmesh()
         eb,ibs = poly
@@ -301,10 +301,12 @@ class model:
 
     # add a triangulated surface to a trimesh
     def asurf(self,poly,tm = None,fm = 'generic',rv = False,
-                            ref = False,smo = False,hmin = 1):
+            ref = False,smo = False,hmin = 1,zfunc = None):
         if tm is None:tm = self.agfxmesh()
         eb,ibs = poly
         av = lambda p,n : tm.avert(*self.avert(p.cp(),n))
+        #av = lambda p,n : tm.avert(*self.avert(p.cp().xscl(0.5),n))
+
         ngvs = []
 
         if len(eb) < 5 and len(ibs) == 0 and not ref:
@@ -333,6 +335,10 @@ class model:
             '''#
             ngvs = self.asurf2(poly,tm,fm,rv,ref,smo,hmin)
             '''#
+
+            #eb = [p.cp().xscl(0.5) for p in eb]
+            #ibs = [[p.cp().xscl(0.5) for p in ib] for ib in ibs]
+
             eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
             if ref:
                 newhmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
@@ -348,7 +354,11 @@ class model:
                 if rv:f1 = tm.aface(v1,v3,v2,fm) 
                 else:f1  = tm.aface(v1,v2,v3,fm) 
                 ngvs.append(v1);ngvs.append(v2);ngvs.append(v3)
-                  
+
+        if not zfunc is None:
+            for ngv in ngvs:
+                p = self.pset.ps[tm.verts[ngv][0]]
+                p.ztrn(zfunc(p.x,p.y))
         return ngvs
 
     # translate the position pointset of the model

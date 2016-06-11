@@ -5,18 +5,17 @@ import dilap.topology.wiregraph as dwg
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
-import math,numpy,pdb
+import numpy,pdb
 
 
 
-###############################################################################
 ###############################################################################
 
 # planar wire graph class (topological + xy-projected geometry)
 class planargraph(dwg.wiregraph):
 
-    # split an edge/road into two edges/roads
-    # make the third vertex by interpolating between the other two
+    # split an edge into two edges
+    # make the third vertex by lerping between the other two
     def be(self,u,v,f = 0.5,**kws):
         if not 'p' in kws:
             up,vp = self.vs[u][1]['p'],self.vs[v][1]['p']
@@ -35,8 +34,30 @@ class planargraph(dwg.wiregraph):
         e1 = up.tov(vp)
         e2 = up.tov(wp)
         sa = e1.sang(e2,vec3(0,0,1))
-        if sa < 0:sa = 2*numpy.pi-sa
+        if sa < 0:sa = 2*numpy.pi+sa
         return sa
+
+    # given an edge, find the next edge taking the first
+    # clockwise turn available
+    def cw(self,u,v):
+        uor = self.orings[u]
+        vor = self.orings[v]
+        uori = vor.index(u)
+        ror = vor[uori+1:]+vor[:uori]
+        if ror:tip = ror[0]
+        else:tip = u
+        return tip
+
+    # given an edge, find the next edge taking the first
+    # counterclockwise turn available
+    def ccw(self,u,v):
+        uor = self.orings[u]
+        vor = self.orings[v]
+        uori = vor.index(u)
+        ror = vor[uori+1:]+vor[:uori]
+        if ror:tip = ror[-1]
+        else:tip = u
+        return tip
 
     # find a vertex within epsilon of p or create one
     def fp(self,p,epsilon,**vkws):
@@ -47,61 +68,14 @@ class planargraph(dwg.wiregraph):
 
     ###################################
 
-    # return a full polygon representing the partitioning of 
-    # the xy plane affected by the edges of this graph
-    def polygon(self,r = 2,d = 'cw'):
-
-        # TEMPORARY HACK -> FIX THIS DAMNIT!!
-        import dilap.geometry.polymath as pym
-
-        loops,seams,eseam = self.uloops(d),[],None
-        for lp in loops:
-            seam = []
-            seams.append(seam)
-            for lpx in range(len(lp)):
-                lp0,lp1,lp2 = lp[lpx-2],lp[lpx-1],lp[lpx]
-                lpp0 = self.vs[lp0][1]['p']
-                lpp1 = self.vs[lp1][1]['p']
-                lpp2 = self.vs[lp2][1]['p']
-                lptn1 = lpp0.tov(lpp1).nrm()
-                lptn2 = lpp1.tov(lpp2).nrm()
-                lpnm1 = vec3(0,0,1).crs(lptn1).uscl(r)
-                lpnm2 = vec3(0,0,1).crs(lptn2).uscl(r)
-                if lp0 == lp2:
-                    stemoffset = lptn1.cp().uscl(r)
-                    seam.append(lpp1.cp().trn(lpnm1+stemoffset))
-                    seam.append(lpp1.cp().trn(lpnm2+stemoffset))
-                else:
-                    if lpnm1.isnear(lpnm2):cnm = lpnm1
-                    else:
-                        s1 = lpp0.cp().trn(lpnm1).trn(lptn1.cp().uscl(-1000))
-                        s2 = lpp1.cp().trn(lpnm1).trn(lptn1.cp().uscl( 1000))
-                        s3 = lpp1.cp().trn(lpnm2).trn(lptn2.cp().uscl(-1000))
-                        s4 = lpp2.cp().trn(lpnm2).trn(lptn2.cp().uscl( 1000))
-                        ip = pym.sintsxyp(s1,s2,s3,s4,col = 0)
-                        cnm = lpp1.tov(ip)
-                    seam.append(lpp1.cp().trn(cnm))
-            if eseam is None:eseam = 0
-            else:
-                if pym.binbxy(seams[eseam],seam):
-                    seams.append(eseam)
-                    eseam = len(seams)-1
-        for sx in range(len(seams)):
-            if pym.bnrm(seams[sx]).z < 0:seams[sx].reverse()
-        #py = (tuple(seams.pop(eseam)),tuple(tuple(s) for s in seams))
-        py = [seams.pop(eseam),seams]
-        return py
-
-    ###################################
-
     # plot the vertices and edges of the graph
-    def plotxy(self,ax = None,l = 10,s = 1.0):
+    def plotxy(self,ax = None,l = 10,s = 1.0,number = True):
         if ax is None:ax = dtl.plot_axes_xy(l)
         for j in range(self.vcnt):
             i = self.vs[j]
             if i is None:continue
             ip = i[1]['p']
-            ax = dtl.plot_point_xy_annotate(ip,ax,str(j))
+            if number:ax = dtl.plot_point_xy_annotate(ip,ax,str(j))
             ax = dtl.plot_point_xy(ip,ax,col = 'r')
         for k in self.rings:
             vr = self.rings[k]

@@ -29,7 +29,7 @@ class test_blockletters(unittest.TestCase):
     def test_blocks(self):
         w,sx,sy = 1,4,4
         C = dbl.block('C',w,sx,sy)
-        self.plot(C,sx,sy)
+        #self.plot(C,sx,sy)
         H = dbl.block('H',w,sx,sy)
         self.plot(H,sx,sy)
         I = dbl.block('I',w,sx,sy)

@@ -42,7 +42,7 @@ class test_wiregraph(unittest.TestCase):
         r1 = wg.ae(i1,i2)
         r2 = wg.ae(i1,i3)
         r3 = wg.ae(i1,i4)
-        self.assertEqual(wg.orings[0],[1,3,2])
+        self.assertEqual(wg.orings[0],[1,2,3])
 
     def test_mev(self):
         wg = pgr.wiregraph()

@@ -8,13 +8,15 @@ from dilap.geometry.quat import quat
 import dilap.geometry.polymath as pym
 
 import dilap.topology.planargraph as pgr
+import dilap.topology.partitiongraph as ptg
 
 import dilap.worldly.terrain as ter
 import dilap.worldly.treeskin as ltr
 import dilap.worldly.building as blg
 import dilap.worldly.blgsequencing as bseq
-import dilap.worldly.partitiongraph as ptg
+#import dilap.worldly.partitiongraph as ptg
 import dilap.worldly.roadgraph as rdg
+import dilap.worldly.blockletters as dbl
 
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
@@ -29,10 +31,11 @@ class worldfactory(dfa.factory):
 
     # process of making a world:
     #   generate an xy boundary polygon for the boundary of the world
-    #   partition the interior of this polygon into subsections with type information
     #   generate topology in the form of a deterministic function with feedback
-    #       maybe use interpolation over a grid?
+    #   partition the interior of the boundary into subsections with type information
+    #
     #   place waterways?
+    #
     #   create road networks based on region topology
     #       each region has a finite nonzero number of exits
     #           create a network of roads which respects these exits
@@ -43,21 +46,151 @@ class worldfactory(dfa.factory):
     #   in natural regions, road graphs are simple and no buildings are present
     #       instead, vegetation and perhaps more extreme topology are added
 
-    def __str__(self):return 'world factory:'
-    def __init__(self,*ags,**kws):
-        self._def('bclass',cx.context,**kws)
-        self._def('boundary',vec3(0,0,0).pring(50,8),**kws)
-        dfa.factory.__init__(self,*ags,**kws)
+
+
+    # generate the topographical data for the world
+    def genregions(self,t):
+        pg = ptg.partitiongraph()
+        ### create the ocean vertex
+        b = t.root.loop
+        pv = pg.av(b = [b,[]],p = vec3(0,0,0).com(b),t = ['ocean'])
+        ### create landmass vertices
+        ls = t.looptree.below(t.root)
+        lmvs = []
+        for l in ls:
+            pv = pg.sv(pv,b,l.loop)
+            pg.vs[pv][1]['t'] = ['natural']
+            lmvs.append(pv)
+        ### create the details of each landmass vertex
+        for lm in lmvs:self.genregion(lm,pg)
+        ### attach the terrain mesh to the partition vertices...
+        for vx in range(pg.vcnt):
+            pv = pg.vs[vx]
+            if pv is None:continue
+            pv[1]['tmesh'] = t
+        
+        ###
+        ax = pg.plotxy()
+        plt.show()
+        ###
+
+        ### return partition graph
+        return pg
+
+    def genregion(self,v,pg):
+            
+        #last1 = v
+        #new = pg.bv(last1,vec3(0.25,0.25,0),vec3(1,0,0))
+        #pg.vs[last1][1]['t'] = ['developed']
+
+        #last2 = new[0]
+        #new = pg.bv(last2,vec3(0.75,0.75,0),vec3(0,1,0))
+        #last3 = new[0]
+        #new = pg.bv(last3,vec3(0.66,0.66,0),vec3(1,0,0))
+        #last4 = new[0]
+        #new = pg.bv(last3,vec3(0.33,0.33,0),vec3(0,1,0))
+        #pg.vs[last3][1]['t'] = ['developed']
+
+        ### add infrastructural connectivity for regions
+        # create a road network graph...
+        #pv = pg.av(b = fp,p = vec3(0,0,0).com(fp[0]),l = 0)
+        return pg
+
     # generate the models of the world and add them to the context object
+    # NOTE: this should eventually be parallelizable
     def gen(self,w,pg):
+        random.seed(0)
         for vx in range(pg.vcnt):
             v = pg.vs[vx]
             if v is None:continue
             self.vgen(w,v,pg)
 
+    ###########################################################################
+    ### methods for generating models from descriptive world data
+    ###########################################################################
+
+    # vgen takes a context, vertex, and partitiongraph and from that
+    #   it generates all models within the space of the vertex
+    # this consists of two fundamental steps:
+    #   based on the nature of this and adjacent vertices, 
+    #       the boundary of this vertex is constrained, 
+    #       and meshes which cross it must be forced to appear continuous
+    #   based on the nature of this vertex, the interior of the space 
+    #       associated with the vertex must be populated with models
+    #        - these models must geometrically cover the entire ground surface
+    # types:
+    #   "natural" - cover with terrain vegetation only edges should only require a terrain seam
+    #   "developed" - cover with structures, filling gaps with nature models
+    #       edges should only require terrain seams and road seams
+    #       where roads may intersect non-colinearly with the boundary only
+    #   "corridor" - cover with infrastructure, filling gaps with concrete?
+    #       edges should only require terrain seams and road seams
+    #       road seems may include colinear intersections with the boundary
+    # this supports the idea that all space is either infrastructure, structure, or nature
+    def vgen(self,w,v,pg):
+        l = 10
+        if 't' in v[1]:
+            vtypes = v[1]['t']
+            if 'ocean' in vtypes:self.vgen_ocean(w,v,pg,l)
+            elif 'natural' in vtypes:self.vgen_natural(w,v,pg,l)
+            elif 'developed' in vtypes:self.vgen_developed(w,v,pg,l)
+        else:self.vgen_ocean(w,v,pg,l)
+        return
+    
+    def vgen_ocean(self,w,v,pg,l,depth = 2):
+        print('ocean vertex',v[0])
+        ### create an unrefined flat surface for the bottom of the ocean
+        ###  and an unrefined flat surface with contracted holes for the 
+        ###  surface of the ocean
+        m = dmo.model()
+        sgv = w.amodel(None,None,None,m,w.sgraph.root)
+        tm = m.agfxmesh()
+        gb = v[1]['b']
+        wb = [[p.cp().ztrn(depth) for p in gb[0]],
+            [pym.contract([p.cp().ztrn(depth) for p in ib],20) for ib in gb[1]]]
+        ngvs = m.asurf(gb,tm,fm = 'concrete1',ref = False,hmin = 100,zfunc = None)
+        ngvs = m.asurf(wb,tm,fm = 'concrete1',ref = False,hmin = 100,zfunc = None)
+
+    def vgen_natural(self,w,v,pg,l):
+        print('natural vertex',v[0])
+        ### create terrain without holes
+        vb = self.vstitch(v,pg,l)
+        self.vgen_terrain(w,v,pg,[],l)
+
+    def vgen_developed(self,w,v,pg,l):
+        print('developed vertex',v[0])
+        ### create a child context for a set of buildings within the vertex
+        blgs,blgfps = self.vgen_buildings(v,pg,l)
+        for blg in blgs:w.achild(blg.generate(0))
+        ### create terrain with holes where buildings meet the ground
+        self.vgen_terrain(w,v,pg,[[p.cpxy() for p in f] for f in blgfps],l)
+
+    ###########################################################################
+
+    def __str__(self):return 'world factory:'
+    def __init__(self,*ags,**kws):
+        self._def('bclass',cx.context,**kws)
+        dfa.factory.__init__(self,*ags,**kws)
+
+        s = random.randint(0,1000)
+        print('landmass seed:',s)
+        random.seed(s)
+
     # create a context representing an entire world
     def new(self,*ags,**kws):
+        ### create the boundary of the world
+        boundary = vec3(0,0,0).pring(500,8)
+        ### generate the topographical structure of the world
+        t = ter.continent(boundary)
+        ### generate the region partitions of each landmass
+        pg = self.genregions(t)
+        ### create a world context from the partition graph
         w = self.bclass(*ags,**kws)
+        self.gen(w,pg)
+        return w
+
+
+        '''#
         worldh = 50
         #worldseq = 'J<0,2>C<1>'
 
@@ -90,147 +223,71 @@ class worldfactory(dfa.factory):
         pg = ptg.checkseq(self.boundary,worldh,worldseq,show = True,grammer = eg)
         self.gen(w,pg)
         return w
-
-
-    # vgen takes a context, vertex, and partitiongraph and from that
-    #   it generates all models within the space of the vertex
-    # this consists of two fundamental steps:
-    #   based on the nature of this and adjacent vertices, 
-    #       the boundary of this vertex is constrained, 
-    #       and meshes which cross it must be forced to appear continuous
-    #   based on the nature of this vertex, the interior of the space 
-    #       associated with the vertex must be populated with models
-    #        - these models must geometrically cover the entire ground surface
-    # types:
-    #   "natural" - cover with terrain vegetation only edges should only require a terrain seam
-    #   "developed" - cover with structures, filling gaps with nature models
-    #       edges should only require terrain seams and road seams
-    #       where roads may intersect non-colinearly with the boundary only
-    #   "corridor" - cover with infrastructure, filling gaps with concrete?
-    #       edges should only require terrain seams and road seams
-    #       road seems may include colinear intersections with the boundary
-    # this supports the idea that all space is either infrastructure, structure, or nature
-    def vgen(self,w,v,pg):
-        vtypes = v[1]['type']
-        if 'ocean' in vtypes:
-            print('ocean vertex',v[0])
-            self.vgen_ocean(w,v,pg)
-        elif 'natural' in vtypes:
-            print('natural vertex',v[0])
-            self.vgen_natural(w,v,pg)
-        elif 'corridor' in vtypes:
-            print('corridor vertex',v[0])
-            self.vgen_corridor(w,v,pg)
-        elif 'developed' in vtypes:
-            print('developed vertex',v[0])
-            self.vgen_developed(w,v,pg)
-        return
-
-
-    def vgen_ocean(self,w,v,pg):
-        m = dmo.model()
-        sgv = w.amodel(None,None,None,m,w.sgraph.root)
-        tm = m.agfxmesh()
-        fp = v[1]['fp']
-        voids = tuple(tuple(j) for j in v[1]['voids'])
-        ngvs = m.asurf((fp,voids),tm,fm = 'concrete1',ref = True,hmin = 100)
-
-    def vgen_natural(self,w,v,pg):
-        m = dmo.model()
-        sgv = w.amodel(None,None,None,m,w.sgraph.root)
-        tm = m.agfxmesh()
-
-        fp = v[1]['fp']
-        if 'terrainseam' in v[1]['info']:
-            tseam = v[1]['info']['terrainseam']
-        else:tseam = [j.cp() for j in fp]
-
-        xpj = vec3(1,0,0).prjps(fp)
-        fpl = xpj[1]-xpj[0]
-        #ifp = vec3(0,0,0).com(fp).sq(fpl-pg.stitchsize,fpl-pg.stitchsize)
-        print('pg.stitchsize',pg.stitchsize)
-        ifp = pym.contract(fp,pg.stitchsize)
-
-        if False:ngvs = m.asurf((tseam,(ifp,)),tm,ref = True,hmin = pg.stitchsize)
-        else:ngvs = m.asurf((tseam,()),tm,ref = True,hmin = pg.stitchsize)
-        #ngvs = m.asurf((tseam,()),tm,ref = True,hmin = pg.stitchsize)
-
-        if 'terrainmesh' in v[1]['info']:
-            for ngv in ngvs:
-                p = m.pset.ps[tm.verts[ngv][0]]
-                p.ztrn(v[1]['info']['terrainmesh'](p.x,p.y))
-
-        #for ngv in ngvs:
-        #    p = m.pset.ps[tm.verts[ngv][0]]
-        #    p.ztrn(terrain_zfunc(p.x,p.y))
-
-    def vgen_developed(self,w,v,pg):
-        #bfa = blg.blgfactory()
-
-        m = dmo.model()
-        sgv = w.amodel(None,None,None,m,w.sgraph.root)
-        tm = m.agfxmesh()
-
-        fp = v[1]['fp']
-        tseam = v[1]['info']['terrainseam']
-        voids = tuple(tuple(j) for j in v[1]['voids'])
-
-        xpj = vec3(1,0,0).prjps(fp)
-        fpl = xpj[1]-xpj[0]
-        #ifp = vec3(0,0,0).com(fp).sq(fpl-pg.stitchsize,fpl-pg.stitchsize)
-        print('pg.stitchsize',pg.stitchsize)
-        ifp = pym.contract(fp,pg.stitchsize)
-
-        ngvs = m.asurf((tseam,voids),tm,ref = True,hmin = pg.stitchsize)
-
-        if 'terrainmesh' in v[1]['info']:
-            for ngv in ngvs:
-                p = m.pset.ps[tm.verts[ngv][0]]
-                p.ztrn(v[1]['info']['terrainmesh'](p.x,p.y))
-
         '''#
+
+
+
+
+
+    # segment the boundary of a vertex based on edges of other vertices
+    def vstitch(self,v,pg,l = 10):
+        vb = [b.cp() for b in v[1]['b'][0]]
+        fnd = True
+        while fnd:
+            fnd = False
+            for ox in range(pg.vcnt):
+                o = pg.vs[ox]
+                if o is None or ox == v[0]:continue
+                ob = o[1]['b'][0]
+                adjs = pym.badjbxy(vb,ob,0.1)
+                for adj in adjs:
+                    vbx,obx = adj
+                    vb1,vb2,ob1,ob2 = vb[vbx-1],vb[vbx],ob[obx-1],ob[obx]
+                    ips = pym.sintsxyp(vb1,vb2,ob1,ob2,ieb = 0,skew = 0,ie = 0)
+                    if ips is None:continue
+                    ip1,ip2 = ips
+                    if not ip1 in vb or not ip2 in vb:
+                        if ip1.onsxy(vb1,vb2,0):vb.insert(vbx,ip1);fnd = True
+                        if ip2.onsxy(vb1,vb2,0):vb.insert(vbx,ip2);fnd = True
+                if fnd:break
+        vbx = 0
+        while vbx < len(vb):
+            vb1,vb2 = vb[vbx-1],vb[vbx]
+            if vb1.d(vb2) < l:vbx += 1
+            else:vb.insert(vbx,vb1.mid(vb2))
+        return vb
+
+    def vgen_terrain(self,w,v,pg,vhs,l):
         m = dmo.model()
         sgv = w.amodel(None,None,None,m,w.sgraph.root)
         tm = m.agfxmesh()
-        for x in range(len(ifp)):
-            p1,p2 = ifp[x-1],ifp[x]
-            p4,p3 = p1.cp().ztrn(10),p2.cp().ztrn(10)
-            m.asurf(((p1,p2,p3,p4),()),tm,ref = False)
-        '''#
-        #m.asurf(([p.cp().ztrn(10) for p in ifp],()),tm,ref = False)
+        vb = self.vstitch(v,pg,l)
+        ngvs = m.asurf((tuple(vb),tuple(tuple(h) for h in vhs)),
+            tm,fm = 'generic',ref = True,hmin = 100,zfunc = v[1]['tmesh'])
+        return m
 
-    def vgen_corridor(self,w,v,pg):
-        m = dmo.model()
-        sgv = w.amodel(None,None,None,m,w.sgraph.root)
-        tm = m.agfxmesh()
+    def vblgsplotch(self,v,pg,l):
+        blgfps = []
+        bx,by,sx,sy = -30,30,30,30
+        blgfps.append(vec3(bx,by,v[1]['tmesh'](bx,by)).sq(sx,sy))
+        bx,by,sx,sy = 30,30,50,30
+        blgfps.append(vec3(bx,by,v[1]['tmesh'](bx,by)).sq(sx,sy))
+        bx,by,sx,sy = 30,-30,40,60
+        blgfps.append(vec3(bx,by,v[1]['tmesh'](bx,by)).sq(sx,sy))
+        return blgfps
 
-        fp = v[1]['fp']
-        tseam = v[1]['info']['terrainseam']
-
-        xpj = vec3(1,0,0).prjps(fp)
-        fpl = xpj[1]-xpj[0]
-
-        print('pg.stitchsize',pg.stitchsize)
-
-        ngvs = m.asurf((tseam,()),tm,fm = 'concrete1',ref = True,hmin = pg.stitchsize)
-
-        if 'terrainmesh' in v[1]['info']:
-            for ngv in ngvs:
-                p = m.pset.ps[tm.verts[ngv][0]]
-                p.ztrn(v[1]['info']['terrainmesh'](p.x,p.y))
-
-        return
-
-        '''#
-        m = dmo.model()
-        sgv = w.amodel(None,None,None,m,w.sgraph.root)
-        tm = m.agfxmesh()
-        for x in range(len(ifp)):
-            p1,p2 = ifp[x-1],ifp[x]
-            p4,p3 = p1.cp().ztrn(10),p2.cp().ztrn(10)
-            m.asurf(((p1,p2,p3,p4),()),tm,ref = False)
-        m.asurf(([p.cp().ztrn(10) for p in ifp],()),tm,ref = False)
-        '''#
+    def vgen_buildings(self,v,pg,l):
+        bfa = blg.blgfactory()
+        blgfps = self.vblgsplotch(v,pg,l)
+        blgs = []
+        for blgfp in blgfps:
+            #v[1]['tmesh'].al(blgfp)??
+            #blgloop = t.al(blgfp,t.root)
+            #seq = bseq.simplebuilding()
+            seq = ''
+            nblg = bfa.new(None,None,None,footprint = blgfp,sequence = seq)
+            blgs.append(nblg)
+        return blgs,blgfps
 
 
 
@@ -282,7 +339,7 @@ def metropolis(g,subseq):
     rg = pgr.graph()
     rg = rdg.checkseq(rg,fp,rseq,True)
 
-    rgpy = rg.polygon(1,'ccw')
+    rgpy = pym.pgtopy(rg,1)
 
     rgpyi = list(rgpy[0])
     #rgpyi = pym.ebixy(fp,rgpy[0])
@@ -327,62 +384,6 @@ def metropolis(g,subseq):
 
 
 
-
-# stitch ensures that the seams between vertices can smoothly meet at their
-#   boundary (assuming deterministic z position determination)
-def stitch(g,subseq):
-    l = float(subseq)
-    g.stitchsize = l
-
-    # first create the terrain seam for each vertex starting with the footprint
-    #   wherever adjacent vertex boundaries intersect the footprint at points 
-    #   which are not currently in the terrain seam, add those points
-    for vx in range(g.vcnt):
-        v = g.vs[vx]
-        if v is None:continue
-
-        # the terrain seam is always the footprint plus additional 
-        # points which lie along the edges of the footprint
-        vb = [p.cp() for p in v[1]['fp']]
-        v[1]['info']['terrainseam'] = vb
-
-        fnd = True
-        while fnd:
-            fnd = False
-            for ox in range(g.vcnt):
-                o = g.vs[ox]
-                if o is None or ox == vx:continue
-                ob = o[1]['fp']
-                adjs = pym.badjbxy(vb,ob,0.1)
-                acnt = len(adjs)
-                if acnt == 0:continue
-                else:
-
-                    if acnt > 1:print('multiadjacency!!')
-
-                    for adj in adjs:
-                        vbx,obx = adj
-                        vb1,vb2 = vb[vbx-1],vb[vbx]
-                        ob1,ob2 = ob[obx-1],ob[obx]
-                        ips = pym.sintsxyp(vb1,vb2,ob1,ob2,ieb = 0,skew = 0,ie = 0)
-                        if ips is None:continue
-                        ip1,ip2 = ips
-                        if not ip1 in vb or not ip2 in vb:
-                            if ip1.onsxy(vb1,vb2,0):
-                                vb.insert(vbx,ip1);fnd = True
-                            if ip2.onsxy(vb1,vb2,0):
-                                vb.insert(vbx,ip2);fnd = True
-                    if fnd:break
-
-    for vx in range(g.vcnt):
-        v = g.vs[vx]
-        if v is None:continue
-        vb = v[1]['info']['terrainseam']
-        vbx = 0
-        while vbx < len(vb):
-            vb1,vb2 = vb[vbx-1],vb[vbx]
-            if vb1.d(vb2) < l:vbx += 1
-            else:vb.insert(vbx,vb1.mid(vb2))
 
 ###############################################################################
 

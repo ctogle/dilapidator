@@ -224,7 +224,19 @@ cdef list point_location(triangulation data,vec3 y):
             data.insert_ghost_vertex(nv,u,v,w)
             return [x for x in range(pretricnt,data.tricnt)]
 
+
+
     print('never should have come to this')
+    ax = dtl.plot_axes_xy(500)
+    for tri in data.triangles:
+        if tri is None:continue
+        u,v,w = tri
+        trip = tuple(data.points.gps_c((u,v,w)))
+        ax = dtl.plot_polygon_xy(trip,ax,col = 'r')
+    ax = dtl.plot_point_xy_annotate(y,ax,'yyyyy')
+    plt.show()
+
+    raise ValueError
 
 # given a loop of points, add them to a triangulation 
 # and return the line segments which bound the loop
@@ -384,6 +396,11 @@ cdef triangulation tridata_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint 
     cdef quat prot
     p0 = ebnd[0].cp()
     pn = pym.bnrm(ebnd)
+    #if gtl.isnear(pn.mag_c(),0):
+    print('tri-pn:',pn)
+    if pn.mag_c() == 0:
+        print('\npolygon normal is invalid for triangulation!!',pn,'\n')
+        raise ValueError
     prot = quat(0,0,0,0).toxy_c(pn)
     gtl.rot_poly_c((ebnd,ibnds),prot)
     data = triangulation(p0,pn)

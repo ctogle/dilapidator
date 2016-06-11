@@ -123,7 +123,10 @@ class partitiongraph(pgr.planargraph):
             v = self.vs[vx]
             if v is None:continue
             vb = v[1]['b']
-            ax = dtl.plot_polygon_xy(pym.contract(vb[0],1),ax,lw = 2,col = 'b')
+            vrtls = '-'
+            if 't' in v[1]:vrtls = '--' if 'developed' in v[1]['t'] else '-'
+            ax = dtl.plot_polygon_xy(pym.contract(vb[0],1),
+                ax,lw = 2,ls = vrtls,col = 'b')
             for ib in vb[1]:
                 ax = dtl.plot_polygon_xy(pym.contract(ib,-1),ax,lw = 2,col = 'r')
             vbc = vec3(0,0,0).com(vb[0])

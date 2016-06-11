@@ -153,6 +153,50 @@ class test_planargraph(unittest.TestCase):
 
         if False:pl()
 
+    #def test_cw(self):
+
+    def test_ccw(self):
+        def pl(rg,u,v,t):
+            ax = rg.plotxy(s = 0.02,number = True)
+            plt.show()
+            ax = rg.plotxy(s = 0.02,number = False)
+            #ax = dtl.plot_axes_xy(10)
+            up = rg.vs[u][1]['p']
+            vp = rg.vs[v][1]['p']
+            tp = rg.vs[t][1]['p']
+            ax = dtl.plot_point_xy_annotate(up,ax,'u   |')
+            ax = dtl.plot_point_xy(up,ax,col = 'r')
+            ax = dtl.plot_point_xy_annotate(vp,ax,'v   |')
+            ax = dtl.plot_point_xy(vp,ax,col = 'r')
+            ax = dtl.plot_point_xy_annotate(tp,ax,'t   |')
+            ax = dtl.plot_point_xy(tp,ax,col = 'r')
+            uor = rg.orings[u]
+            for uox in range(len(uor)):
+                if uox == v:continue
+                up = rg.vs[uor[uox]][1]['p']
+                ax = dtl.plot_point_xy_annotate(up,ax,str(uor[uox]))
+                ax = dtl.plot_point_xy(up,ax,col = 'b')
+            vor = rg.orings[v]
+            for vox in range(len(vor)):
+                if vox == u:continue
+                vp = rg.vs[vor[vox]][1]['p']
+                ax = dtl.plot_point_xy_annotate(vp,ax,str(vor[vox]))
+                ax = dtl.plot_point_xy(vp,ax,col = 'b')
+            plt.show()
+        def perm(rg,u,v,w):
+            tip = rg.ccw(u,v)
+            #pl(rg,u,v,tip)
+            self.assertEqual(tip,w)
+        b1 = vec3(-4,0,0).pring(4,8)
+        b2 = vec3(2,2,0).pring(4,8)
+        b1segs = pym.bsegbxy(b1,b2)
+        b2segs = pym.bsegbxy(b2,b1)
+        rg = pym.sstopg(b1segs+b2segs)
+        #perm(rg,1,3,4)
+        perm(rg,0,1,14)
+        perm(rg,8,0,1)
+        perm(rg,14,3,4)
+
     def test_loop(self):
         def pl(il):
             ilp = [rg.vs[j][1]['p'] for j in il]
@@ -215,12 +259,44 @@ class test_planargraph(unittest.TestCase):
         self.assertEqual(il,[i3,i4,i5,i1,i7,i1,i2,i6])
         #pl(il)
 
+        b1 = vec3(-4,0,0).pring(4,8)
+        b2 = vec3(2,2,0).pring(4,8)
+        b1segs = pym.bsegbxy(b1,b2)
+        b2segs = pym.bsegbxy(b2,b1)
+        rg = pym.sstopg(b1segs+b2segs)
+        il = rg.loop(3,4,'ccw')
+        #pl(il)
+
+        il = rg.loop(1,2,'ccw')
+        #pl(il)
+
+        #il = rg.loop(1,3,'ccw')
+        #pl(il)
+
+        il = rg.loop(2,3,'ccw')
+        #pl(il)
+
+        il = rg.loop(4,5,'ccw')
+        #pl(il)
+
+        il = rg.loop(5,6,'ccw')
+        #pl(il)
+
+        il = rg.loop(6,7,'ccw')
+        #pl(il)
+
+        il = rg.loop(7,8,'ccw')
+        #pl(il)
+
+        #il = rg.loop(8,9,'ccw')
+        #pl(il)
+
     def test_uloops(self):
         def pl():
             ax = rg.plot()
             for lp in loops:
                 lpps = [rg.vs[j][1]['p'] for j in lp]
-                lpps = pym.contract(lpps,2)
+                lpps = pym.contract(lpps,0.1)
                 ax = dtl.plot_polygon(lpps,ax,lw = 3,col = 'b')
             plt.show()
         rg = pgr.planargraph()
@@ -247,6 +323,14 @@ class test_planargraph(unittest.TestCase):
 
         #pl()
         self.assertEqual(len(loops),3)
+
+        b1 = vec3(-4,0,0).pring(4,8)
+        b2 = vec3(2,2,0).pring(4,8)
+        b1segs = pym.bsegbxy(b1,b2)
+        b2segs = pym.bsegbxy(b2,b1)
+        rg = pym.sstopg(b1segs+b2segs)
+        loops = rg.uloops('ccw')
+        #pl()
 
     def test_polygon(self):
         def pl():

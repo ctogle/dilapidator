@@ -23,13 +23,11 @@ class test_partitiongraph(unittest.TestCase):
         bs = pym.bsegsxy(fp[0],vec3(0,-100,0),vec3(0,100,0))
         for b in bs:
             i = rg.av(b = [b,[]],p = vec3(0,0,0).com(b),l = 0)
+
         rg.plotxy()
         plt.show()
 
         pg = rg.bgraph()
-
-        #pdb.set_trace()
-
         pgpy = pg.polygon(1,'ccw')
         ax = pg.plotxy()
         #ax = dtl.plot_axes_xy(20)

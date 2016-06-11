@@ -59,7 +59,7 @@ class wiregraph(db.base):
             nea = self.ea(u,w,v)
             f = False
             for eax in range(1,urcnt):
-                if nea < uor[eax]:
+                if nea < self.ea(u,w,uor[eax]):
                     uor.insert(eax,v)
                     f = True
                     break
@@ -118,6 +118,24 @@ class wiregraph(db.base):
     def ea(self,u,w,v):
         return 0
 
+    def cw(self,u,v):
+        uor = self.orings[u]
+        vor = self.orings[v]
+        uori = vor.index(u)
+        ror = vor[uori+1:]+vor[:uori]
+        if ror:tip = ror[0]
+        else:tip = u
+        return tip
+
+    def ccw(self,u,v):
+        uor = self.orings[u]
+        vor = self.orings[v]
+        uori = vor.index(u)
+        ror = vor[uori+1:]+vor[:uori]
+        if ror:tip = ror[-1]
+        else:tip = u
+        return tip
+
     # return a list of vertex indices which form a loop
     #   the first edge will be from u to v, turns of direction 
     #   d (clockwise or counterclockwise) form the loop
@@ -126,15 +144,23 @@ class wiregraph(db.base):
             raise ValueError
         lp = [u,v]
         while True:
-            uor = self.orings[lp[-2]]
-            vor = self.orings[lp[-1]]
-            uori = vor.index(lp[-2])
+            #uor = self.orings[lp[-2]]
+            #vor = self.orings[lp[-1]]
+            #uori = vor.index(lp[-2])
+
+            if d == 'cw':tip = self.cw(lp[-2],lp[-1])
+            elif d == 'ccw':tip = self.ccw(lp[-2],lp[-1])
+            else:raise ValueError
+
+            '''#
             ror = vor[uori+1:]+vor[:uori]
             if ror:
                 if d == 'cw':tip = ror[0]
                 elif d == 'ccw':tip = ror[-1]
                 else:raise ValueError
             else:tip = lp[-2]
+            '''#
+
             lp.append(tip)
             if lp[-1] == lp[1] and lp[-2] == lp[0]:
                 lp.pop(-1)
@@ -156,14 +182,6 @@ class wiregraph(db.base):
                     lpk = tuple(set(lp))
                     if not lpk in loops:
                         loops[lpk] = lp
-
-                        if len(lp) > 17:
-                            lpp = [self.vs[x][1]['p'] for x in range(self.vcnt)]
-                            ax = dtl.plot_axes_xy(25)
-                            ax = dtl.plot_polygon_xy(lpp,ax)
-                            ax = dtl.plot_points_xy(lpp,ax,number = True)
-                            plt.show()
-
                     unfn.remove(rx)
                 else:continue
             if not unfn:break

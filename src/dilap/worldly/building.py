@@ -38,7 +38,7 @@ class building(cx.context):
         cx.context.__init__(self,*ags,**kws)
 
     def windowholes(self,r,w,wp1,wp2):
-        ww,wh,wz,wm = 1.5,2.0,1.0,0.2
+        ww,wh,wz,wm = 1.5,2.0,1.0,1.0
         wpd = wp1.d(wp2)
         wcnt = int((wpd-1)/(ww+2*wm))
         if wcnt < 1:return

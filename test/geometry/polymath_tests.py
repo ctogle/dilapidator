@@ -35,6 +35,15 @@ class test_polymath(unittest.TestCase):
             ax = dtl.plot_vector_xy(s11,s11.tov(s12),ax,lw = 2.0,col = 'b')
             ax = dtl.plot_vector_xy(s21,s21.tov(s22),ax,lw = 2.0,col = 'g')
             plt.show()
+
+        s1 = vec3(8.0, -3.313708782196045, 0.0)
+        s2 = vec3(8.0, 3.313708782196045, 0.0)
+        s3 = vec3(5.65685510635376, -3.999999761581421, 0.0)
+        s4 = vec3(8.0, -1.6568543910980225, 0.0)
+        perm(s1,s2,s3,s4,True)
+        perm(s1,s2,s3,s4,False,ie = False)
+        #pl(s1,s2,s3,s4)
+
         s1,s2,s3,s4 = vec3(-1,0,0),vec3(1,1,0),vec3(-1,1,0),vec3(-1,-1,0)
         perm(s1,s2,s3,s4,True)
         perm(s1,s2,s3,s4,False,ie = False)
@@ -216,7 +225,7 @@ class test_polymath(unittest.TestCase):
         self.assertFalse(pym.binbxy(b1,b3))
         self.assertFalse(pym.binbxy(b1,b4))
 
-    def atest_bintbxy(self):
+    def test_bintbxy(self):
         def pl(b1,b2):
             ax = dtl.plot_axes_xy(10)
             ax = dtl.plot_polygon_xy(b1,ax,lw = 2.0,col = 'g')
@@ -225,7 +234,7 @@ class test_polymath(unittest.TestCase):
         b1 = vec3(0,0,0).pring(8,8)
         b2 = vec3(4,0,0).pring(4,8)
         self.assertTrue(pym.bintbxy(b1,b2))
-        pl(b1,b2)
+        #pl(b1,b2)
         self.assertFalse(pym.bintbxy(b1,b2,col = False))
         b1 = vec3(0,0,0).pring(8,8)
         b2 = vec3(1,0,0).pring(4,8)
@@ -245,12 +254,12 @@ class test_polymath(unittest.TestCase):
         b1 = vec3(-4,0,0).pring(4,8)
         b2 = vec3(4,0,0).pring(4,8)
         self.assertTrue(pym.bintbxy(b1,b2))
-        self.assertFalse(pym.bintbxy(b1,b2,ie = False))
+        self.assertFalse(pym.bintbxy(b1,b2,col = False))
         #pl(b1,b2)
         b1 = vec3(-4,0,0).pring(4,8)
         b2 = vec3(4,2,0).pring(4,8)
         self.assertTrue(pym.bintbxy(b1,b2))
-        self.assertFalse(pym.bintbxy(b1,b2,ie = False))
+        self.assertFalse(pym.bintbxy(b1,b2,col = False))
         #pl(b1,b2)
         b1 = vec3(-4,0,0).pring(4,8)
         b2 = vec3(4,4,0).pring(4,8)
@@ -268,8 +277,18 @@ class test_polymath(unittest.TestCase):
             ax = dtl.plot_axes_xy()
             ax = dtl.plot_polygon_xy(b1,ax,col = 'b',lw = 5.0)
             ax = dtl.plot_polygon_xy(b2,ax,col = 'g',lw = 5.0)
-            ax = dtl.plot_polygon_xy(br,ax,mk = 's',col = 'r',lw = 2.0)
+            for be in br:
+                ax = dtl.plot_edges_xy(be,ax,mk = 's',col = 'r',lw = 2.0)
+            #ax = dtl.plot_polygon_xy(br,ax,mk = 's',col = 'r',lw = 2.0)
             plt.show()
+
+        boundary = vec3(0,0,0).pring(500,8)
+        b1 = pym.contract(boundary,100)
+        b2 = vec3(500,0,0).sq(800,300)
+        br = pym.bsegbxy(b1,b2)
+        #pl(b1,b2,br)
+        self.assertTrue(len(br) == 10)
+
         b1 = vec3(-4,0,0).pring(4,8)
         b2 = vec3(2,2,0).pring(4,8)
         br = pym.bsegbxy(b1,b2)
@@ -313,6 +332,12 @@ class test_polymath(unittest.TestCase):
         #pl(b1,b2,br)
         self.assertTrue(len(br) == 6)
 
+        b1 = vec3(0,0,0).sq(4,4)
+        b2 = vec3(2,0,0).sq(2,6)
+        br = pym.bsegbxy(b1,b2)
+        #pl(b1,b2,br)
+        self.assertTrue(len(br) == 6)
+
     #def test_sloops(self):
 
     def test_bsegsxy(self):
@@ -328,13 +353,18 @@ class test_polymath(unittest.TestCase):
         b = vec3(0,0,0).pring(7,4)
         s1,s2 = vec3(0,-10,0),vec3(0,10,0)
         bs = pym.bsegsxy(b,s1,s2)
-        pl(bs)
+        #pl(bs)
         b = dbl.block('C',1,3,3)[0]
         s1,s2 = vec3(0,-10,0),vec3(0,10,0)
         bs = pym.bsegsxy(b,s1,s2)
+        #pl(bs)
+
+        b = dbl.block('H',1,3,3)[0]
+        s1,s2 = vec3(0,-100,0),vec3(0,100,0)
+        bs = pym.bsegsxy(b,s1,s2)
         pl(bs)
 
-    def atest_ebdxy(self):
+    def test_ebdxy(self):
         def pl(b1,b2,br):
             ax = dtl.plot_axes_xy(10)
             ax = dtl.plot_polygon_xy(b1,ax,col = 'b',lw = 5.0)
@@ -343,57 +373,25 @@ class test_polymath(unittest.TestCase):
             plt.show()
         b1 = vec3(-4,0,0).pring(4,8)
         b2 = vec3(2,2,0).pring(4,8)
-        br = pym.ebdxy(b1,b2)
+        br = pym.ebdxy(b1,b2)[0]
         #pl(b1,b2,br)
         self.assertTrue(len(br) == 9)
         b1 = vec3(0,0,0).sq(6,6)
         b2 = vec3(1.5,1.5,0).sq(3,3)
-        br = pym.ebdxy(b1,b2)
+        br = pym.ebdxy(b1,b2)[0]
         #pl(b1,b2,br)
         self.assertTrue(len(br) == 6)
         b1 = vec3(0,0,0).sq(4,4)
         b2 = vec3(2,0,0).sq(2,6)
-        br = pym.ebdxy(b1,b2)
-        pl(b1,b2,br)
-        self.assertTrue(len(br) == 4)
+        br = pym.ebdxy(b1,b2)[0]
+        #pl(b1,b2,br)
+        #self.assertTrue(len(br) == 4)
 
-    def atest_polyd(self):
-        def pl(p1,p2,pr):
-            ax = dtl.plot_axes()
-            ax = dtl.plot_polygon_full(p1,ax,col = 'b',lw = 5.0)
-            ax = dtl.plot_polygon_full(p2,ax,col = 'g',lw = 5.0)
-            ax = dtl.plot_polygon_full(pr,ax,col = 'r',lw = 2.0)
-            plt.show()
-
-        p1 = (
-            tuple(vec3(0,0,0).pring(8,8)),
-            ())
-        p2 = (
-            tuple(vec3(0,0,0).pring(2,8)),
-            ())
-        pyd = pym.polyd(p1,p2)    
-        pl(p1,p2,pyd)
-
-
-        p1 = (
-            tuple(vec3(0,0,0).sq(2,2)),
-            ())
-        p2 = (
-            tuple(vec3(1,1,0).sq(2,2)),
-            ())
-        pyd = pym.polyd(p1,p2)    
-
-        pl(p1,p2,pyd)
-
-        p1 = (
-            tuple(vec3(0,0,0).sq(2,2)),
-            ())
-        p2 = (
-            tuple(vec3(0.5,0.5,0).sq(1,1)),
-            ())
-        pyd = pym.polyd(p1,p2)    
-
-        pl(p1,p2,pyd)
+        b1 = vec3(0,0,0).pring(500,8)
+        b2 = vec3(500,0,0).sq(400,200)
+        br = pym.ebdxy(b1,b2)[0]
+        #pl(b1,b2,br)
+        self.assertTrue(len(br) == 12)
 
     def test_bnrm(self):
         fp = [vec3(0,0,0),
@@ -431,7 +429,22 @@ class test_polymath(unittest.TestCase):
         self.assertTrue(pym.bnrm(b).isnear(vec3(0,1,0)))
         '''#
 
-    #def test_contract(self):
+    def test_contract(self):
+        def pl(b):
+            ax = dtl.plot_axes_xy(300)
+            ax = dtl.plot_polygon_xy(b,ax)
+            plt.show()
+
+        b = pym.ebuxy(vec3(0,100,0).sq(500,200),vec3(100,0,0).sq(200,500))[0]
+        b = pym.bisectb(b)
+        b = pym.bisectb(b)
+        b = pym.smoothxy(b,0.2)
+        b = pym.contract(b,25)
+        #pl(b)
+
+    #def test_smoothxy(self):
+
+    #def test_aggregate(self):
 
 if __name__ == '__main__':
     unittest.main()

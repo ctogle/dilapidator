@@ -58,7 +58,7 @@ def letter(l,w,sx,sy):
 #   the letter is fitted to a rectangle of length/width sx/sy
 def block(l,w,sx,sy):
     lg = letter(l,w,sx,sy)
-    py = lg.polygon(w/2.0,'ccw')
+    py = pym.pgtopy(lg,w/2.0)
     return py
     
     

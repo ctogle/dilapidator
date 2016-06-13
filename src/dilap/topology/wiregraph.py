@@ -140,27 +140,22 @@ class wiregraph(db.base):
     #   the first edge will be from u to v, turns of direction 
     #   d (clockwise or counterclockwise) form the loop
     def loop(self,u,v,d = 'cw'):
-        if not v in self.rings[u]:
-            raise ValueError
+        if not v in self.rings[u]:raise ValueError
         lp = [u,v]
+
+        #c = 0
+
         while True:
-            #uor = self.orings[lp[-2]]
-            #vor = self.orings[lp[-1]]
-            #uori = vor.index(lp[-2])
+
+            #c += 1
+            #if c > 100:
+            #    ax = dtl.plot_axes(400)
+            #    ax = dtl.plot_polygon_xy([self.vs[lx][1]['p'] for lx in lp],ax)
+            #    plt.show()
 
             if d == 'cw':tip = self.cw(lp[-2],lp[-1])
             elif d == 'ccw':tip = self.ccw(lp[-2],lp[-1])
             else:raise ValueError
-
-            '''#
-            ror = vor[uori+1:]+vor[:uori]
-            if ror:
-                if d == 'cw':tip = ror[0]
-                elif d == 'ccw':tip = ror[-1]
-                else:raise ValueError
-            else:tip = lp[-2]
-            '''#
-
             lp.append(tip)
             if lp[-1] == lp[1] and lp[-2] == lp[0]:
                 lp.pop(-1)

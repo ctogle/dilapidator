@@ -7,16 +7,25 @@ from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
 import dilap.geometry.polymath as pym
 
+
+
 import dilap.topology.planargraph as pgr
 import dilap.topology.partitiongraph as ptg
 
 import dilap.worldly.terrain as ter
-import dilap.worldly.treeskin as ltr
 import dilap.worldly.building as blg
-import dilap.worldly.blgsequencing as bseq
+
+
+#import dilap.worldly.treeskin as ltr
+
+#import dilap.worldly.blgsequencing as bseq
+
 #import dilap.worldly.partitiongraph as ptg
-import dilap.worldly.roadgraph as rdg
+#import dilap.worldly.roadgraph as rdg
+
 import dilap.worldly.blockletters as dbl
+
+
 
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
@@ -128,7 +137,7 @@ class worldfactory(dfa.factory):
     #       road seems may include colinear intersections with the boundary
     # this supports the idea that all space is either infrastructure, structure, or nature
     def vgen(self,w,v,pg):
-        l = 10
+        l = 20
         if 't' in v[1]:
             vtypes = v[1]['t']
             if 'ocean' in vtypes:self.vgen_ocean(w,v,pg,l)
@@ -137,7 +146,7 @@ class worldfactory(dfa.factory):
         else:self.vgen_ocean(w,v,pg,l)
         return
     
-    def vgen_ocean(self,w,v,pg,l,depth = 2):
+    def vgen_ocean(self,w,v,pg,l,depth = 2,bleed = 5):
         print('ocean vertex',v[0])
         ### create an unrefined flat surface for the bottom of the ocean
         ###  and an unrefined flat surface with contracted holes for the 
@@ -146,8 +155,11 @@ class worldfactory(dfa.factory):
         sgv = w.amodel(None,None,None,m,w.sgraph.root)
         tm = m.agfxmesh()
         gb = v[1]['b']
+        #lhs = [pym.contract([p.cp().ztrn(depth) for p in ib],bleed,5) for ib in gb[1]]
+        lhs = [pym.contract([p.cp() for p in ib],bleed,5) for ib in gb[1]]
+        gb = [[p.cp() for p in gb[0]],lhs]
         wb = [[p.cp().ztrn(depth) for p in gb[0]],
-            [pym.contract([p.cp().ztrn(depth) for p in ib],20) for ib in gb[1]]]
+            [[p.cp().ztrn(depth) for p in lh] for lh in lhs]]
         ngvs = m.asurf(gb,tm,fm = 'concrete1',ref = False,hmin = 100,zfunc = None)
         ngvs = m.asurf(wb,tm,fm = 'concrete1',ref = False,hmin = 100,zfunc = None)
 
@@ -167,19 +179,12 @@ class worldfactory(dfa.factory):
 
     ###########################################################################
 
-    def __str__(self):return 'world factory:'
-    def __init__(self,*ags,**kws):
-        self._def('bclass',cx.context,**kws)
-        dfa.factory.__init__(self,*ags,**kws)
-
-        s = random.randint(0,1000)
-        print('landmass seed:',s)
-        random.seed(s)
-
     # create a context representing an entire world
     def new(self,*ags,**kws):
         ### create the boundary of the world
+        #boundary = vec3(0,0,0).pring(5000,8)
         boundary = vec3(0,0,0).pring(500,8)
+        #boundary = vec3(0,0,0).pring(50,8)
         ### generate the topographical structure of the world
         t = ter.continent(boundary)
         ### generate the region partitions of each landmass
@@ -189,45 +194,20 @@ class worldfactory(dfa.factory):
         self.gen(w,pg)
         return w
 
+    ###########################################################################
 
-        '''#
-        worldh = 50
-        #worldseq = 'J<0,2>C<1>'
+    def __str__(self):return 'world factory:'
+    def __init__(self,*ags,**kws):
+        self._def('bclass',cx.context,**kws)
+        dfa.factory.__init__(self,*ags,**kws)
 
-        toposeq = 'FF'
+        s = 736
+        s = 682
+        #s = random.randint(0,1000)
+        print('landmass seed:',s)
+        random.seed(s)
 
-        contseq =  'R<0,natural>'
-        contseq += 'S<0,0.5,0.5,0,1,vertex>'
-        contseq += 'S<1,0.5,0.5,1,0,vertex>'
-        contseq += 'S<0,0.5,0.5,1,0,vertex>'
-        #contseq += 'E<0,1>E<1,2>E<2,3>E<3,0>'
-        #contseq += 'M<0,S<>G<>L<>,>'
-        contseq += 'T<2>'
-        #contseq += 'M<0>T<2>'
-
-
-        # USE SPLOTCH TO ESTABLISH A COASTLINE!!
-
-        # WHAT IS THE EXACT INTERPLAY OF THE 
-        # TERRAINMESH OBJECT AND THE CONTINENT SPLIT SEQUENCE....?
-
-
-        worldseq = 'J<0,2,AV>V<0,3>R<1,natural>L<1,50,-1,'+toposeq+'>I<1,'+contseq+'>'
-
-        eg = {
-          'L':cartographer,
-          #'C':continent, # partitions an island (coasts, forests, mountains, etc)
-          'M':metropolis, # partition an area into a city...
-          'T':stitch, # ensure the terrain seam of each region is functional
-              }
-        pg = ptg.checkseq(self.boundary,worldh,worldseq,show = True,grammer = eg)
-        self.gen(w,pg)
-        return w
-        '''#
-
-
-
-
+    ###########################################################################
 
     # segment the boundary of a vertex based on edges of other vertices
     def vstitch(self,v,pg,l = 10):
@@ -262,8 +242,11 @@ class worldfactory(dfa.factory):
         sgv = w.amodel(None,None,None,m,w.sgraph.root)
         tm = m.agfxmesh()
         vb = self.vstitch(v,pg,l)
+        print('generating terrain')
         ngvs = m.asurf((tuple(vb),tuple(tuple(h) for h in vhs)),
             tm,fm = 'generic',ref = True,hmin = 100,zfunc = v[1]['tmesh'])
+            #tm,fm = 'generic',ref = False,hmin = 100,zfunc = v[1]['tmesh'])
+        print('generated terrain')
         return m
 
     def vblgsplotch(self,v,pg,l):
@@ -288,102 +271,6 @@ class worldfactory(dfa.factory):
             nblg = bfa.new(None,None,None,footprint = blgfp,sequence = seq)
             blgs.append(nblg)
         return blgs,blgfps
-
-
-
-###############################################################################
-###############################################################################
-
-
-
-###############################################################################
-### sequences
-###############################################################################
-
-# create a topography for use within a vertex 
-def cartographer(g,subseq):
-    ss = subseq.split(',')
-    tv = g.vs[int(ss[0])]
-    fp = [p.cp().ztrn(float(ss[2])) for p in tv[1]['fp']]
-    h = float(ss[1])
-    tseq = ss[3]
-    tm = ter.checkseq(fp,h,tseq,False)
-    tv[1]['info']['terrainmesh'] = tm
-    return g
-
-# given a "natural" space, 
-# create a sequence which generates a "developed" space
-# 
-# this must include laying of roads through an iterative process
-# in the spaces adjacent to the roads, produce hubs of buildings with parking
-# if necessary, lay roads which exit the space
-#   this means laying a road seam on the boundary
-#   this should include the vertex where this road should find
-#       another metropolitan area
-def metropolis(g,subseq):
-    irx,rseq,bseq = subseq.split(',')
-    irx = int(irx)
-    iv = g.vs[irx]
-    print('METROPOLIS!',subseq)
-
-    # the goal is to contrive a sequence representing an urban area
-    #   surrounded by rural areas so that it can be connected to other areas
-    #   found on a continent including other areas generated by this method
-    # this means splitting a region based on geometric information...
-
-    easement = 2
-
-    iv[1]['type'] = ['developed']
-    fp = iv[1]['fp']
-
-    rg = pgr.graph()
-    rg = rdg.checkseq(rg,fp,rseq,True)
-
-    rgpy = pym.pgtopy(rg,1)
-
-    rgpyi = list(rgpy[0])
-    #rgpyi = pym.ebixy(fp,rgpy[0])
-    if pym.bnrm(rgpyi).z < 0:
-        rgpyi.reverse()
-        rgpy = (tuple(rgpyi),rgpy[1])
-
-    #easement_py = pym.ebdxy(fp,rgpyi)
-    easement_py = fp
-
-    #rgpyi = pym.ebixy(fp,rgpy[0])
-
-    print('eas',easement_py)
-
-    ax = rg.plot()
-    ax = dtl.plot_polygon(easement_py,ax,col = 'b',lw = 2)
-    #ax = dtl.plot_polygon(rgpyi,ax,col = 'g',lw = 2)
-    #ax = dtl.plot_polygon_full(rgpy,ax,col = 'r',lw = 2)
-    plt.show()
-    
-    new = g.sv(irx,easement_py,rgpyi)
-    g.vs[new][1]['type'] = ['corridor']
-
-
-
-    '''#
-    mseq = subseq+','
-    mseq += 'R<0,natural>'
-    mseq += 'S<0,0.5,0.5,0,1,root>'
-    mseq += 'S<1,0.5,0.5,1,0,root>'
-    mseq += 'S<0,0.5,0.5,1,0,root>'
-    mseq += 'E<0,1>E<1,2>E<2,3>E<3,0>'
-    mseq += 'R<2,developed>'
-
-    ptg.checkseq(g.vs[irx][1]['fp'],20,mseq,True,grammer = g.grammer)
-
-    seq = subseq+','+mseq
-    ptg.insert(g,seq)
-    '''#
-
-
-
-
-
 
 ###############################################################################
 

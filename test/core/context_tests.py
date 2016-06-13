@@ -1,3 +1,5 @@
+import dilap.core.base as db
+
 from dilap.geometry.vec3 import vec3
 import dilap.geometry.tools as gtl
 import dilap.core.lsystem as lsy
@@ -47,6 +49,7 @@ class test_context(unittest.TestCase):
         #cx = dwo.world().generate()
         wfa = dwo.worldfactory()
         wcx = wfa.new()
+        #db.profile_function(wfa.new,*(),**{})
 
 ###############################################################################
 

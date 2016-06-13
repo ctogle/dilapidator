@@ -175,6 +175,7 @@ cdef class vec3:
     # is vec3 o within an open ball of raidus e centered at self
     cdef bint inneighborhood_c(self,vec3 o,float e):
         cdef float d = self.d_c(o)
+        #if gtl.near(d,e) < e:return 1
         if d < e:return 1
         else:return 0
 

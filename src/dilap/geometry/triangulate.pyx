@@ -56,8 +56,12 @@ cdef class triangulation:
         if ekey in self.eg_tri_lookup:
             tri = self.eg_tri_lookup[(u,v)]
             if not tri is None:
+                #if self.triangles[tri] is None:return -3
                 triv = [x for x in self.triangles[tri] if not x in ekey][0]
                 return triv
+                #if not self.triangles[tri] is None:
+                #    triv = [x for x in self.triangles[tri] if not x in ekey][0]
+                #    return triv
         if ekey in self.eg_ghost_lookup:
             tri = self.eg_ghost_lookup[ekey]
             if not tri is None:return -2
@@ -169,7 +173,7 @@ cdef void initialize(triangulation data,list bnd):
     bnorm = gtl.nrm_c(b1,b2,b3)
     btang = b1.tov(b2).nrm()
     convexcom = vec3(0,0,0).com_c(bnd)
-    convexrad = max([cx.d(convexcom) for cx in bnd])+1000
+    convexrad = max([cx.d(convexcom) for cx in bnd])+5000
     c01delta = vec3(-1,-1,0).nrm().uscl(convexrad)
     c02delta = vec3( 1,-1,0).nrm().uscl(convexrad)
     c03delta = vec3( 0, 1,0).nrm().uscl(convexrad)
@@ -227,6 +231,7 @@ cdef list point_location(triangulation data,vec3 y):
 
 
     print('never should have come to this')
+    print('PROBABLY NEED LARGER CONVEXRAD FOR TRIANGULATION')
     ax = dtl.plot_axes_xy(500)
     for tri in data.triangles:
         if tri is None:continue
@@ -404,12 +409,24 @@ cdef triangulation tridata_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint 
     prot = quat(0,0,0,0).toxy_c(pn)
     gtl.rot_poly_c((ebnd,ibnds),prot)
     data = triangulation(p0,pn)
+    print('initializing')
     initialize(data,list(ebnd))
+    print('initialized')
+    print('locating polygon')
     plcedges = polygon_location(data,ebnd,ibnds)
+    print('located polygon')
+    print('covering polygon')
     cover_polygon(data,ebnd,ibnds)
+    print('covered polygon')
+    print('ghost bordering')
     ghost_border(data,plcedges)              
+    print('ghost bordered')
+    print('constraining delaunay')
     constrain_delaunay(data)
+    print('constrained delaunay')
+    print('refining chew')
     if refine:refine_chews_first(data,hmin)
+    print('refined chew')
     if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
     prot.flp_c()
     for p in data.points.ps:p.rot(prot)
@@ -429,7 +446,9 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
     if hmin < 0.01:
         print('HMIN IS TOO LOW:',hmin,' ->SKIPPING TRIANGULATION...')
         return smps,gsts
+    print('generating tridata')
     data = tridata_c(ebnd,ibnds,hmin,refine,smooth)
+    print('generated tridata')
     for tx in range(data.tricnt):
         tri = data.triangles[tx]
         if tri is None:continue

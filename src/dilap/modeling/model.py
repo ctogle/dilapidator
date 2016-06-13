@@ -8,6 +8,9 @@ import dilap.geometry.triangulate as dtg
 from dilap.topology.trimesh import trimesh
 from dilap.topology.polygonmesh import polygonmesh
 
+import dilap.core.plotting as dtl
+import matplotlib.pyplot as plt
+
 import pdb
 
 
@@ -301,7 +304,7 @@ class model:
 
     # add a triangulated surface to a trimesh
     def asurf(self,poly,tm = None,fm = 'generic',rv = False,
-            ref = False,smo = False,hmin = 1,zfunc = None):
+            ref = False,smo = False,hmin = 1,zfunc = None,minhmin = 0.1):
         if tm is None:tm = self.agfxmesh()
         eb,ibs = poly
         av = lambda p,n : tm.avert(*self.avert(p.cp(),n))
@@ -332,19 +335,19 @@ class model:
                 ngvs.append(v1);ngvs.append(v2);ngvs.append(v3);ngvs.append(v4)
 
         else:
-            '''#
-            ngvs = self.asurf2(poly,tm,fm,rv,ref,smo,hmin)
-            '''#
-
-            #eb = [p.cp().xscl(0.5) for p in eb]
-            #ibs = [[p.cp().xscl(0.5) for p in ib] for ib in ibs]
-
             eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
             if ref:
                 newhmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
                 if newhmin < hmin:
                     hmin = newhmin
                     print('newhmin < hmin ...',newhmin)
+                    #ax = dtl.plot_axes_xy(100)
+                    #ax = dtl.plot_polygon_xy(eb,ax,lw = 2)
+                    #plt.show()
+                if newhmin < minhmin:
+                    print('hmin is below threshold of surface->foregoing triangulation')
+                    return []
+
             tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo)
             if not tris:print('asurf: empty surface')
             for tri in tris:

@@ -50,14 +50,19 @@ class test_wiregraph(unittest.TestCase):
         i2,r1 = wg.mev(i1,{},{})
         i3,r2 = wg.mev(i2,{},{})
 
-    def atest_loop(self):
+    def test_loop(self):
         def pl(il):
             ilp = [rg.vs[j][1]['p'] for j in il]
             ilp = pym.contract(ilp,2.0)
             ax = rg.plot()
             ax = dtl.plot_polygon(ilp,ax,col = 'b',lw = 4)
             plt.show()
+
         rg = pgr.wiregraph()
+
+        #import dilap.topology.planargraph as pgr
+        #rg = pgr.planargraph()
+
         i1 = rg.av(p = vec3( 10,-5,0),l = 0)
         i2 = rg.av(p = vec3( 10, 5,0),l = 0)
         i3 = rg.av(p = vec3(-10, 5,0),l = 0)
@@ -112,7 +117,7 @@ class test_wiregraph(unittest.TestCase):
         self.assertEqual(il,[i3,i4,i5,i1,i7,i1,i2,i6])
         #pl(il)
 
-    def atest_uloops(self):
+    def test_uloops(self):
         def pl():
             ax = rg.plot()
             for lp in loops:

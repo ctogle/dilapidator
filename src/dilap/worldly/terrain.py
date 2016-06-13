@@ -5,6 +5,8 @@ import dilap.geometry.polymath as pym
 
 import dilap.topology.tree as dtr
 
+import dilap.worldly.polygen as pyg
+
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
@@ -44,41 +46,23 @@ class tmesh(db.base):
     # given a parent loop, a zoffset, and a radial offset
     # create a new loop which is a child of the parent 
     # vertex by contracting and lifting the parent loop
-    def grow(self,par,z,r):
+    def grow(self,par,z,r,epsilon):
         base = [p.cp() for p in par.loop]
-
-        '''#
-        if random.random() > 1.9:
-            s1,s2 = vec3(0,-1000,0),vec3(-100,1000,0)
-            base = pym.bsegsxy(par.loop,s1,s2)
-
-            print('rollll..',len(base))
-
-            base = base[-1]
-
-            def pl(bs):
-                ax = dtl.plot_axes_xy(10)
-                ax = dtl.plot_polygon_xy(par.loop,ax,col = 'g',lw = 2)
-                ax = dtl.plot_edges_xy((s1,s2),ax,col = 'r',lw = 1)
-                for bpy in bs:
-                    bpy = pym.contract(bpy,0.1)
-                    ax = dtl.plot_polygon_xy(bpy,ax,col = 'b',lw = 4)
-                plt.show()
-            pl([base])
-
-        else:base = par.loop
-        '''#
 
         lin = base[:]
 
         #inner = lin[:]
-        inner = pym.contract(lin,r,0.1)
-        inner = pym.smoothxy(inner,0.1)
-        inner = pym.aggregate(inner,10)
+        inner = pym.contract(lin,r,epsilon)
+        inner = pym.smoothxy(inner,0.5,epsilon)
+        #inner = pym.aggregate(inner,2)
+        inner = pym.aggregate(inner,r)
         #inner = pym.cleanbxy(inner,2.0)
 
+        bv = pym.bvalidxy(inner)
+        if bv == -1:inner.reverse()
+
         if len(inner) > 3:lout = inner
-        else:lout = lin
+        else:return None
 
         for p in lout:p.ztrn(z)
         iv = self.al(lout,par)
@@ -87,7 +71,7 @@ class tmesh(db.base):
     ###########################################################################
 
     def plot(self,ax = None):
-        if ax is None:ax = dtl.plot_axes(100)
+        if ax is None:ax = dtl.plot_axes(700)
         def pv(v,ax):
             ax = dtl.plot_polygon(v.loop,ax,lw = 2)
             for c in self.looptree.below(v):pv(c,ax)
@@ -95,7 +79,7 @@ class tmesh(db.base):
         return ax
         
     def plotxy(self,ax = None):
-        if ax is None:ax = dtl.plot_axes_xy(100)
+        if ax is None:ax = dtl.plot_axes_xy(700)
         def pv(v,ax):
             ax = dtl.plot_polygon_xy(v.loop,ax,lw = 2)
             for c in self.looptree.below(v):pv(c,ax)
@@ -140,29 +124,6 @@ class tmesh(db.base):
 
 ###############################################################################
 
-# create a polygon which intersects b and return the difference
-def jagged(b):
-    xpj = vec3(1,0,0).prjps(b)
-    xsc = xpj[1]-xpj[0]
-
-    t = random.uniform(0,2.0*numpy.pi)
-    r = random.uniform(xsc/8.0-100,xsc/8.0+100)
-    n = random.randint(3,8)
-
-    stamp = vec3(xsc/2.0*math.cos(t),xsc/2.0*math.sin(t),0).pring(r,n)
-    b = pym.ebdxy(b,stamp)[0]
-    b = pym.aggregate(b,10)
-
-    print('ISVALID',pym.bvalidxy(b))
-    ax = dtl.plot_axes_xy(700)
-    ax = dtl.plot_polygon_xy(b,ax,lw = 4,col = 'b')
-    ax = dtl.plot_polygon_xy(stamp,ax,lw = 2,col = 'r')
-    plt.show()
-    if not pym.bvalidxy(b) > 0:
-        raise ValueError
-    
-    return b
-
 '''#
 def growlandmass(self,b,lm):
     ex = random.randint(0,len(lm)-1)
@@ -174,72 +135,50 @@ def growlandmass(self,b,lm):
     return nlm
 '''#
 
-def continent(b):
+def continent(b,epsilon = None):
     t = tmesh()
     t.root = t.al(b,None)
 
     xpj = vec3(1,0,0).prjps(b)
     xsc = xpj[1]-xpj[0]
+    if epsilon is None:epsilon = xsc/1000.0
+    print('approximated epsilon:',epsilon)
 
-    lm = pym.contract(b,50.0)
+    lm = pym.contract(b,xsc/20.0,epsilon)
 
-    for x in range(8):lm = jagged(lm)
+    for x in range(10):lm = pyg.ajagged(lm,epsilon)
 
-    #lm = pym.bisectb(lm)
-    lm = pym.smoothxy(lm,0.5)
-    lm = pym.aggregate(lm,10)
-
+    lm = pym.bisectb(lm)
+    lm = pym.smoothxy(lm,0.5,epsilon)
+    lm = pym.smoothxy(lm,0.5,epsilon)
+    lm = pym.smoothxy(lm,0.5,epsilon)
+    lm = pym.aggregate(lm,2)
+    lm = pym.blimithmin(lm,2)
     lms = [lm]
 
+    print('GROWING TERRAIN')
 
-
-    r = 5
+    z = xsc/200.0
     for l in lms:
         tip = t.al(l,t.root)
+        tiparea = pym.bareaxy(tip.loop)
+        while tiparea > (xsc/20.0)**2:
+            #grad = random.uniform(-0.1,0.3)
+            #d = random.choice([1,1,-1])
+            d = 1.0
+            #grad = d*random.uniform(0.2,0.8)
+            grad = 0.5
+            tip = t.grow(tip,d*z,abs(z/grad),epsilon)
 
-        #tip = t.root
-        tip = t.grow(tip,5,r)
-        r += 2
-        tip = t.grow(tip,5,r)
-        tip = t.grow(tip,5,r)
-        r += 2
-        r += 2
-        tip = t.grow(tip,10,r)
-        tip = t.grow(tip,15,r)
-        tip = t.grow(tip,10,r)
-        r += 2
-        r += 2
-        r += 2
-        tip = t.grow(tip,5,r)
-        r += 2
-        r += 2
-        r += 2
-        r += 2
-        tip = t.grow(tip,5,r)
+            if tip is None:break
+            tiparea = pym.bareaxy(tip.loop)
 
+            print('GROW',grad,z,tiparea,pym.bccw(tip.loop))
+
+    print('GREW TERRAIN')
     ax = t.plot()
     plt.show()
 
-    return t
-
-###############################################################################
-
-def checkseq(fp,h,seq,show = False):
-    print('check-tseq:',seq)
-    t = tmesh()
-    #t.looptree = dtr.tree()
-    t.root = t.al(fp,None)
-
-    tip = t.root
-    tip = t.grow(tip,1,2)
-    tip = t.grow(tip,1,8)
-    tip = t.grow(tip,1,2)
-    tip = t.grow(tip,2,4)
-
-    if show:
-        t.plot()
-        t.plotxy()
-        plt.show()
     return t
 
 ###############################################################################

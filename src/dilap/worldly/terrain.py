@@ -54,6 +54,8 @@ class tmesh(db.base):
         #inner = lin[:]
         inner = pym.contract(lin,r,epsilon)
         inner = pym.smoothxy(inner,0.5,epsilon)
+        inner = pym.smoothxy(inner,0.5,epsilon)
+        inner = pym.smoothxy(inner,0.5,epsilon)
         #inner = pym.aggregate(inner,2)
         inner = pym.aggregate(inner,r)
         #inner = pym.cleanbxy(inner,2.0)
@@ -67,6 +69,8 @@ class tmesh(db.base):
         for p in lout:p.ztrn(z)
         iv = self.al(lout,par)
         return iv
+
+    #def split(self,v,s):
 
     ###########################################################################
 

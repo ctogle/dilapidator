@@ -25,6 +25,19 @@ class partitiongraph(pgr.planargraph):
         for r in nfps:new.append(self.sv(vx,l,r,**kws))
         return new
 
+    # break a vertex based on intersection with a poly line (adds a vertex)
+    def bvpl(self,vx,pl,d,**kws):
+        raise NotImplemented
+        b = self.vs[vx][1]['b']
+        p = pym.ptob(b[0],p)
+        sp1 = p.cp().trn(d.cp().uscl( 10000))
+        sp2 = p.cp().trn(d.cp().uscl(-10000))
+        nfps = pym.bsegsxy(b[0],sp1,sp2)
+        new = []
+        l = nfps.pop(0)
+        for r in nfps:new.append(self.sv(vx,l,r,**kws))
+        return new
+
     # split a vertex using two new boundaries (adds a vertex)
     def sv(self,vx,l,r,connect_split = True,connect_ring = True):
         sv = self.vs[vx]

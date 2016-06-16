@@ -203,7 +203,7 @@ class worldfactory(dfa.factory):
 
         s = 736
         s = 682
-        #s = random.randint(0,1000)
+        s = random.randint(0,1000)
         print('landmass seed:',s)
         random.seed(s)
 

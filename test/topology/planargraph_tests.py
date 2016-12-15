@@ -293,11 +293,11 @@ class test_planargraph(unittest.TestCase):
 
     def test_uloops(self):
         def pl():
-            ax = rg.plot()
+            ax = rg.plotxy(l = 500)
             for lp in loops:
                 lpps = [rg.vs[j][1]['p'] for j in lp]
                 lpps = pym.contract(lpps,0.1)
-                ax = dtl.plot_polygon(lpps,ax,lw = 3,col = 'b')
+                ax = dtl.plot_polygon_xy(lpps,ax,lw = 3,col = 'b')
             plt.show()
         rg = pgr.planargraph()
         i1 = rg.av(p = vec3( 10,-5,0),l = 0)
@@ -332,7 +332,24 @@ class test_planargraph(unittest.TestCase):
         loops = rg.uloops('ccw')
         #pl()
 
-    def test_polygon(self):
+        b = [
+            vec3(-320.2890319824219, 72.00794982910156, 40.000003814697266),
+            vec3(-299.5256042480469, 72.07875061035156, 40.000003814697266),
+            vec3(-299.5280456542969, 91.03677368164062, 40.000003814697266),
+            vec3(-299.5280456542969, 129.9380645751953, 40.000003814697266),
+            vec3(-299.5280456542969, 135.1514129638672, 40.000003814697266),
+            vec3(-299.5280456542969, 138.2604522705078, 40.000003814697266),
+            vec3(-292.4235534667969, 147.1795654296875, 40.000003814697266),
+            vec3(-305.3035583496094, 125.37327575683594, 40.000003814697266),
+            vec3(-312.3858947753906, 99.95317077636719, 40.000003814697266),
+                ]
+        bsegs = [(b[j-1],b[j]) for j in range(len(b))]
+        rg = pym.sstopg(bsegs)
+        loops = rg.uloops('ccw')
+        print('itsher')
+        pl()
+
+    def atest_polygon(self):
         def pl():
             ax = dtl.plot_axes_xy(50)
             ax = dtl.plot_polygon_full_xy(py,ax,lw = 2,col = 'b')

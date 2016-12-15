@@ -143,15 +143,19 @@ class wiregraph(db.base):
         if not v in self.rings[u]:raise ValueError
         lp = [u,v]
 
-        #c = 0
+        c = 0
 
         while True:
 
-            #c += 1
-            #if c > 100:
-            #    ax = dtl.plot_axes(400)
-            #    ax = dtl.plot_polygon_xy([self.vs[lx][1]['p'] for lx in lp],ax)
-            #    plt.show()
+            c += 1
+            if c > 100:
+                print('shit',d,u,v)
+                for j in range(self.vcnt):
+                    print(self.vs[j][1]['p'])
+                ax = dtl.plot_axes_xy(400)
+                ax = dtl.plot_polygon_xy([self.vs[lx][1]['p'] for lx in lp],ax)
+                ax = dtl.plot_points_xy([self.vs[lx][1]['p'] for lx in lp],ax,number = True)
+                plt.show()
 
             if d == 'cw':tip = self.cw(lp[-2],lp[-1])
             elif d == 'ccw':tip = self.ccw(lp[-2],lp[-1])

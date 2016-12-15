@@ -191,7 +191,7 @@ def csgtest():
     ax = plc3.plot(ax)
     plt.show()
 
-#cube()
+cube()
 #cone()
 #stonehenge()
 #wall()
@@ -206,7 +206,7 @@ def csgtest():
 #tetra()
 #triang()
 #cont()
-csgtest()
+#csgtest()
 
 
 

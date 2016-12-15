@@ -31,23 +31,23 @@ class test_blg(unittest.TestCase):
 
     def test_ltapt(self):
         fp = vec3(0,0,0).sq(100,50)
-        seq = dwo.bseq.myltapt()
+        seq = dwo.blg.bseq.myltapt()
         self.checkseq(fp,seq)
 
     def test_rtapt(self):
         fp = vec3(0,0,0).sq(100,50)
-        seq = dwo.bseq.myrtapt()
+        seq = dwo.blg.bseq.myrtapt()
         self.checkseq(fp,seq)
 
     def test_lbapt(self):
         fp = vec3(0,0,0).sq(100,50)
-        seq = dwo.bseq.mylbapt()
+        seq = dwo.blg.bseq.mylbapt()
         self.checkseq(fp,seq)
 
     def atest_graph(self):
         fp = vec3(0,0,0).sq(100,50)
 
-        seq = dwo.bseq.simplebuilding()
+        seq = dwo.blg.bseq.simplebuilding()
 
         print('seqq',seq)
 

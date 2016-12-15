@@ -26,6 +26,15 @@ __doc__ = '''dilapidator\'s implementation of an all purpose model'''
 # it contains other objects which can operate on its trimeshes
 class model:
 
+    def face_dict(self):
+        mats = {}
+        for gm in self.gfxmeshes:
+            gmats = gm.face_dict()
+            for gmat in gmats:
+                if gmat in mats:mats[gmat].extend(gmats[gmat])
+                else:mats[gmat] = gmats[gmat]
+        return mats
+
     def __str__(self):return 'model:'
 
     def __init__(self,*args,**kwargs):
@@ -36,10 +45,28 @@ class model:
         self.pset = pointset()
         self.nset = pointset()
         self.uset = pointset()
+        self.reps = {}
 
         #self._def('reps',{},**kwargs)
         #self._def('filename','model.mesh',**kwargs)
         self.filename = 'model.mesh'
+
+    # iterate over the faces of a mesh and fix its
+    # normal vectors based on geometry
+    def normals(self,mesh):
+        for f in mesh.faces:
+            if f is None:continue
+            vs = [mesh.verts[x] for x in f]
+            vvs = list(zip(*vs))
+            ps,ns,us = vvs
+            pps = self.pset.gps(ps)
+            nps = self.nset.gps(ns)
+            ups = self.uset.gps(us)
+            nrm = gtl.nrm(*pps)
+            for p,n,u in zip(pps,nps,ups):
+                n.x,n.y,n.z = nrm
+                u.x,u.y,u.z = self.defuv(p,n)
+        return self
 
     # generate a gfx trimesh for a nice cube
     def atricube(self,fm = None):
@@ -169,15 +196,14 @@ class model:
     def avert(self,p = None,n = None,u = None):
         if p is None:p = vec3(0,0,0)
         if n is None:n = vec3(0,0,1)
-        if u is None:
-            if   n.isnear(vec3(1,0,0)) or n.isnear(vec3(-1,0,0)):u = vec3(p.y,p.z,0)
-            elif n.isnear(vec3(0,1,0)) or n.isnear(vec3(0,-1,0)):u = vec3(p.x,p.z,0)
-            elif n.isnear(vec3(0,0,1)) or n.isnear(vec3(0,0,-1)):u = vec3(p.x,p.y,0)
-            else:
-                u = vec3(0,0,0)
-                #print('no obvious projection for normal:',n,', defaulting u:',u)
+        if u is None:u = self.defuv(p,n)
+        #    if   n.isnear(vec3(1,0,0)) or n.isnear(vec3(-1,0,0)):u = vec3(p.y,p.z,0)
+        #    elif n.isnear(vec3(0,1,0)) or n.isnear(vec3(0,-1,0)):u = vec3(p.x,p.z,0)
+        #    elif n.isnear(vec3(0,0,1)) or n.isnear(vec3(0,0,-1)):u = vec3(p.x,p.y,0)
+        #    else:
+        #        u = vec3(0,0,0)
+        #        #print('no obvious projection for normal:',n,', defaulting u:',u)
         px = self.pset.ap(p)
-        #px = self.pset.np(p)
         nx = self.nset.ap(n)
         ux = self.uset.ap(u)
         return px,nx,ux

@@ -56,11 +56,11 @@ def myrtapt():
     seq += 'S<4,0.3,0.5,0,0,1,0>'
     seq += 'S<9,0.5,0.5,0,1,0,0>'
     seq += 'E<1,5>E<1,3>E<5,2>E<3,7>E<3,4>E<3,8>E<3,6>E<8,0>E<4,9>E<4,10>X<1>'
-    seq += 'R<1,open>'
-    seq += 'R<3,open>'
-    seq += 'R<5,open>'
-    seq += 'R<0,closed>'
-    seq += 'R<10,closed>'
+    seq += 'R<1,rtype,open>'
+    seq += 'R<3,rtype,open>'
+    seq += 'R<5,rtype,open>'
+    seq += 'R<0,rtype,closed>'
+    seq += 'R<10,rtype,closed>'
     return seq
 
 def myltapt():
@@ -76,11 +76,11 @@ def myltapt():
     seq += 'S<4,0.7,0.5,0,0,1,0>'
     seq += 'S<4,0.5,0.5,0,1,0,0>'
     seq += 'E<0,1>E<0,3>E<3,6>E<3,7>E<3,9>E<3,8>E<1,5>E<8,2>E<4,9>E<9,10>X<0>'
-    seq += 'R<0,open>'
-    seq += 'R<1,open>'
-    seq += 'R<3,open>'
-    seq += 'R<2,closed>'
-    seq += 'R<10,closed>'
+    seq += 'R<0,rtype,open>'
+    seq += 'R<1,rtype,open>'
+    seq += 'R<3,rtype,open>'
+    seq += 'R<2,rtype,closed>'
+    seq += 'R<10,rtype,closed>'
     return seq
 
 def mylbapt():
@@ -96,11 +96,11 @@ def mylbapt():
     seq += 'S<1,0.7,0.5,0,0,1,0>'
     seq += 'S<1,0.5,0.5,0,1,0,0>'
     seq += 'E<0,6>E<0,4>E<7,6>E<3,4>E<4,5>E<2,4>E<1,9>E<8,2>E<4,9>E<9,10>X<0>'
-    seq += 'R<0,open>'
-    seq += 'R<4,open>'
-    seq += 'R<6,open>'
-    seq += 'R<8,closed>'
-    seq += 'R<1,closed>'
+    seq += 'R<0,rtype,open>'
+    seq += 'R<4,rtype,open>'
+    seq += 'R<6,rtype,open>'
+    seq += 'R<8,rtype,closed>'
+    seq += 'R<1,rtype,closed>'
     return seq
 
 def myfloor():

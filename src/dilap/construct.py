@@ -10,6 +10,7 @@ import dilap.worldly.world as dwo
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
+import os
 import pdb
 
 iotypes = dio.iotypes
@@ -24,11 +25,25 @@ def build2(mod,io = None):
     elif type(io) is type(''):io = iotypes[io]
     io.build_model2(mod)
 
-def realize(context,years = 0,io = None):
+def realize(context,years = 0,io = None,**kws):
     if io is None:io = di.fetch_info()['exporter']
     elif type(io) is type(''):io = iotypes[io]
     context.generate(worn = years)
-    context.graph(io)
+    context.graph(io,**kws)
+
+def write_materials(io = None,world_dir = None,**kws):
+    if world_dir is None:world_dir = os.getcwd()
+    if io is None:io = di.fetch_info()['exporter']
+    io = iotypes[io]
+    if hasattr(io,'write_materials'):
+        io.write_materials(world_dir)
+
+def write_world_script(io = None,world_dir = None,**kws):
+    if world_dir is None:world_dir = os.getcwd()
+    if io is None:io = di.fetch_info()['exporter']
+    io = iotypes[io]
+    if hasattr(io,'write_world_script'):
+        io.write_world_script(world_dir)
 
 ###############################################################################
 
@@ -82,12 +97,60 @@ def teststage(**kws):
     #ax = dtl.plot_axes()
     #cx = blg.building()
 
-    #bfa = blg.blgfactory()
-    #cx = bfa.new()
+    bfp = vec3(0,0,0).sq(50,15)
+    bsq = test_bseq()
+    p,q,s = None,None,None
+    bfa = dwo.blg.blgfactory()
+    cx = bfa.new(p,q,s,footprint = bfp,sequence = bsq,floorheight = 5)
 
-    #cx = dwo.world()
-    cx = dwo.worldfactory().new()
+    ##cx = dwo.world()
+    #cx = dwo.worldfactory().new()
     realize(cx,**kws)
+
+def test_bseq():
+    seq  = ''
+    seq += 'L<0>'
+    seq += 'L<1>'
+    fseq = 'S<0,0.3,0.5,0,0,1,0>' # make living room on left
+    fseq += 'S<0,0.3,0.5,0,0,1,0>' # make living room on left
+    fseq += 'S<0,0.3,0.5,0,1,0,0>' # make living room on left
+    fseq += 'R<2,rtype,closed>'
+    fseq += 'C<0,0.2,0.2,0.2,0.2>'
+    fseq += 'C<1,0.2,0.2,0.2,0.2>'
+    fseq += 'C<3,0.2,0.2,0.2,0.2>'
+    fseq += 'C<2,0.2,2,0.2,2>'
+    fseq += 'E<1,0>'
+    fseq += 'E<1,2>'
+    fseq += 'E<2,3>'
+    fseq += 'E<2,0>'
+    #fseq += 'X<3>'
+    seq += 'I<0,'+fseq+'>'
+    seq += 'I<1,'+fseq+'>'
+    #seq += 'E<1,0>'
+    #seq += 'V<2>'
+    #seq += 'V<6>'
+    seq += 'X<2>'
+    return seq
+
+def atest_bseq():
+    seq  = ''
+    seq += 'S<0,0.3,0.5,0,0,1,0>' # make living room on left
+    seq += 'S<0,0.6,0.5,0,0,1,0>' # make back room on right
+    seq += 'S<2,0.5,0.4,0,1,0,0>' # make kitchen on bottom
+    seq += 'S<3,0.5,0.3,0,1,0,0>' # make front room on top
+    seq += 'S<2,0.6,0.5,0,0,1,0>' # make bathrom on left of kitchen
+    seq += 'S<5,0.5,0.7,0,1,0,0>' # make hall closest above kitchen
+    seq += 'S<2,0.5,0.4,0,1,0,0>'
+    seq += 'S<0,0.5,0.3,0,1,0,0>'
+    seq += 'S<4,0.3,0.5,0,0,1,0>'
+    seq += 'S<9,0.5,0.5,0,1,0,0>'
+    seq += 'E<1,5>E<1,3>E<5,2>E<3,7>E<3,4>E<3,8>E<3,6>E<8,0>E<4,9>E<4,10>X<1>'
+    seq += 'R<1,rtype,open>'
+    seq += 'R<3,rtype,open>'
+    seq += 'R<5,rtype,open>'
+    seq += 'R<0,rtype,closed>'
+    seq += 'R<10,rtype,closed>'
+    return seq
 
 ###############################################################################
 ###############################################################################

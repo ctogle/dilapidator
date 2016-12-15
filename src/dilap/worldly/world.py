@@ -140,7 +140,8 @@ class worldfactory(dfa.factory):
         l = 20
         if 't' in v[1]:
             vtypes = v[1]['t']
-            if 'ocean' in vtypes:self.vgen_ocean(w,v,pg,l)
+            #if 'ocean' in vtypes:self.vgen_ocean(w,v,pg,l)
+            if 'ocean' in vtypes:pass
             elif 'natural' in vtypes:self.vgen_natural(w,v,pg,l)
             elif 'developed' in vtypes:self.vgen_developed(w,v,pg,l)
         else:self.vgen_ocean(w,v,pg,l)
@@ -183,10 +184,16 @@ class worldfactory(dfa.factory):
     def new(self,*ags,**kws):
         ### create the boundary of the world
         #boundary = vec3(0,0,0).pring(5000,8)
-        boundary = vec3(0,0,0).pring(500,8)
-        #boundary = vec3(0,0,0).pring(50,8)
+        #boundary = vec3(0,0,0).pring(500,8)
+        boundary = vec3(0,0,0).pring(100,8)
         ### generate the topographical structure of the world
         t = ter.continent(boundary)
+
+        # show the topography
+        ax = t.plot()
+        plt.show()
+        # ###################
+
         ### generate the region partitions of each landmass
         pg = self.genregions(t)
         ### create a world context from the partition graph
@@ -203,6 +210,9 @@ class worldfactory(dfa.factory):
 
         s = 736
         s = 682
+        s = 189
+        s = 916
+
         s = random.randint(0,1000)
         print('landmass seed:',s)
         random.seed(s)

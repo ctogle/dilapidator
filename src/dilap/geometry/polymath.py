@@ -148,10 +148,6 @@ def sloops(es,epsilon = 0.1):
     g = sstopg(es,epsilon)
     uls = g.uloops('ccw')
     ols = [[g.vs[j][1]['p'].cp() for j in ul] for ul in uls]
-    #for ol in ols:
-    #    #if bnrm(ol).z < 0:
-    #    if not bccw(ol):
-    #        ol.reverse()
     return ols
 
 # does a segment intersect a boundary polygon
@@ -353,10 +349,10 @@ def bvalidxy(b,epsilon = 0.1):
         print('polygon is clockwise')
         return -1
     # normal should be pointing in the positive z direction
-    if bnrm(b).z <= 0:
-        #print('polygon normal is improper')
-        print('polygon normal is improper... letting it slide...')
-        #return -1
+    #if bnrm(b).z <= 0:
+    #    #print('polygon normal is improper')
+    #    print('polygon normal is improper... letting it slide...')
+    #    #return -1
     # polygon should not have duplicate points
     for x in range(len(b)):
         bp = b[x]
@@ -474,6 +470,29 @@ def bisectb(b):
     nb.append(nb.pop(0))
     return nb
 
+# make a new boundary polygon including the midpoints of every edge
+def splitb(b,l):
+    nb = []
+    for x in range(len(b)):
+        b1,b2 = b[x-1],b[x]
+        nb.append(b1.cp())
+        el = b1.d(b2)
+        if el > l:
+            n = 1
+            while el/n > l:n += 1
+            divpts = b1.pline(b2,n-1)
+            divcnt = len(divpts)
+            nb.extend([p.cp() for p in divpts])
+
+    '''#
+    ax = dtl.plot_axes_xy(500)
+    ax = dtl.plot_polygon_xy(nb,ax,lw = 2,col = 'b')
+    ax = dtl.plot_points_xy(nb,ax,number = True)
+    plt.show()
+    '''#
+
+    return nb
+
 # return a copy of a boundary polygon with some points removed
 # possibly replace dissolved points with points in rps
 def bdissolvep(b,xs,rps):
@@ -483,34 +502,46 @@ def bdissolvep(b,xs,rps):
             j = xs.index(y)
             if rps[j] is None:continue
             else:nb.extend(rps[j])
-        nb.append(b[y])
+        else:nb.append(b[y])
+        #nb.append(b[y])
     return nb
 
 # modify a boundary polygon such that its hmin will be above minhmin
 # NOTE: the resulting polygon should be contained by the input polygon
-def blimithmin(b,minhmin):
+def blimithmin(b,minhmin,maxhmin):
 
     m = lambda : min([b[x-1].d(b[x]) for x in range(len(b))])*math.sqrt(3)
 
     els = [b[x-1].d(b[x]) for x in range(len(b))]
     dps,rps = [],[]
     for elx in range(len(els)):
-        if els[elx] < minhmin:
+        el = els[elx]
+        if el < minhmin:
             rps.append(None);rps.append([b[elx-1].mid(b[elx])])
-            #rps.append(None);rps.append(None)
             dps.append(elx-1);dps.append(elx)
 
-    print('presplitapparenthmin',m(),minhmin,len(b),len(dps))
-    ax = dtl.plot_axes_xy(700)
-    ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'b')
-    plt.show()
-
     if dps:b = bdissolvep(b,dps,rps)
+    b = splitb(b,maxhmin)
 
-    print('postsplitapparenthmin',m(),minhmin,len(b))
-    ax = dtl.plot_axes_xy(700)
-    ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'b')
+    #b = smoothxy(b,1.0,1.0)
+    #b = smoothxy(b,1.0,1.0)
+    #b = smoothxy(b,1.0,1.0)
+    #b = smoothxy(b,1.0,1.0)
+    #b = smoothxy(b,1.0,1.0)
+
+    '''#
+    g = sstopg([(b[x-1],b[x]) for x in range(len(b))],1,True)
+    uls = g.uloops('ccw')
+    #ax = dtl.plot_axes_xy(500)
+    ax = g.plotxy(l = 500)
+    for lp in uls[1:]:
+        lpps = [g.vs[j][1]['p'] for j in lp]
+        print('lPPPS',len(lpps))
+        #lpps = contract(lpps,0.1)
+        ax = dtl.plot_polygon_xy(lpps,ax,lw = 3,col = 'g')
+        ax = dtl.plot_points_xy(lpps,ax,number = True)
     plt.show()
+    '''#
 
     return b
 
@@ -524,61 +555,95 @@ def pinchb(b,epsilon = 0.1):
         for y in range(len(b)):
             if x == y:continue
             e3,e4 = b[y-1],b[y]
-
             ip = sintsxyp(e1,e2,e3,e4,ie = False,col = False)
-            #ip = sintsxyp(e1,e2,e3,e4,ie = False,col = False)
             if not ip is None:ips.append(ip);ipxs.append(x)
-
-            #if not ip is None:ips.append(ip);ipxs.append(x)
-
     if len(ips) == 0:
         if not bccw(b):b.reverse()
         return b
     ips.reverse();ipxs.reverse()
     for x,ip in zip(ipxs,ips):b.insert(x,ip)
     g = sstopg([(b[x-1],b[x]) for x in range(len(b))],epsilon)
+
+    '''#
+    if not bvalidxy(b) > 0: 
+        print('balls',epsilon)
+        uls = g.uloops('cw')
+
+        ax = g.plotxy(l = 500)
+        ols = [[g.vs[j][1]['p'].cp() for j in ul] for ul in uls]
+        for ol in ols:ax = dtl.plot_polygon_xy(ol,ax,lw = 2)
+        plt.show()
+
+        print('amen2')
+    '''#
+
     uls = g.uloops('ccw')
     ols = [[g.vs[j][1]['p'].cp() for j in ul] for ul in uls]
     if len(ols) == 1:ol = ols[0]
     else:
-
-        # select the loop enclosing the most area
-        #las = [bareaxy(ol) if len(ol) == len(b) else 0 for ol in ols]
         las = [abs(bareaxy(ol)) if not len(ol) == len(b) else 0 for ol in ols]
-        #las = [bareaxy(ol) for ol in ols if not len(ol) == len(b)]
         ol = ols[las.index(max(las))]
-
-        # select the loop which contains bcom and is not the input loop
-        #for ol in ols:
-        #    if pinb(ol,bcom) and not len(ol) == len(b):
-        #        break
-
     if not bccw(ol):ol.reverse()
     return ol
 
 # evenly contract a boundary polygon
 def contract(b,ds,epsilon = 0.1):
+    if not type(ds) is type([]):
+        dss = ds
+        ds = [1 for x in range(len(b))]
+    else:dss = 1
     fbnd = []
     pns = []
     for x in range(len(b)):
         p1,p2,p3 = b[x-2],b[x-1],b[x]
         w1t = p1.tov(p2).nrm()
         w2t = p2.tov(p3).nrm()
-        w1n = vec3(0,0,1).crs(w1t).nrm()
-        w2n = vec3(0,0,1).crs(w2t).nrm()
+        w1n = vec3(0,0,1).crs(w1t).nrm().uscl(ds[x-2])
+        w2n = vec3(0,0,1).crs(w2t).nrm().uscl(ds[x-1])
         s11 = p1.cp().trn(w1n).trn(w1t.cp().uscl(-10000))
         s12 = p2.cp().trn(w1n).trn(w1t.cp().uscl( 10000))
         s21 = p2.cp().trn(w2n).trn(w2t.cp().uscl(-10000))
         s22 = p3.cp().trn(w2n).trn(w2t.cp().uscl( 10000))
+
         ip = sintsxyp(s11,s12,s21,s22,ie = False,col = False)
-        if ip is None:pn = p2.cp().trn(w1n)
+
+        #if ip is None:
+        if ip is None or gtl.isnear(abs(w1t.dot(w2t)),1):
+            pn = p2.cp().trn(w1n)
+
         else:pn = ip.cp()
         pns.append(pn)
     for x in range(len(b)):
         p1,p2,p3 = b[x-2],b[x-1],b[x]
-        fbnd.append(p2.lerp(pns[x],ds))
+        fbnd.append(p2.lerp(pns[x],dss))
         #fbnd.append(p2.lerp(pns[x],random.uniform(0.5*ds,ds)))
+
+        '''#
+        print('amen5')
+        ax = dtl.plot_axes_xy(500)
+        ax = dtl.plot_polygon_xy(fbnd,ax,lw = 2)
+        ax = dtl.plot_point_xy_annotate(p1,ax,'p1')
+        ax = dtl.plot_point_xy(p1,ax)
+        ax = dtl.plot_point_xy_annotate(p2,ax,'p2')
+        ax = dtl.plot_point_xy(p2,ax)
+        ax = dtl.plot_point_xy_annotate(p3,ax,'p3')
+        ax = dtl.plot_point_xy(p3,ax)
+        plt.show()
+        print('amen6')
+        '''#
+
     fbnd.append(fbnd.pop(0))
+
+
+    '''#
+    print('amen3')
+    ax = dtl.plot_axes_xy(500)
+    ax = dtl.plot_polygon_xy(fbnd,ax,lw = 2)
+    plt.show()
+    print('amen4')
+    '''#
+
+
     if len(fbnd) > 3:fbnd = pinchb(fbnd,epsilon)
     return fbnd
 
@@ -597,10 +662,9 @@ def smoothxy(b,w = 0.1,epsilon = 0.1):
 # return a version of a boundary polygon where 
 # points within ds of one another are merged
 def aggregate(b,ds,da = numpy.pi/4):
-
-    # points within ds are merged
-    # edges with interior angle < da are dissolved
-    # DISSOLVING POINTS/EDGES NEED NOT BE TOPOPLOGICALLY ADJACENT!!??
+    if len(b) <= 3:
+        print('polygon could not be further aggregated')
+        return b[:]
 
     edists = [b[x-1].d(b[x]) for x in range(len(b))]
     edas = [b[x-1].tov(b[x-2]).angxy(b[x-1].tov(b[x])) for x in range(len(b))]
@@ -609,50 +673,34 @@ def aggregate(b,ds,da = numpy.pi/4):
     dmerges = [1 if d < ds else 0 for d in edists]
     amerges = [1 if a < da else 0 for a in edas]
 
-    if dmerges.count(0) < 3:
-        print('polygon could not be further aggregated')
-
-        ax = dtl.plot_axes_xy(400)
-        ax = dtl.plot_polygon_xy(b,ax)
-        plt.show()
-
-        return b[:]
-
-    #print('edas')
-    #print(dmerges)
-    #print(amerges)
-
     nb = []
     piece = []
     for x in range(len(b)):
         if not dmerges[x] == 0:
             piece.append(b[x])
-        #elif not amerges[x] == 0:
-        #    u,v,w = x-1,x,x+1 if x < len(b)-1 else 0
-        #    piece.extend([b[u],b[v],b[w]])
-        else:
-            if piece:
-                print('mypiece',len(piece))
-                nb.append(vec3(0,0,0).com(piece))
-                #nb.append(piece[int(len(piece)/2.0)])
-                piece = []
-            nb.append(b[x])
-
-        #if dmerges[x] == 0 and amerges[x] == 0:
-        #    if piece:
-        #        #nb.append(vec3(0,0,0).com(piece))
-        #        nb.append(piece[int(len(piece)/2.0)])
-        #        piece = []
-        #    nb.append(b[x])
-        #else:piece.append(b[x])
+        if not amerges[x] == 0:
+            u,v,w = x-1,x,x+1 if x < len(b)-1 else 0
+            piece.extend([b[u],b[v],b[w]])
+        if piece:
+            #nb.append(vec3(0,0,0).com(piece))
+            #nb.append(piece[int(len(piece)/2.0)])
+            piece = []
+        else:nb.append(b[x])
     return nb
 
 # generate a planar graph from a set of line segments
-def sstopg(segs,epsilon = 0.1):
+def sstopg(segs,epsilon = 0.1,plot = False):
     g = pgr.planargraph()
     for e1,e2 in segs:
         v1,v2 = g.fp(e1,epsilon),g.fp(e2,epsilon)
         if not v2 in g.rings[v1]:g.ae(v1,v2)
+
+    '''#
+    if plot:
+        ax = g.plotxy(l = 500)
+        plt.show()
+    '''#
+
     return g
 
 # generate a full polygon from a planar graph
@@ -691,7 +739,8 @@ def pgtopy(pg,r,epsilon = 0.1):
                 eseam = len(seams)-1
 
     for sx in range(len(seams)):
-        if bnrm(seams[sx]).z < 0:seams[sx].reverse()
+        #if bnrm(seams[sx]).z < 0:seams[sx].reverse()
+        if not bccw(seams[sx]):seams[sx].reverse()
 
     #py = (tuple(seams.pop(eseam)),tuple(tuple(s) for s in seams))
     py = [seams.pop(eseam),seams]

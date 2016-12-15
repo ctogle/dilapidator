@@ -27,6 +27,8 @@ import pdb
 ### context representing any building
 ###############################################################################
 
+dkw = lambda kws,k,d : kws[k] if k in kws else d
+
 class building(cx.context):
 
     def __init__(self,p,q,s,*ags,**kws):
@@ -37,10 +39,15 @@ class building(cx.context):
         self.s = s
         cx.context.__init__(self,*ags,**kws)
 
-    def windowholes(self,r,w,wp1,wp2):
-        ww,wh,wz,wm = 1.5,2.0,1.0,1.0
+    def windowholes(self,r,w,wp1,wp2,**wopts):
+        wt = dkw(wopts,'type','e')
+        ww = dkw(wopts,'ww',2.5)
+        wh = dkw(wopts,'wh',2.0)
+        wz = dkw(wopts,'wz',1.0)
+        wm = dkw(wopts,'wm',1.0)
+        ws = dkw(wopts,'ws',4)
         wpd = wp1.d(wp2)
-        wcnt = int((wpd-1)/(ww+2*wm))
+        wcnt = int((wpd-1)/(ww+ws*wm))
         if wcnt < 1:return
         wpoff = 1.0/wcnt
         for wx in range(wcnt):
@@ -83,9 +90,13 @@ class building(cx.context):
                         tdh = dh*100
                         tww = max(rv[2]['wwidths'][rwx-1],ov[2]['wwidths'][rwx-1])
                         tdw = ips[0].d(ips[1])-2*tww
+                        # hack door that consumes the wall
                         self.wallhole(rx,rwx-1,(adj,ridp,tdw,tdh,dz)) 
-                    else:self.wallhole(rx,rwx-1,(adj,ridp,dw,dh,dz))
-                    rv[2]['wtypes'][rwx-1] = 'i'
+                    else:
+                        # typical door that does not consume the wall
+                        self.wallhole(rx,rwx-1,(adj,ridp,dw,dh,dz))
+                    #rv[2]['wtypes'][rwx-1] = 'i'
+                    rv[2]['wmetas'][rwx-1]['type'] = 'i'
         gadjs = self.bgraph.geoadj(rx)
         for adj in gadjs:
             ov = self.bgraph.vs[adj[0]]
@@ -94,24 +105,35 @@ class building(cx.context):
             aws = pym.badjbxy(rb,ob,minovlp = 0)
             for aw in aws:
                 rwx,owx = aw
-                if rv[2]['wtypes'][rwx-1] == 'e':
-                    rv[2]['wtypes'][rwx-1] = 'i'
+                #if rv[2]['wtypes'][rwx-1] == 'e':
+                #    rv[2]['wtypes'][rwx-1] = 'i'
+                if rv[2]['wmetas'][rwx-1]['type'] == 'e':
+                    rv[2]['wmetas'][rwx-1]['type'] = 'i'
+        hasexit = False
         for wx in range(len(rb)):
             wp1,wp2 = rb[wx-1],rb[wx]
-            wt = rv[2]['wtypes'][wx-1]
+            #wt = rv[2]['wtypes'][wx-1]
+            wt = rv[2]['wmetas'][wx-1]['type']
             if wt == 'e':
                 isexit = False
                 if rv[2]['level'] == 0:
                     for rex in rexits:
-                        if rex is True:pass
-                        elif gtl.onseg_xy(rex,wp1,wp2) and not wp2.isnear(rex):
+                        if rex is True:
+                            if not hasexit:
+                                self.wallhole(rx,wx-1,('exit',0.5,dw,dh,dz))
+                                hasexit = True
+                                isexit = True
+                                break
+                        elif rex.onsxy(wp1,wp2) and not wp2.isnear(rex):
+                        #elif gtl.onseg_xy(rex,wp1,wp2) and not wp2.isnear(rex):
                             print('external exit!',rex)
                             self.wallhole(rx,wx-1,('exit',0.5,dw,dh,dz))
                             isexit = True
                             break
                 wpd = wp1.d(wp2)
-                if not isexit and wpd > dw+2 and not rv[2]['rtype'] == 'closed':
-                    self.windowholes(rx,wx-1,wp1,wp2)
+                #if not isexit and wpd > dw+2 and not rv[2]['rtype'] == 'closed':
+                if wpd > dw+2 and not rv[2]['rtype'] == 'closed':
+                    self.windowholes(rx,wx-1,wp1,wp2,**rv[2]['wmetas'][wx])
 
     def genshafts(self):
 
@@ -120,7 +142,8 @@ class building(cx.context):
             fbnd = pym.contract(shb,wwi)
             for x in range(len(shb)):
                 b2,b1,w2,w1 = shb[x-1],shb[x],fbnd[x-1],fbnd[x]
-                hs,wt = vkw['wholes'][x-1],vkw['wtypes'][x-1]
+                #hs,wt = vkw['wholes'][x-1],vkw['wtypes'][x-1]
+                hs,wt = vkw['wholes'][x-1],vkw['wmetas'][x-1]['type']
                 wh,ww = vkw['wheights'][x-1],vkw['wwidths'][x-1]
                 sh,ch = vkw['skirt'],vkw['crown']
                 wpys,portals = pyg.awall(w1,w2,wh,hs,b1.cp(),b2.cp())
@@ -150,7 +173,8 @@ class building(cx.context):
             belv = self.bgraph.vs[sh[shx-1]][2]
             rh = max(belv['wheights'])+belv['skirt']+belv['crown']
             ramp = [r4,r1,r2,r3]
-            platform = pym.bisectb(pym.ebdxy(platform,ramp))
+            #platform = pym.bisectb(pym.ebdxy(platform,ramp))
+            platform = pym.bisectb(pym.ebdxy(platform,ramp)[0])
             ramp[0].ztrn(-rh)
             ramp[1].ztrn(-rh)
 
@@ -207,7 +231,9 @@ class building(cx.context):
             tm = m.agfxmesh()
 
             # create the floor and ceiling surfaces
-            fbnd = pym.contract(vkw['bound'],min(vkw['wwidths']))
+            #fbnd = pym.contract(vkw['bound'],max(vkw['wwidths']))
+            fbnd = pym.contract(vkw['bound'],vkw['wwidths'])
+            # need to place fbnd based on differing wwidths!!
 
             floor,ceiling = vkw['floor'],vkw['ceiling']
             if floor is None:
@@ -224,7 +250,8 @@ class building(cx.context):
             for x in range(len(vkw['bound'])):
                 b2,b1 = vkw['bound'][x-1],vkw['bound'][x]
                 w2,w1 = fbnd[x-1],fbnd[x]
-                hs,wt = vkw['wholes'][x-1],vkw['wtypes'][x-1]
+                #hs,wt = vkw['wholes'][x-1],vkw['wtypes'][x-1]
+                hs,wt = vkw['wholes'][x-1],vkw['wmetas'][x-1]['type']
                 wh,ww = vkw['wheights'][x-1],vkw['wwidths'][x-1]
 
                 # create wall surfaces
@@ -439,7 +466,8 @@ class blggraph(db.base):
             if rmv is None:continue
             if rmv[2]['level'] > 0:continue
             bcol = 'b' if rmv[2]['shaft'] else None
-            rconb = pym.contract(rmv[2]['bound'],0.5)
+            rconbs = 0.5 if pym.bccw(rmv[2]['bound']) else -0.5
+            rconb = pym.contract(rmv[2]['bound'],rconbs)
             ax = dtl.plot_polygon_xy(rconb,ax,lw = 4,col = bcol)
             rc = vec3(0,0,0).com(rmv[2]['bound'])
             rs = str(rmv[0])+','+str(rmv[1])
@@ -498,9 +526,10 @@ class blggraph(db.base):
         defkw('level',0);defkw('skirt',0.5);defkw('crown',0.5)
         defkw('fholes',[]);defkw('choles',[])
         defkw('wholes',[[] for x in range(wcnt)])
-        defkw('wtypes',['e' for x in range(wcnt)])
+        defkw('wmetas',[{'type':'e'} for x in range(wcnt)])
+        #defkw('wtypes',['e' for x in range(wcnt)])
         defkw('wheights',[dwh for x in range(wcnt)])
-        defkw('wwidths',[0.2 for x in range(wcnt)])
+        defkw('wwidths',[1.0 for x in range(wcnt)])
         return self.av(es,kws)
 
     ###########################################################################
@@ -532,7 +561,7 @@ class blggraph(db.base):
         sp2 = lp.cp().trn(line[1].cp().uscl(-1000))
 
         l,r = pym.bsegsxy(bd,sp1,sp2)
-        sv[2]['bound'] = tuple(l)
+        sv[2]['bound'] = tuple(l if pym.bccw(l) else l[::-1])
         newes = sv[1][:]+([sup] if connect else [])
         new = self.defroom(r,newes,
             exits = sv[2]['exits'][:],level = sv[2]['level'],
@@ -589,9 +618,9 @@ class blggraph(db.base):
             ss = subseq.split(',')
             self.ae(int(ss[0]),int(ss[1]))
 
-        def rtype(subseq):
+        def rkset(subseq):
             ss = subseq.split(',')
-            self.vs[int(ss[0])][2]['rtype'] = ss[1]
+            self.vs[int(ss[0])][2][ss[1]] = ss[2]
 
         def rins(subseq):
             irx = int(subseq[:subseq.find(',')])
@@ -611,8 +640,16 @@ class blggraph(db.base):
             srx = int(subseq)
             self.vs[srx][2]['shaft'] = True
 
+        def contract(subseq):
+            ss = subseq.split(',')
+            srx = int(ss[0])
+            cd = [float(v) for v in ss[1:]]
+            for wx in range(len(cd)):
+                self.vs[srx][2]['wwidths'][wx] *= cd[wx]
+
         grammer = {
-            'L':level,'S':split,'I':rins,'X':rexit,'E':edge,'V':shaft,'R':rtype,
+            'L':level,'S':split,'I':rins,'X':rexit,'E':edge,'V':shaft,'R':rkset,
+            'C':contract,
                 }
         seq = self.sequence[:]
         scnt = len(seq)
@@ -624,6 +661,7 @@ class blggraph(db.base):
                 grammer[c](seq[sx+2:ex])
             else:ex = sx+1
             sx = ex
+
         self.shafts = []
         for vx in range(self.vcnt):self.verifyedges(vx)
         return rooms       
@@ -646,6 +684,10 @@ class blgfactory(dfa.factory):
     def new(self,*ags,**kws):
         blgg = blggraph(**kws)
         blgg.graph()
+
+        blgg.plotxy()
+        plt.show()
+
         kws['bgraph'] = blgg
         n = self.bclass(*ags,**kws)
         return n

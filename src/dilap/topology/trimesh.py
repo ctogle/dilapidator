@@ -32,6 +32,16 @@ class trimesh:
                 x += 1
         return x
 
+    def face_dict(self):
+        mats = {}
+        for f in self.faces:
+            if f is None:continue
+            fm = self.fs_mats[f]
+            if fm is None:fm = 'generic'
+            if fm in mats:mats[fm].append(f)
+            else:mats[fm] = [f]
+        return mats
+
     # vertices are tuples (pos_index,nrm_index,uv_index)
     # edges are tuples of vertex indices (vx1,vx2)
     #   edges are implicited directed (ccw about faces)

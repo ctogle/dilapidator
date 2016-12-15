@@ -1,4 +1,5 @@
 from dilap.geometry.vec3 import vec3
+import dilap.geometry.tools as gtl
 
 import dilap.topology.wiregraph as dwg
 
@@ -31,10 +32,36 @@ class planargraph(dwg.wiregraph):
         up = self.vs[u][1]['p']
         vp = self.vs[v][1]['p']
         wp = self.vs[w][1]['p']
+
         e1 = up.tov(vp)
         e2 = up.tov(wp)
-        sa = e1.sang(e2,vec3(0,0,1))
-        if sa < 0:sa = 2*numpy.pi+sa
+
+        etn1 = e1.cp().nrm()
+        etn2 = e2.cp().nrm()
+        para = gtl.isnear(abs(etn1.dot(etn2)),1)
+        if para:sa = numpy.pi
+        else:sa = e1.sang(e2,vec3(0,0,1))
+
+        #print('easa1',sa,para,etn1.dot(etn2))
+        #print('alkdfj',up,vp,wp)
+
+        if sa <= 0:sa = numpy.pi+sa
+
+        '''#
+        ax = dtl.plot_axes_xy(500)
+        ax = dtl.plot_edges_xy((vp,wp),ax,lw = 2,col = 'b')
+        ax = dtl.plot_edges_xy((up,vp),ax,lw = 2,col = 'g')
+        ax = dtl.plot_point_xy_annotate(up,ax,'u '+str(gtl.deg(sa)))
+        ax = dtl.plot_point_xy(up,ax)
+        ax = dtl.plot_point_xy_annotate(vp,ax,'v ')
+        ax = dtl.plot_point_xy(vp,ax)
+        ax = dtl.plot_point_xy_annotate(wp,ax,'w ')
+        ax = dtl.plot_point_xy(wp,ax)
+        plt.show()
+        '''#
+
+        #print('easa2',sa)
+
         return sa
 
     # given an edge, find the next edge taking the first

@@ -1,6 +1,6 @@
 
 SceneJS.setConfigs({
-	pluginPath: "scenejs/api/latest/plugins"
+	pluginPath: "scenejs_api/latest/plugins"
 });
 
 SceneJS.createScene({
@@ -17,17 +17,17 @@ SceneJS.createScene({
 					x: 1,
 					angle: -90,
 					nodes: [
-				{
-				type: "texture",
-				src: "world0/orangeboxtex.png",
-				nodes: [
+						{
+							type: "texture",
+							src: "world0/orangeboxtex.png",
+							nodes: [
 {
     type: "import/obj",
     src: "world0/model.mesh.obj",
 }
-				]
-				}
-				]
+							]
+						}
+					]
 				}
 			]
 		}

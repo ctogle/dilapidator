@@ -16,6 +16,15 @@ class base(object):
             self.__dict__[key] = aval
         return self.__dict__[key]
 
+# a generator for endlessly looping through a sequence
+def roundrobin(seq):
+    j,l = 0,len(seq)
+    while True:
+        yield seq[j]
+        j += 1
+        if not j < l:
+            j = 0
+
 # return the path to a safe resource directory, 
 # or a full path to a file therein
 res_path = os.path.join(appdirs.user_data_dir(),'dilap_resources')

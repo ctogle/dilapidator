@@ -97,14 +97,18 @@ def teststage(**kws):
     #ax = dtl.plot_axes()
     #cx = blg.building()
 
+    '''#
+
     bfp = vec3(0,0,0).sq(50,15)
     bsq = test_bseq()
     p,q,s = None,None,None
     bfa = dwo.blg.blgfactory()
     cx = bfa.new(p,q,s,footprint = bfp,sequence = bsq,floorheight = 5)
 
-    ##cx = dwo.world()
-    #cx = dwo.worldfactory().new()
+    '''#
+
+    #cx = dwo.world()
+    cx = dwo.worldfactory().new()
     realize(cx,**kws)
 
 def test_bseq():

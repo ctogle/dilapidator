@@ -1,5 +1,5 @@
 
-# Material Count: 1
+# Material Count: 2
 
 newmtl generic
 Ka 1.000 1.000 1.000
@@ -8,5 +8,14 @@ Ks 0.000 0.000 0.000
 d 1.0
 illum 2
 map_Kd /home/cogle/.local/share/dilap_resources/orangeboxtex.png
+
+
+newmtl grass2
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 2
+map_Kd /home/cogle/.local/share/dilap_resources/grass2.jpg
 
 

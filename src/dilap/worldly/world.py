@@ -88,21 +88,26 @@ class worldfactory(dfa.factory):
 
     def genregion(self,v,pg):
             
-        #last1 = v
-        #new = pg.bv(last1,vec3(0.25,0.25,0),vec3(1,0,0))
-        #pg.vs[last1][1]['t'] = ['developed']
-
-        #last2 = new[0]
-        #new = pg.bv(last2,vec3(0.75,0.75,0),vec3(0,1,0))
-        #last3 = new[0]
-        #new = pg.bv(last3,vec3(0.66,0.66,0),vec3(1,0,0))
-        #last4 = new[0]
-        #new = pg.bv(last3,vec3(0.33,0.33,0),vec3(0,1,0))
-        #pg.vs[last3][1]['t'] = ['developed']
+        '''#
+        last1 = v
+        new = pg.bv(last1,vec3(0.25,0.25,0),vec3(1,0,0))
+        pg.vs[last1][1]['t'] = ['developed']
+        last2 = new[0]
+        new = pg.bv(last2,vec3(0.75,0.75,0),vec3(0,1,0))
+        last3 = new[0]
+        new = pg.bv(last3,vec3(0.66,0.66,0),vec3(1,0,0))
+        last4 = new[0]
+        new = pg.bv(last3,vec3(0.33,0.33,0),vec3(0,1,0))
+        pg.vs[last3][1]['t'] = ['developed']
+        '''#
 
         ### add infrastructural connectivity for regions
         # create a road network graph...
+        #fp = (vec3(0,0,0).pring(100,6),())
         #pv = pg.av(b = fp,p = vec3(0,0,0).com(fp[0]),l = 0)
+        #pv = pg.sv(v,pym.ebdxy(pg.vs[v][1]['b'][0],fp[0])[0],fp[0])
+        #pg.vs[pv][1]['t'] = ['developed']
+
         return pg
 
     # generate the models of the world and add them to the context object
@@ -185,7 +190,7 @@ class worldfactory(dfa.factory):
         ### create the boundary of the world
         #boundary = vec3(0,0,0).pring(5000,8)
         #boundary = vec3(0,0,0).pring(500,8)
-        boundary = vec3(0,0,0).pring(100,8)
+        boundary = vec3(0,0,0).pring(250,8)
         ### generate the topographical structure of the world
         t = ter.continent(boundary)
 
@@ -213,7 +218,7 @@ class worldfactory(dfa.factory):
         s = 189
         s = 916
 
-        s = random.randint(0,1000)
+        #s = random.randint(0,1000)
         print('landmass seed:',s)
         random.seed(s)
 
@@ -254,8 +259,17 @@ class worldfactory(dfa.factory):
         vb = self.vstitch(v,pg,l)
         print('generating terrain')
         ngvs = m.asurf((tuple(vb),tuple(tuple(h) for h in vhs)),
-            tm,fm = 'generic',ref = True,hmin = 100,zfunc = v[1]['tmesh'])
-            #tm,fm = 'generic',ref = False,hmin = 100,zfunc = v[1]['tmesh'])
+            tm,fm = 'grass2',ref = True,hmin = 100,zfunc = v[1]['tmesh'],
+            #uvstacked = db.roundrobin((vec3(0,0,0),vec3(1,0,0),vec3(1,1,0))),
+            uvstacked = None,
+            autoconnect = True)
+        m.subdiv(tm,False,True)
+        m.subdiv(tm,False,True)
+        m.subdiv(tm,False,True)
+        m.subdiv(tm,False,True)
+        '''#
+        '''#
+        m.uvs(tm)
         print('generated terrain')
         return m
 

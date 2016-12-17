@@ -450,7 +450,7 @@ cdef class vec3:
         cdef vec3 n = vec3(dx,dy,dz)
         return n
 
-    # generate a polyline between seelf and vec3 o with n points between ends
+    # generate a polyline between self and vec3 o with n points between ends
     # self and o are not modified nor contained in the result
     cdef list pline_c(self,vec3 o,int n):
         #cdef float s = self.d_c(o)
@@ -460,7 +460,7 @@ cdef class vec3:
         for x in range(n):
             t = (x+1.0)/(n+1.0)
             line.append(self.lerp_c(o,t))
-            print('t',t,self,line[-1],o)
+            #print('t',t,self,line[-1],o)
         return line
 
     # return the n points appearing on a spline between self and o

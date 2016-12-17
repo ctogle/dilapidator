@@ -51,14 +51,15 @@ class tmesh(db.base):
         i = base[:]
         i = pym.contract(i,r,epsilon)
 
-        #if i is None:return None
+        if i is None:return None
 
-        i = pym.smoothxy(i,0.5,epsilon)
+        #i = pym.smoothxy(i,0.5,epsilon)
         #i = pym.smoothxy(i,0.5,epsilon)
         #i = pym.smoothxy(i,0.5,epsilon)
 
         i = pym.aggregate(i,r)
         #i = pym.cleanbxy(i,2.0)
+
         bv = pym.bvalidxy(i,epsilon)
         if   bv == -1:i.reverse()
         elif bv == -2:
@@ -212,11 +213,10 @@ def continent(b,epsilon = None):
     if epsilon is None:
         xpj = vec3(1,0,0).prjps(b)
         epsilon = (xpj[1]-xpj[0])/1000.0
-    tips = []
     for l in sow_earth(t,b,epsilon):
         tips = [t.al(l,t.root)]
         raise_earth(t,tips,epsilon)
-        #raise_earth(t,l,epsilon)
+        ##raise_earth(t,l,epsilon)
     print('RAISED TERRAIN WITH EPSILON:',epsilon)
     return t
 

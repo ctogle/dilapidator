@@ -260,13 +260,13 @@ def build_model2(mod,**kwargs):
     ps = mod.pset.ps
     us = mod.uset.ps
 
-    mats = ['generic','concrete1']
+    mats = ['generic','concrete1','grass2']
     fs_lookup = {}
     for fmx in range(len(mats)):
         fs_lookup[mats[fmx]] = fmx
 
     for gfx in mod.gfxmeshes:
-        faces = gfx.faces
+        faces = [f for f in gfx.faces if not f is None]
         face_mats = [fs_lookup[gfx.fs_mats[f]] for f in faces]
         oloc = (0,0,0)
 

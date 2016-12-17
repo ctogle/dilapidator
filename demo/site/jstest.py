@@ -1,5 +1,6 @@
-import os
+import os,time
 
+import dilap.core.base as db
 from dilap.geometry.vec3 import vec3
 import dilap.core.context as dcx
 import dilap.modeling.model as dmo
@@ -54,13 +55,21 @@ def stage():
     cx = dwo.worldfactory().new()
     return cx
 
-if __name__ == '__main__':
-    wname = 'world0'
-    wdir = os.path.join(os.getcwd(),wname)
-    if not os.path.exists(wdir):os.mkdir(wdir)
+def world(wdir):
+    
     dc.write_materials(world_dir = wdir)
     dc.realize(stage(),world_dir = wdir)
     dc.write_world_script(world_dir = wdir)
+
+if __name__ == '__main__':
+    s = time.time()
+    wname = 'world0'
+    wdir = os.path.join(os.getcwd(),wname)
+    if not os.path.exists(wdir):os.mkdir(wdir)
+    #world(wdir)
+    f,ags = world,(wdir,)
+    db.profile_function(f,*ags)
+    print('ran %s in %f seconds' % (__file__,time.time()-s))
 
 
 

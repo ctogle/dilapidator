@@ -69,6 +69,14 @@ def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True):
 # given 4 points and a tangent vector, 
 # extract the two whose projections are in between the extreme projections
 def prjmed(p1,p2,p3,p4,tn):
+    ss = [p1.dot(tn),p2.dot(tn),p3.dot(tn),p4.dot(tn)]
+    minss,maxss = min(ss),max(ss)
+    ssn = [0,1,2,3]
+    for j in range(4):
+        if ss[j] == minss or ss[j] == maxss:
+            ssn.pop(j)
+    return ssn
+    '''#
     sp = [p1,p2,p3,p4]
     ss = [p.dot(tn) for p in sp]
     sx = list(range(len(ss)))
@@ -76,6 +84,7 @@ def prjmed(p1,p2,p3,p4,tn):
     ix1,ix2 = [j for j in sx if not j in mm]
     ip1,ip2 = sp[ix1],sp[ix2]
     return ip1,ip2
+    '''#
 
 # does one segment intersect another
 # ie  : do endpoint intersections count (end of one segment only)

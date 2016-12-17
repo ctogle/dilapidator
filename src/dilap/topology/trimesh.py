@@ -36,7 +36,7 @@ class trimesh:
         mats = {}
         for f in self.faces:
             if f is None:continue
-            fm = self.fs_mats[f]
+            fx,fm = self.fs_mats[f]
             if fm is None:fm = 'generic'
             if fm in mats:mats[fm].append(f)
             else:mats[fm] = [f]
@@ -68,10 +68,13 @@ class trimesh:
         self.facecount = 0      # 
         self.fistack = []
 
-        self.ve_rings = {}      # lookup of edge rings per vertex
+        self.ve_rings = {}      # lookup of edges rings per vertex
+        self.vxs = {}           # lookup of vert indices per vert
         self.ef_rings = {}      # lookup of faces by edge tuples
+        self.exs = {}           # lookup of edge indices per edge 
         self.fs_mats = {}       # lookup of face material per face
-        if 'defmat' in kwargs:self.defmat = kwargs['defmat']
+        if 'defmat' in kwargs and not kwargs['defmat'] is None:
+            self.defmat = kwargs['defmat']
         else:self.defmat = 'generic'
 
     # return the d-cells which are incident upon any of v,e,f
@@ -138,6 +141,7 @@ class trimesh:
     # compute the appropriate smoothing coefficient alpha_n
     def alphan(self,n):
         alpha = (4.0-2.0*numpy.cos(gtl.twoPI/n))/9.0
+        #alpha = 0
         return alpha
 
     # create new vertex and return its index
@@ -156,6 +160,7 @@ class trimesh:
             self.verts.append(vrt)
             vx = self.vertcount
             self.vertcount += 1
+        self.vxs[vrt] = vx
         return vx
 
     # destory existing vertex
@@ -166,10 +171,11 @@ class trimesh:
         fs = self.mask(2,v,None,None)
         for f in fs:self.rface(f,False,True)
         for e in es:self.redge(e,False)
-        del self.ve_rings[v]
-        vx = self.verts.index(v)
+        vx = self.vxs[v]
         self.verts[vx] = None
         self.vistack.append(vx)
+        del self.ve_rings[v]
+        del self.vxs[v]
 
     # create new edge and return its index
     # NOTE: call only from self.aface
@@ -185,6 +191,7 @@ class trimesh:
             self.edges.append(edg)
             ex = self.edgecount
             self.edgecount += 1
+        self.exs[edg] = ex
         return ex
 
     # destroy existing edge
@@ -199,11 +206,12 @@ class trimesh:
         for v in vs:
             vring = self.ve_rings[v]
             if e in vring:vring.remove(e)
-        ex = self.edges.index(e)
+        ex = self.exs[e]
         self.edges[ex] = None
         self.eistack.append(ex)
         ef = self.ef_rings[e]
         del self.ef_rings[e]
+        del self.exs[e]
         if rf:self.rface(ef,False,True)
         if rv:
             for v in vs:
@@ -239,8 +247,6 @@ class trimesh:
     # create new face and return its index
     def aface(self,u,v,w,fm = None):
         fac = (u,v,w)
-        if fm is None:fm = self.defmat
-        self.fs_mats[fac] = fm
         self.aedge(u,v)
         self.aedge(v,w)
         self.aedge(w,u)
@@ -254,6 +260,8 @@ class trimesh:
             self.faces.append(fac)
             fx = self.facecount
             self.facecount += 1
+        if fm is None:fm = self.defmat
+        self.fs_mats[fac] = fx,fm
         return fx
 
     # destroy existing face
@@ -268,7 +276,7 @@ class trimesh:
             if re:
                 es = self.mask(1,None,None,f)
                 for e in es:self.redge(e,rv,False)
-            fx = self.faces.index(f)
+            fx = self.fs_mats[f][0]
             self.faces[fx] = None
             self.fistack.append(fx)
             del self.fs_mats[f]
@@ -279,16 +287,16 @@ class trimesh:
     # u is the new vertex index
     # v,w,x are the three vertex indices of the face
     def sface(self,u,v,w,x):
-        cnts = self.vcnt(),self.ecnt(),self.fcnt()
+        #cnts = self.vcnt(),self.ecnt(),self.fcnt()
 
         self.rface((v,w,x),False,True)
         self.aface( u,v,w )
         self.aface( u,w,x )
         self.aface( u,x,v )
 
-        if not self.vcnt() == cnts[0]:raise ValueError
-        if not self.ecnt() == cnts[1]+6:raise ValueError
-        if not self.fcnt() == cnts[2]+2:raise ValueError
+        #if not self.vcnt() == cnts[0]:raise ValueError
+        #if not self.ecnt() == cnts[1]+6:raise ValueError
+        #if not self.fcnt() == cnts[2]+2:raise ValueError
 
     # create a set of triangles which contain 
     # two sequential verts of vs and u

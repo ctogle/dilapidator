@@ -1,3 +1,4 @@
+import dilap.core.base as db
 import dilap.geometry.tools as gtl
 
 from dilap.geometry.vec3 import vec3
@@ -16,6 +17,7 @@ import pdb
 
 
 __doc__ = '''dilapidator\'s implementation of an all purpose model'''
+
 # dilapidators implementation of an all purpose model
 # a model contains geometric information and 
 #   topological information which references it
@@ -50,6 +52,26 @@ class model:
         #self._def('reps',{},**kwargs)
         #self._def('filename','model.mesh',**kwargs)
         self.filename = 'model.mesh'
+
+    # iterate over the faces of a mesh and fix its
+    # uv vectors based on geometry
+    def uvs(self,mesh,uvstacked = None):
+        if uvstacked is None:
+            uvstacked = db.roundrobin((vec3(0,0,0),vec3(1,0,0),vec3(1,1,0)))
+        for f in mesh.faces:
+            if f is None:continue
+            vs = [mesh.verts[x] for x in f]
+            vvs = list(zip(*vs))
+            ps,ns,us = vvs
+            pps = self.pset.gps(ps)
+            nps = self.nset.gps(ns)
+            ups = self.uset.gps(us)
+            #nrm = gtl.nrm(*pps)
+            for p,n,u in zip(pps,nps,ups):
+                #n.x,n.y,n.z = nrm
+                #u.x,u.y,u.z = self.defuv(p,n)
+                u.x,u.y,u.z = next(uvstacked)
+        return self
 
     # iterate over the faces of a mesh and fix its
     # normal vectors based on geometry
@@ -197,12 +219,6 @@ class model:
         if p is None:p = vec3(0,0,0)
         if n is None:n = vec3(0,0,1)
         if u is None:u = self.defuv(p,n)
-        #    if   n.isnear(vec3(1,0,0)) or n.isnear(vec3(-1,0,0)):u = vec3(p.y,p.z,0)
-        #    elif n.isnear(vec3(0,1,0)) or n.isnear(vec3(0,-1,0)):u = vec3(p.x,p.z,0)
-        #    elif n.isnear(vec3(0,0,1)) or n.isnear(vec3(0,0,-1)):u = vec3(p.x,p.y,0)
-        #    else:
-        #        u = vec3(0,0,0)
-        #        #print('no obvious projection for normal:',n,', defaulting u:',u)
         px = self.pset.ap(p)
         nx = self.nset.ap(n)
         ux = self.uset.ap(u)
@@ -216,7 +232,7 @@ class model:
         return ps
 
     # subdivide the boundary of the mesh
-    def subdivbnd(self,mesh):
+    def subdivbnd(self,mesh,smooth = True):
         # iterate over the edges
         #   if an edge is a boundary, split it into 3 segments
         #     erase the face attached to it and make a tri fan 
@@ -239,16 +255,18 @@ class model:
                 sv2 = mesh.avert(*self.avert(np2))
                 mesh.sedge(e,(sv1,sv2))
 
-        dels = []
-        for v in oldvs:
-            p = self.pset.ps[v[0]]
-            vns = (v for v in mesh.mask(0,v,None,None) if mesh.vonb(v))
-            # need the subset of vns that is on the boundary too!!!
-            pns = self.pset.gps((v[0] for v in vns))
-            alpha = mesh.alphan(len(pns))
-            sdel = p.tov(gtl.com(pns)).uscl(alpha)
-            dels.append((p,sdel))
-        for sd in dels:sd[0].trn(sd[1])
+        if smooth:
+            dels = []
+            for v in oldvs:
+                p = self.pset.ps[v[0]]
+                vns = (v for v in mesh.mask(0,v,None,None) if mesh.vonb(v))
+                # need the subset of vns that is on the boundary too!!!
+                pns = self.pset.gps((v[0] for v in vns))
+                alpha = mesh.alphan(len(pns))
+                #sdel = p.tov(gtl.com(pns)).uscl(alpha)
+                sdel = p.tov(vec3(0,0,0).com(pns)).uscl(alpha)
+                dels.append((p,sdel))
+            for sd in dels:sd[0].trn(sd[1])
 
     #
     # i really want two fundamental concepts abstractly added
@@ -259,26 +277,34 @@ class model:
     # perform a sqrt(3) subdivision on a trimesh
     #   topological splitting of the face
     #   also geometric smooothing afterwards
-    def subdiv(self,mesh,subdivbnd = True):
+    def subdiv(self,mesh,subdivbnd = True,smooth = True):
+
+        # FIND EDGES AND OFFER TO EXEMPT THEM FROM SMOOTHING 
+        # FIND EDGES AND OFFER TO EXEMPT THEM FROM SMOOTHING 
+        # FIND EDGES AND OFFER TO EXEMPT THEM FROM SMOOTHING 
+        newvs = []
         oldvs = list(mesh.ve_rings.keys())
         oldes = list(mesh.ef_rings.keys())
         for f in list(mesh.fs_mats.keys()):
             v,w,x = f
-            mp = gtl.com(self.gvps(mesh,f))
+            mp = vec3(0,0,0).com(self.gvps(mesh,f))
             px,nx,ux = self.avert(mp)
             u = mesh.avert(px,nx,ux)
+            newvs.append(u)
             mesh.sface(u,v,w,x)
         for u,v in oldes:mesh.fedge(u,v)
-        dels = []
-        for v in oldvs:
-            p = self.pset.ps[v[0]]
-            vns = mesh.mask(0,v,None,None)
-            pns = self.pset.gps((v[0] for v in vns))
-            alpha = mesh.alphan(len(pns))
-            sdel = p.tov(gtl.com(pns)).uscl(alpha)
-            dels.append((p,sdel))
-        for sd in dels:sd[0].trn(sd[1])
-        if subdivbnd:self.subdivbnd(mesh)
+        if smooth:
+            dels = []
+            for v in oldvs:
+                p = self.pset.ps[v[0]]
+                vns = mesh.mask(0,v,None,None)
+                pns = self.pset.gps((v[0] for v in vns))
+                alpha = mesh.alphan(len(pns))
+                sdel = p.tov(vec3(0,0,0).com(pns)).uscl(alpha)
+                dels.append((p,sdel))
+            for sd in dels:sd[0].trn(sd[1])
+        if subdivbnd:self.subdivbnd(mesh,smooth)
+        return newvs
 
     def defuv(self,p,n):
         if   n.isnear(vec3(1,0,0)) or n.isnear(vec3(-1,0,0)):u = vec3(p.y,p.z,0)
@@ -330,13 +356,30 @@ class model:
 
     # add a triangulated surface to a trimesh
     def asurf(self,poly,tm = None,fm = 'generic',rv = False,
-            ref = False,smo = False,hmin = 1,zfunc = None,minhmin = 0.1):
+            ref = False,smo = False,hmin = 1,zfunc = None,minhmin = 0.1,
+            uvstacked = None,autoconnect = False):
         if tm is None:tm = self.agfxmesh()
+        if uvstacked is None:uvstacked = db.roundrobin((None,))
         eb,ibs = poly
-        av = lambda p,n : tm.avert(*self.avert(p.cp(),n))
-        #av = lambda p,n : tm.avert(*self.avert(p.cp().xscl(0.5),n))
 
         ngvs = []
+        pset = pointset()
+        def av(p,n):
+            if autoconnect:
+                px = pset.fp(p)
+                if px > -1:v = ngvs[px]
+                else:
+                    pset.ap(p)
+                    v = tm.avert(*self.avert(p.cp(),n,next(uvstacked)))
+                    ngvs.append(v)
+            else:
+                v = tm.avert(*self.avert(p.cp(),n,next(uvstacked)))
+                ngvs.append(v)
+            return v
+
+        #if uvstacked is None:av = lambda p,n : tm.avert(*self.avert(p.cp(),n))
+        #else:av = lambda p,n : tm.avert(*self.avert(p.cp(),n,next(uvstacked)))
+        ##av = lambda p,n : tm.avert(*self.avert(p.cp().xscl(0.5),n))
 
         if len(eb) < 5 and len(ibs) == 0 and not ref:
 
@@ -382,7 +425,6 @@ class model:
                 v1,v2,v3 = av(p1,n),av(p2,n),av(p3,n)
                 if rv:f1 = tm.aface(v1,v3,v2,fm) 
                 else:f1  = tm.aface(v1,v2,v3,fm) 
-                ngvs.append(v1);ngvs.append(v2);ngvs.append(v3)
 
         if not zfunc is None:
             for ngv in ngvs:

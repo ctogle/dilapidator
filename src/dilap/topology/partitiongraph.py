@@ -128,7 +128,7 @@ class partitiongraph(pgr.planargraph):
 
         return bg
 
-    def plotxy(self,ax = None,scale = 25):
+    def plotxy(self,ax = None,scale = 250):
         if ax is None:ax = dtl.plot_axes_xy(scale)
         ax = pgr.planargraph.plotxy(self,ax)
         ekeys = []
@@ -138,10 +138,12 @@ class partitiongraph(pgr.planargraph):
             vb = v[1]['b']
             vrtls = '-'
             if 't' in v[1]:vrtls = '--' if 'developed' in v[1]['t'] else '-'
-            ax = dtl.plot_polygon_xy(pym.contract(vb[0],1),
+            conr = 1 if pym.bccw(vb[0]) else -1
+            ax = dtl.plot_polygon_xy(pym.contract(vb[0],conr),
                 ax,lw = 2,ls = vrtls,col = 'b')
             for ib in vb[1]:
-                ax = dtl.plot_polygon_xy(pym.contract(ib,-1),ax,lw = 2,col = 'r')
+                conr = 1 if pym.bccw(ib) else -1
+                ax = dtl.plot_polygon_xy(pym.contract(ib,conr),ax,lw = 2,col = 'r')
             vbc = vec3(0,0,0).com(vb[0])
             rs = str(vx)+','+str(self.orings[vx])#+',\n'+str(v[1]['type'])
             ax = dtl.plot_point_xy_annotate(vbc,ax,rs)

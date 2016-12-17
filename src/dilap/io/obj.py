@@ -32,6 +32,8 @@ def write_default_materials_mtl(msio):
     global def_mats
     generic = dma.material('generic',dtexture = 'orangeboxtex.png')
     def_mats.append(generic)
+    grass2 = dma.material('grass2',dtexture = 'grass2.jpg')
+    def_mats.append(grass2)
     mcount = len(def_mats)
     msio.write('# Material Count: ')
     msio.write(str(mcount))
@@ -43,22 +45,59 @@ def write_default_materials_mtl(msio):
 def write_world_script(world_dir):
     worldfile = os.path.join(world_dir,'world.js')
     js = sio()
-    js.write('\nSceneJS.setConfigs({\n\tpluginPath: "scenejs/api/latest/plugins"\n});\n')
-    #js.write('\nSceneJS.createScene({\n\tnodes: [\n\t\t{\n\t\t\ttype: "cameras/orbit",')
-    js.write('\nSceneJS.createScene({\n\tnodes: [\n\t\t{\n\t\t\ttype: "cameras/pickFlyOrbit",')
-    js.write('\n\t\t\tyaw: -40,\n\t\t\tpitch: -20,\n\t\t\tzoom: 200,')
-    js.write('\n\t\t\tzoomSensitivity: 10.0,')
-    js.write('\n\t\t\tnodes: [\n\t\t\t\t{\n\t\t\t\t\ttype: "rotate",\n\t\t\t\t\tx: 1,')
-    js.write('\n\t\t\t\t\tangle: -90,\n\t\t\t\t\tnodes: [')
-    js.write('\n\t\t\t\t{\n\t\t\t\ttype: "texture",')
-    js.write('\n\t\t\t\tsrc: "world0/orangeboxtex.png",\n\t\t\t\tnodes: [\n')
-    nodes = [imp_line % (f,) for f in obj_filenames]
+    d = 0
+    s = lambda l : js.write('\n'+'\t'*d+l)
+    s('SceneJS.setConfigs({');d += 1
+    s('pluginPath: "scenejs_api/latest/plugins"');d -= 1
+    s('});\n')
+    s('SceneJS.createScene({');d += 1
+    s('nodes: [');d += 1
+    s('{');d += 1
+    s('type: "cameras/pickFlyOrbit",')
+    s('yaw: -40,')
+    s('pitch: -20,')
+    s('zoom: 200,')
+    s('zoomSensitivity: 10.0,')
+    s('nodes: [');d += 1
+    s('{');d += 1
+    s('type: "rotate",')
+    s('x: 1,')
+    s('angle: -90,')
+    s('nodes: [');d += 1
+
+    #s(matobjs(matobjfiles))
+
+    '''#
+    '''#
+    s('{');d += 1
+    s('type: "texture",')
+    s('src: "world0/orangeboxtex.png",')
+    s('nodes: [\n');d += 1
+    nodes = [modnode_line % (f,) for f in obj_filenames]
     js.write(',\n'.join(nodes))
-    js.write('\n\t\t\t\t]\n\t\t\t\t}\n\t\t\t\t]\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t]\n});')
+    d -= 1;s(']');d -= 1;s('}')
+    
+    d -= 1;s(']');d -= 1;s('}')
+    d -= 1;s(']');d -= 1;s('}');d -= 1;s(']');d -= 1;s('});')
     with open(worldfile,'w') as h:h.write(js.getvalue())
     print('new world file',worldfile)
 
-imp_line = '''\
+def matobjs(matobjfiles):
+    sg = []
+    for matfile in matobjfiles:
+        objfiles = matobjfiles[matfile]
+        matnode = matnode_line[:].replace('<f>',matfile)
+        modnode = ',\n'.join([modnode_line % (m,) for m in objfiles])
+        sg.append(matnode.replace('<o>',modnode))
+    return ',\n'.join(sg)
+
+matnode_line = '''\
+{
+    type: "texture",
+    src: "world0/<f>",
+    nodes: [\n<o>\n]
+}'''
+modnode_line = '''\
 {
     type: "import/obj",
     src: "world0/%s",
@@ -87,6 +126,11 @@ def obj_from_model(mod):
     faces = mod.face_dict()
     mats = [m for m in faces.keys()]
     mcnt = len(mats)
+
+    #if mcnt > 1:
+    #    print('js world doesnt seem to support multi-material obj files')
+    #objmat = mod.
+    #pdb.set_trace()
 
     sioio = sio()
     sioio.write('mtllib materials.mtl\n')

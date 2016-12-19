@@ -18,7 +18,7 @@ class test_polymath(unittest.TestCase):
 
     #def setUp(self):
 
-    def test_sintsxy(self):
+    def atest_sintsxy(self):
         def perm(s1,s2,s3,s4,c,**kws):
             f = self.assertTrue if c else self.assertFalse
             f(pym.sintsxy(s1,s2,s3,s4,**kws));f(pym.sintsxy(s1,s2,s4,s3,**kws))
@@ -91,7 +91,7 @@ class test_polymath(unittest.TestCase):
         perm(s1,s2,s3,s4,True,ie = False)
         #pl(s1,s2,s3,s4)
 
-    def test_sintsxyp(self):
+    def atest_sintsxyp(self):
         def pl(s1,s2,s3,s4):
             ax = dtl.plot_axes_xy(10)
             ax = dtl.plot_edges_xy([s1,s2],ax,lw = 2,col = 'b')
@@ -169,7 +169,7 @@ class test_polymath(unittest.TestCase):
         perm(s1,s2,s3,s4,(vec3(-1,0,0),vec3(0,0,0)))
         #pl(s1,s2,s3,s4)
 
-    def test_sintbxy(self):
+    def atest_sintbxy(self):
         def pl(s1,s2,b):
             ax = dtl.plot_axes_xy()
             ax = dtl.plot_polygon_xy(b,ax,lw = 2.0,col = 'g')
@@ -215,7 +215,7 @@ class test_polymath(unittest.TestCase):
 
     #def test_sintbxyp(self):
 
-    def test_binbxy(self):
+    def atest_binbxy(self):
         b1 = vec3(0,0,0).pring(8,8)
         b2 = vec3(0,0,0).pring(4,8)
         b3 = vec3(8,0,0).pring(8,8)
@@ -225,7 +225,7 @@ class test_polymath(unittest.TestCase):
         self.assertFalse(pym.binbxy(b1,b3))
         self.assertFalse(pym.binbxy(b1,b4))
 
-    def test_bintbxy(self):
+    def atest_bintbxy(self):
         def pl(b1,b2):
             ax = dtl.plot_axes_xy(10)
             ax = dtl.plot_polygon_xy(b1,ax,lw = 2.0,col = 'g')
@@ -272,7 +272,7 @@ class test_polymath(unittest.TestCase):
         self.assertFalse(pym.bintbxy(b1,b2,ie = False))
         #pl(b1,b2)
 
-    def test_bsegbxy(self):
+    def atest_bsegbxy(self):
         def pl(b1,b2,br):
             ax = dtl.plot_axes_xy()
             ax = dtl.plot_polygon_xy(b1,ax,col = 'b',lw = 5.0)
@@ -340,7 +340,7 @@ class test_polymath(unittest.TestCase):
 
     #def test_sloops(self):
 
-    def test_bsegsxy(self):
+    def atest_bsegsxy(self):
         def pl(bs):
             ax = dtl.plot_axes_xy(10)
             ax = dtl.plot_polygon_xy(b,ax,col = 'g',lw = 2)
@@ -365,7 +365,7 @@ class test_polymath(unittest.TestCase):
         #bs = pym.bsegsxy(b,s1,s2)
         #pl(bs)
 
-    def test_ebdxy(self):
+    def atest_ebdxy(self):
         def pl(b1,b2,br):
             ax = dtl.plot_axes_xy(10)
             ax = dtl.plot_polygon_xy(b1,ax,col = 'b',lw = 5.0)
@@ -393,12 +393,95 @@ class test_polymath(unittest.TestCase):
         #pl(b1,b2,br)
         self.assertTrue(len(br) == 12)
 
+    def atest_ebuxy(self):
+        def pl(b1,b2,br):
+            ax = dtl.plot_axes_xy(20)
+            ax = dtl.plot_polygon_xy(b1,ax,col = 'b',lw = 5.0)
+            ax = dtl.plot_polygon_xy(b2,ax,col = 'g',lw = 5.0)
+            for b in br:ax = dtl.plot_polygon_xy(b,ax,col = 'r',lw = 2.0)
+            plt.show()
+
+        vb = vec3(0,0,0).sq(400,400)
+        dx,dy,xn,yn = 20,20,4,3
+        o = vec3(-dx*xn/2.0,-dy*yn,0).com(vb)
+        vgrid = [o.cp().trn(vec3(x*dx,y*dy,0)) for y in range(yn) for x in range(xn)]
+        boxes = [p.sq(dx,dy) for p in vgrid]
+        boxes = [b for b in boxes if pym.binbxy(b,vb)]
+        box = pym.bsuxy(boxes)
+
+        ax = dtl.plot_axes_xy(300)
+        ax = dtl.plot_polygon_xy(vb,ax,lw = 2,col = 'b')
+        for b in boxes:ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'g')
+        for b in box:ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'r')
+        plt.show()
+
+        b1 = vec3(7,0,0).sq(8,8)
+        b2 = vec3(0,0,0).sq(8,8)
+        br = pym.ebuxy(b1,b2)
+        pl(b1,b2,br)
+        self.assertTrue(len(br) == 1)
+        self.assertTrue(len(br[0]) == 8)
+        b1 = vec3(0,0,0).sq(20,8)
+        b2 = vec3(0,8,0).sq(20,8)
+        br = pym.ebuxy(b1,b2)
+        pl(b1,b2,br)
+        self.assertTrue(len(br) == 1)
+        self.assertTrue(len(br[0]) == 6)
+        b1 = vec3(8,2,0).sq(8,8)
+        b2 = vec3(0,0,0).sq(8,8)
+        br = pym.ebuxy(b1,b2)
+        pl(b1,b2,br)
+        self.assertTrue(len(br) == 1)
+        self.assertTrue(len(br[0]) == 10)
+
     def test_bnrm(self):
         def pl():
             ax = dtl.plot_axes_xy(700)
             ax = dtl.plot_polygon_xy(fp,ax,lw = 2,col = 'g')
             ax = dtl.plot_points_xy(fp,ax,number = True)
             plt.show()
+
+        fp = [
+            vec3(-6.9831085205078125, 121.9827880859375, 0.0),
+            vec3(-26.983108520507812, 121.9827880859375, 0.0),
+            vec3(-46.98310852050781, 121.9827880859375, 0.0),
+            vec3(-66.98310852050781, 121.9827880859375, 0.0),
+            vec3(-85.984375, 121.9827880859375, 0.0),
+            vec3(-85.98310852050781, 102.9827880859375, 0.0),
+            vec3(-85.98310852050781, 82.9827880859375, 0.0),
+            vec3(-85.98310852050781, 63.9814453125, 0.0),
+            vec3(-66.98310852050781, 63.9827880859375, 0.0),
+            vec3(-46.98310852050781, 63.9827880859375, 0.0),
+            vec3(-26.983108520507812, 63.9827880859375, 0.0),
+            vec3(-6.9831085205078125, 63.9827880859375, 0.0),
+            vec3(13.016891479492188, 63.9827880859375, 0.0),
+            vec3(33.01689147949219, 63.9827880859375, 0.0),
+            vec3(53.01689147949219, 63.9827880859375, 0.0),
+            vec3(73.01689147949219, 63.9827880859375, 0.0),
+            vec3(93.01689147949219, 63.9827880859375, 0.0),
+            vec3(112.017578125, 63.9827880859375, 0.0),
+            vec3(112.01689147949219, 82.9827880859375, 0.0),
+            vec3(112.01689147949219, 102.9827880859375, 0.0),
+            vec3(112.01689147949219, 121.9833984375, 0.0),
+            vec3(93.01689147949219, 121.9827880859375, 0.0),
+            vec3(73.01689147949219, 121.9827880859375, 0.0),
+            vec3(53.01689147949219, 121.9827880859375, 0.0),
+            vec3(33.01689147949219, 121.9827880859375, 0.0),
+            vec3(13.016891479492188, 121.9827880859375, 0.0)]
+        ax = dtl.plot_axes_xy(200)
+        ax = dtl.plot_polygon_xy(fp,ax,lw = 3,col = 'b')
+        ax = dtl.plot_points_xy(fp,ax,number = True)
+        plt.show()
+        self.assertTrue(pym.bnrm(fp).isnear(vec3(0,0,1)))
+
+        vb = vec3(-100,100,0).sq(400,400)
+        dx,dy,xn,yn = 20,20,10,30
+        o = vec3(-dx*xn/2.0,-dy*yn,0).com(vb)
+        vgrid = [o.cp().trn(vec3(x*dx,y*dy,0)) for y in range(yn) for x in range(xn)]
+        boxes = [p.sq(dx,dy) for p in vgrid]
+        boxes = [b for b in boxes if pym.binbxy(b,vb)]
+        box = pym.bsuxy(boxes)
+        self.assertTrue(pym.bnrm(box[0]).isnear(vec3(0,0,1)))
 
         fp = [vec3(0,0,0),
             vec3(20,0,0),vec3(20,-20,0),vec3(40,-30,0),vec3(60,-30,0),
@@ -444,7 +527,7 @@ class test_polymath(unittest.TestCase):
         self.assertTrue(pym.bnrm(fp).isnear(vec3(0,0,1)))
         self.assertTrue(pym.bnrm(fp[::-1]).isnear(vec3(0,0,-1)))
 
-    def test_bccw(self):
+    def atest_bccw(self):
         fp = [
             vec3(-282.1204528808594, 127.64604187011719, 0.0),
             vec3(-334.1018981933594, 179.6274871826172, 0.0),
@@ -479,7 +562,7 @@ class test_polymath(unittest.TestCase):
         o = pym.bccw(fp)
         self.assertTrue(o == True)
 
-    def test_contract(self):
+    def atest_contract(self):
         def pl(b):
             ax = dtl.plot_axes_xy(300)
             ax = dtl.plot_polygon_xy(b,ax)

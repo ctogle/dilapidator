@@ -43,6 +43,21 @@ class tmesh(db.base):
         if lst is None:lst = self.root,[]
         return lst
 
+    # determine the one or two loops which locate this loop topologically
+    # find the vertex such that l is in the loop but non of the children
+    def locloop(self,l):
+        lst = None
+        unfn = [self.root]
+        while unfn:
+            v = unfn.pop(0)
+            if pym.binbxy(l,v.loop):
+                chs = self.looptree.below(v)
+                unfn.extend(chs)
+                lst = v,chs
+            elif pym.bintbxy(l,v.loop):return v,[]
+        if lst is None:lst = self.root,[]
+        return lst
+
     # given a parent loop, a zoffset, and a radial offset
     # create a new loop which is a child of the parent 
     # vertex by contracting and lifting the parent loop
@@ -207,7 +222,7 @@ def raise_earth(t,tips,e):
         #plt.show()
 
 # create a terrain mesh for a continent
-def continent(b,epsilon = None):
+def continent(b,epsilon = None,guides = []):
     t = tmesh()
     t.root = t.al(b,None)
     if epsilon is None:
@@ -215,7 +230,14 @@ def continent(b,epsilon = None):
         epsilon = (xpj[1]-xpj[0])/1000.0
     for l in sow_earth(t,b,epsilon):
         tips = [t.al(l,t.root)]
-        raise_earth(t,tips,epsilon)
+        for tip in tips:
+            for guide in guides:
+                
+                pdb.set_trace()
+                #for p in lout:p.ztrn(z)
+                #iv = t.al(lout,par)
+
+        #raise_earth(t,tips,epsilon)
         ##raise_earth(t,l,epsilon)
     print('RAISED TERRAIN WITH EPSILON:',epsilon)
     return t

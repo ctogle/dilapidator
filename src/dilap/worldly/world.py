@@ -71,7 +71,7 @@ class worldfactory(dfa.factory):
             pg.vs[pv][1]['t'] = ['natural']
             lmvs.append(pv)
         ### create the details of each landmass vertex
-        for lm in lmvs:self.genregion(lm,pg)
+        for lm in lmvs:self.genregion(t,lm,pg)
         ### attach the terrain mesh to the partition vertices...
         for vx in range(pg.vcnt):
             pv = pg.vs[vx]
@@ -79,15 +79,30 @@ class worldfactory(dfa.factory):
             pv[1]['tmesh'] = t
         
         ###
-        ax = pg.plotxy()
-        plt.show()
+        #ax = pg.plotxy()
+        #plt.show()
         ###
 
         ### return partition graph
         return pg
 
-    def genregion(self,v,pg):
-            
+    def genregion(self,t,v,pg):
+        coasts = pg.vs[v][1]['b']
+
+        l = [p.cp() for p in coasts[0]]
+        r = pym.contract([p.cp() for p in coasts[0]],10,5)
+
+        tl = [p.cp() for p in r]
+        par,z = t.locloop(tl)[0],5
+        for p in tl:p.ztrn(z)
+        tv = t.al(tl,par)
+
+        nv = pg.sv(v,l,r,True,True)
+        #pg.vs[nv][1]['t'] = ['developed']
+
+        nv = pg.bv(nv,vec3(0.55,0.65,0),vec3(1,0,0))
+        pg.vs[nv[0]][1]['t'] = ['developed']
+
         '''#
         last1 = v
         new = pg.bv(last1,vec3(0.25,0.25,0),vec3(1,0,0))
@@ -118,6 +133,14 @@ class worldfactory(dfa.factory):
             v = pg.vs[vx]
             if v is None:continue
             self.vgen(w,v,pg)
+        for vx in range(pg.vcnt):
+
+            if not vx in (2,):continue
+
+            v = pg.vs[vx]
+            if v is None:continue
+            if 'ocean' in v[1]['t']:continue
+            self.vgen_terrain(w,v,pg)
 
     ###########################################################################
     ### methods for generating models from descriptive world data
@@ -142,17 +165,14 @@ class worldfactory(dfa.factory):
     #       road seems may include colinear intersections with the boundary
     # this supports the idea that all space is either infrastructure, structure, or nature
     def vgen(self,w,v,pg):
-        l = 20
         if 't' in v[1]:
             vtypes = v[1]['t']
-            #if 'ocean' in vtypes:self.vgen_ocean(w,v,pg,l)
+            #if 'ocean' in vtypes:self.vgen_ocean(w,v,pg)
             if 'ocean' in vtypes:pass
-            elif 'natural' in vtypes:self.vgen_natural(w,v,pg,l)
-            elif 'developed' in vtypes:self.vgen_developed(w,v,pg,l)
-        else:self.vgen_ocean(w,v,pg,l)
-        return
+            elif 'natural' in vtypes:self.vgen_natural(w,v,pg)
+            #elif 'developed' in vtypes:self.vgen_developed(w,v,pg)
     
-    def vgen_ocean(self,w,v,pg,l,depth = 2,bleed = 5):
+    def vgen_ocean(self,w,v,pg,depth = 2,bleed = 5):
         print('ocean vertex',v[0])
         ### create an unrefined flat surface for the bottom of the ocean
         ###  and an unrefined flat surface with contracted holes for the 
@@ -169,19 +189,29 @@ class worldfactory(dfa.factory):
         ngvs = m.asurf(gb,tm,fm = 'concrete1',ref = False,hmin = 100,zfunc = None)
         ngvs = m.asurf(wb,tm,fm = 'concrete1',ref = False,hmin = 100,zfunc = None)
 
-    def vgen_natural(self,w,v,pg,l):
+    def vgen_natural(self,w,v,pg):
         print('natural vertex',v[0])
         ### create terrain without holes
-        vb = self.vstitch(v,pg,l)
-        self.vgen_terrain(w,v,pg,[],l)
+        #vb = self.vstitch(v,pg)
+        #self.vgen_terrain(w,v,pg)
 
-    def vgen_developed(self,w,v,pg,l):
+    def vgen_developed(self,w,v,pg):
         print('developed vertex',v[0])
         ### create a child context for a set of buildings within the vertex
-        blgs,blgfps = self.vgen_buildings(v,pg,l)
+        blgs,blgfps = self.vgen_buildings(v,pg)
         for blg in blgs:w.achild(blg.generate(0))
+        t = pg.vs[0][1]['tmesh']
+        for blgfp in blgfps:
+            tl = [p.cp() for p in blgfp]
+            par = t.locloop(tl)[0]
+            #par,z = t.locloop(tl)[0],blgfp[0].z
+            #for p in tl:p.ztrn(z)
+            tv = t.al(tl,par)
+        v[1]['b'][1].extend(blgfps)
+
         ### create terrain with holes where buildings meet the ground
-        self.vgen_terrain(w,v,pg,[[p.cpxy() for p in f] for f in blgfps],l)
+        #self.vgen_terrain(w,v,pg,[[p.cpxy() for p in f] for f in blgfps])
+        #self.vgen_terrain(w,v,pg)
 
     ###########################################################################
 
@@ -193,17 +223,15 @@ class worldfactory(dfa.factory):
         boundary = vec3(0,0,0).pring(250,8)
         ### generate the topographical structure of the world
         t = ter.continent(boundary)
-
-        # show the topography
-        ax = t.plot()
-        plt.show()
-        # ###################
-
         ### generate the region partitions of each landmass
         pg = self.genregions(t)
         ### create a world context from the partition graph
         w = self.bclass(*ags,**kws)
         self.gen(w,pg)
+        # show the topography
+        #ax = t.plot()
+        #plt.show()
+        # ###################
         return w
 
     ###########################################################################
@@ -225,8 +253,9 @@ class worldfactory(dfa.factory):
     ###########################################################################
 
     # segment the boundary of a vertex based on edges of other vertices
-    def vstitch(self,v,pg,l = 10):
+    def vstitch(self,v,pg,l = 5):
         vb = [b.cp() for b in v[1]['b'][0]]
+        if not pym.bccw(vb):vb.reverse()
         fnd = True
         while fnd:
             fnd = False
@@ -252,40 +281,107 @@ class worldfactory(dfa.factory):
             else:vb.insert(vbx,vb1.mid(vb2))
         return vb
 
-    def vgen_terrain(self,w,v,pg,vhs,l):
+    def vgen_terrain(self,w,v,pg):
+        tmesh = v[1]['tmesh']
         m = dmo.model()
         sgv = w.amodel(None,None,None,m,w.sgraph.root)
         tm = m.agfxmesh()
-        vb = self.vstitch(v,pg,l)
+        #vstitch isnt being used!!!
+        #vstitch isnt being used!!!
+        #vstitch isnt being used!!!
+        # need to enforce that refinement is no problem for stitching!!!
+        # need to enforce that refinement is no problem for stitching!!!
+        # need to enforce that refinement is no problem for stitching!!!
+        #  need to stitch from holes to interior regions!!!
+        #  need to stitch from holes to interior regions!!!
+        #  need to stitch from holes to interior regions!!!
+        #are subdivisions being smoothed or solved for!?!
+        #are subdivisions being smoothed or solved for!?!
+        #are subdivisions being smoothed or solved for!?!
+
+        vb,vibs = self.vstitch(v,pg),v[1]['b'][1]
+        v[1]['b'] = vb,vibs
+        #vb,vibs = v[1]['b']
+
         print('generating terrain')
-        ngvs = m.asurf((tuple(vb),tuple(tuple(h) for h in vhs)),
-            tm,fm = 'grass2',ref = True,hmin = 100,zfunc = v[1]['tmesh'],
+        #ngvs = m.asurf(v[1]['b'],tm,
+        ngvs = m.asurf((vb,vibs),tm,
+            fm = 'generic',ref = True,hmin = 100,zfunc = v[1]['tmesh'],
             #uvstacked = db.roundrobin((vec3(0,0,0),vec3(1,0,0),vec3(1,1,0))),
             uvstacked = None,
             autoconnect = True)
-        m.subdiv(tm,False,True)
-        m.subdiv(tm,False,True)
-        m.subdiv(tm,False,True)
-        m.subdiv(tm,False,True)
-        '''#
-        '''#
+        lockf = lambda p : p.onpxy(v[1]['b']) 
+        m.subdiv(tm,False,True,lockf)
+        #m.subdiv(tm,False,True,lockf)
+        #m.subdiv(tm,False,True,lockf)
         m.uvs(tm)
         print('generated terrain')
         return m
 
-    def vblgsplotch(self,v,pg,l):
+    def vblgsplotch(self,v,pg):
+        vb = v[1]['b']
         blgfps = []
+
+        dx,dy,xn,yn = 20,20,10,30
+        o = vec3(-dx*xn/2.0,-dy*yn,0).com(vb[0])
+        vgrid = [o.cp().trn(vec3(x*dx,y*dy,0)) 
+            for y in range(yn) for x in range(xn)]
+        boxes = [p.sq(dx,dy) for p in vgrid]
+        boxes = [b for b in boxes if pym.binbxy(b,vb[0])]
+        for ib in vb[1]:
+            boxes = [b for b in boxes if not pym.bintbxy(b,ib) 
+                and not b[0].inbxy(ib) and not ib[0].inbxy(b[0])]
+        box = pym.bsuxy(boxes)
+
+        '''#
+        ax = dtl.plot_axes_xy(700)
+        ax = dtl.plot_polygon_xy(vb[0],ax,lw = 2,col = 'b')
+        #ax = dtl.plot_polygon_xy(box,ax,lw = 2,col = 'r')
+        for b in boxes:ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'g')
+        for b in box:ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'r')
+        plt.show()
+        '''#
+
+        blgfps.extend(box)
+
+        #vbxpj = vec3(1,0,0).prjps(vb[0])
+        #vbxl = vbxpj[1]-vbxpj[0]
+        #vbypj = vec3(0,1,0).prjps(vb[0])
+        #vbyl = vbypj[1]-vbypj[0]
+
+        #r = v[1]['b'][0][0].z+abs(random.random())*20
+
+        '''#
         bx,by,sx,sy = -30,30,30,30
-        blgfps.append(vec3(bx,by,v[1]['tmesh'](bx,by)).sq(sx,sy))
+        r = abs(random.random())*20
+        bz = v[1]['tmesh'](bx,by)+r
+        blgfps.append(vec3(bx,by,bz).sq(sx,sy))
+
         bx,by,sx,sy = 30,30,50,30
-        blgfps.append(vec3(bx,by,v[1]['tmesh'](bx,by)).sq(sx,sy))
+        r = abs(random.random())*20
+        bz = v[1]['tmesh'](bx,by)+r
+        blgfps.append(vec3(bx,by,bz).sq(sx,sy))
+
         bx,by,sx,sy = 30,-30,40,60
-        blgfps.append(vec3(bx,by,v[1]['tmesh'](bx,by)).sq(sx,sy))
+        r = abs(random.random())*20
+        bz = v[1]['tmesh'](bx,by)+r
+        blgfps.append(vec3(bx,by,bz).sq(sx,sy))
+        '''#
+
+        #blgfps.append(vec3(bx,by,v[1]['tmesh'](bx,by)).sq(sx,sy))
+        #bx,by,sx,sy = 30,30,50,30
+        #blgfps.append(vec3(bx,by,v[1]['tmesh'](bx,by)).sq(sx,sy))
+        #bx,by,sx,sy = 30,-30,40,60
+        #blgfps.append(vec3(bx,by,v[1]['tmesh'](bx,by)).sq(sx,sy))
+        #for blgfp in blgfps:
+        #    r = v[1]['b'][0][0].z+abs(random.random())*20
+        #    for p in blgfp:
+        #        p.ztrn(r)
         return blgfps
 
-    def vgen_buildings(self,v,pg,l):
+    def vgen_buildings(self,v,pg):
         bfa = blg.blgfactory()
-        blgfps = self.vblgsplotch(v,pg,l)
+        blgfps = self.vblgsplotch(v,pg)
         blgs = []
         for blgfp in blgfps:
             #v[1]['tmesh'].al(blgfp)??

@@ -1,22 +1,12 @@
-import os,time
+import sys,os,time,pdb
 
 import dilap.core.base as db
 from dilap.geometry.vec3 import vec3
 import dilap.core.context as dcx
 import dilap.modeling.model as dmo
 import dilap.construct as dc
-
 import dilap.worldly.world as dwo
 
-import pdb
-
-def cube(p = None,q = None,s = None):
-    m = dmo.model()
-    cx = dcx.context()
-    sgv = cx.amodel(p,q,s,m,cx.sgraph.root)
-    gm = m.atricube()
-    m.normals(gm)
-    return cx
 
 def bldg(p = None,q = None,s = None):
     bfp = vec3(0,0,0).sq(50,15)
@@ -49,26 +39,22 @@ def test_bseq():
     seq += 'X<2>'
     return seq
 
+
 def stage():
     #cx = cube()
     #cx = bldg()
     cx = dwo.worldfactory().new()
     return cx
 
-def world(wdir):
-    
-    dc.write_materials(world_dir = wdir)
-    dc.realize(stage(),world_dir = wdir)
-    dc.write_world_script(world_dir = wdir)
 
 if __name__ == '__main__':
     s = time.time()
     wname = 'world0'
     wdir = os.path.join(os.getcwd(),wname)
     if not os.path.exists(wdir):os.mkdir(wdir)
-    #world(wdir)
-    f,ags = world,(wdir,)
-    db.profile_function(f,*ags)
+    if 'profile' in sys.argv:
+        db.profile_function(dc.world,stage,wdir)
+    else:dc.world(stage,wdir)
     print('ran %s in %f seconds' % (__file__,time.time()-s))
 
 

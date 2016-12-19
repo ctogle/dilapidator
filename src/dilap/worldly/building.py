@@ -325,6 +325,8 @@ class building(cx.context):
     # do something which fills the scenegraph
     def generate(self,worn = 0):
         self.floors = len(list(self.bgraph.fl_look.keys()))
+        skirt = min([v[2]['skirt'] for v in self.bgraph.vs])
+        self.p = vec3(0,0,skirt)
         self.genrooms()
         self.genshafts()
         self.genshell()

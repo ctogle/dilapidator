@@ -69,8 +69,8 @@ class model:
             #nrm = gtl.nrm(*pps)
             for p,n,u in zip(pps,nps,ups):
                 #n.x,n.y,n.z = nrm
-                #u.x,u.y,u.z = self.defuv(p,n)
-                u.x,u.y,u.z = next(uvstacked)
+                u.x,u.y,u.z = self.defuv(p,n)
+                #u.x,u.y,u.z = next(uvstacked)
         return self
 
     # iterate over the faces of a mesh and fix its
@@ -232,23 +232,21 @@ class model:
         return ps
 
     # subdivide the boundary of the mesh
-    def subdivbnd(self,mesh,smooth = True):
+    def subdivbnd(self,mesh,smooth = True,lockf = None):
         # iterate over the edges
         #   if an edge is a boundary, split it into 3 segments
         #     erase the face attached to it and make a tri fan 
         #     over the 3 new segments
         #   if an edge is not a boundar, ignore it
 
-        #oldvs = list(mesh.ve_rings.keys())
+        if lockf is None:lockf = lambda p : False
         oldes = list(mesh.ef_rings.keys())
-
         oldvs = []
         for e in oldes:
             if mesh.eonb(e):
                 one = mesh.verts[e[0]]
                 two = mesh.verts[e[1]]
                 oldvs.append(one)
-                #oldvs.append(two)
                 ep1,ep2 = self.pset.ps[one[0]],self.pset.ps[two[0]]
                 np1,np2 = ep1.pline(ep2,2)
                 sv1 = mesh.avert(*self.avert(np1))
@@ -263,10 +261,11 @@ class model:
                 # need the subset of vns that is on the boundary too!!!
                 pns = self.pset.gps((v[0] for v in vns))
                 alpha = mesh.alphan(len(pns))
-                #sdel = p.tov(gtl.com(pns)).uscl(alpha)
                 sdel = p.tov(vec3(0,0,0).com(pns)).uscl(alpha)
                 dels.append((p,sdel))
-            for sd in dels:sd[0].trn(sd[1])
+            for sd in dels:
+                if not lockf(sd[0]):
+                    sd[0].trn(sd[1])
 
     #
     # i really want two fundamental concepts abstractly added
@@ -277,11 +276,8 @@ class model:
     # perform a sqrt(3) subdivision on a trimesh
     #   topological splitting of the face
     #   also geometric smooothing afterwards
-    def subdiv(self,mesh,subdivbnd = True,smooth = True):
-
-        # FIND EDGES AND OFFER TO EXEMPT THEM FROM SMOOTHING 
-        # FIND EDGES AND OFFER TO EXEMPT THEM FROM SMOOTHING 
-        # FIND EDGES AND OFFER TO EXEMPT THEM FROM SMOOTHING 
+    def subdiv(self,mesh,subdivbnd = True,smooth = True,lockf = None):
+        if lockf is None:lockf = lambda p : False
         newvs = []
         oldvs = list(mesh.ve_rings.keys())
         oldes = list(mesh.ef_rings.keys())
@@ -302,8 +298,10 @@ class model:
                 alpha = mesh.alphan(len(pns))
                 sdel = p.tov(vec3(0,0,0).com(pns)).uscl(alpha)
                 dels.append((p,sdel))
-            for sd in dels:sd[0].trn(sd[1])
-        if subdivbnd:self.subdivbnd(mesh,smooth)
+            for sd in dels:
+                if not lockf(sd[0]):
+                    sd[0].trn(sd[1])
+        if subdivbnd:self.subdivbnd(mesh,smooth,lockf)
         return newvs
 
     def defuv(self,p,n):
@@ -377,10 +375,6 @@ class model:
                 ngvs.append(v)
             return v
 
-        #if uvstacked is None:av = lambda p,n : tm.avert(*self.avert(p.cp(),n))
-        #else:av = lambda p,n : tm.avert(*self.avert(p.cp(),n,next(uvstacked)))
-        ##av = lambda p,n : tm.avert(*self.avert(p.cp().xscl(0.5),n))
-
         if len(eb) < 5 and len(ibs) == 0 and not ref:
 
             if len(eb) == 3:
@@ -426,6 +420,11 @@ class model:
                 if rv:f1 = tm.aface(v1,v3,v2,fm) 
                 else:f1  = tm.aface(v1,v2,v3,fm) 
 
+        # need to somehow require all loops are placed before doing this
+        # need to somehow require all loops are placed before doing this
+        # need to somehow require all loops are placed before doing this
+        # need to somehow require all loops are placed before doing this
+        # need to somehow require all loops are placed before doing this
         if not zfunc is None:
             for ngv in ngvs:
                 p = self.pset.ps[tm.verts[ngv][0]]

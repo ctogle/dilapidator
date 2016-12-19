@@ -69,22 +69,18 @@ def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True):
 # given 4 points and a tangent vector, 
 # extract the two whose projections are in between the extreme projections
 def prjmed(p1,p2,p3,p4,tn):
+    ps = [p1,p2,p3,p4]
     ss = [p1.dot(tn),p2.dot(tn),p3.dot(tn),p4.dot(tn)]
-    minss,maxss = min(ss),max(ss)
+    minss,maxss,minfnd,maxfnd = min(ss),max(ss),False,False
     ssn = [0,1,2,3]
     for j in range(4):
-        if ss[j] == minss or ss[j] == maxss:
-            ssn.pop(j)
-    return ssn
-    '''#
-    sp = [p1,p2,p3,p4]
-    ss = [p.dot(tn) for p in sp]
-    sx = list(range(len(ss)))
-    mm = ss.index(min(ss)),ss.index(max(ss))
-    ix1,ix2 = [j for j in sx if not j in mm]
-    ip1,ip2 = sp[ix1],sp[ix2]
-    return ip1,ip2
-    '''#
+        if not minfnd and ss[j] == minss:
+            ssn.remove(j)
+            minfnd = True
+        elif not maxfnd and ss[j] == maxss:
+            ssn.remove(j)
+            maxfnd = True
+    return ps[ssn[0]],ps[ssn[1]]
 
 # does one segment intersect another
 # ie  : do endpoint intersections count (end of one segment only)
@@ -180,7 +176,9 @@ def sintbxyp(s1,s2,b,ie = True,ieb = True,col = True):
         b1,b2 = b[x-1],b[x]
         ip = sintsxyp(s1,s2,b1,b2,ie = ie,ieb = ieb,col = col)
         if not ip is None:
-            if type(ip) == type(()):
+            if type(ip) == type(1):
+                pdb.set_trace()
+            elif type(ip) == type(()) or type(ip) == type([]):
                 isnew(ip[0])
                 isnew(ip[1])
             else:isnew(ip)
@@ -284,10 +282,21 @@ def ebuxy(b1,b2,epsilon = 0.1):
     b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
     #bo = lambda s1,s2,b : s1.inbxy(b) or s2.inbxy(b) or (s1.onbxy(b) and s2.onbxy(b))
     bo = lambda s1,s2,b : s1.mid(s2).inbxy(b)
+
+    def inn(p):
+        pn = vec3(0,0,1).crs(p[0].tov(p[1])).nrm().uscl(2*epsilon)
+        pm = p[0].mid(p[1])
+        ep = pm.cp().trn(pn)
+        if not ep.inbxy(b1) and not ep.inbxy(b2):return False
+        ep = pm.cp().trn(pn.flp())
+        if not ep.inbxy(b1) and not ep.inbxy(b2):return False
+        return True
+
     b1inb2 = [p for p in b1segs if bo(p[0],p[1],b2)]
     b2inb1 = [p for p in b2segs if bo(p[0],p[1],b1)]
-    b1only = [p for p in b1segs if not p in b1inb2]
-    b2only = [p for p in b2segs if not p in b2inb1]
+    b1only = [p for p in b1segs if not p in b1inb2 and not inn(p)]
+    b2only = [p for p in b2segs if not p in b2inb1 and not inn(p)]
+
     dfs = sloops(b1only+b2only,epsilon)
     return dfs
 
@@ -311,7 +320,7 @@ def ebixy(b1,b2,epsilon = 0.1):
     return dfs
 
 # consolidate a list of boundary polygons using ebuxy
-def bsuxy(bs):
+def bsuxy(bs,epsilon = 0.1):
     unfn = bs[:]
     nbs = []
     while unfn:
@@ -322,7 +331,9 @@ def bsuxy(bs):
             if   binbxy(ub,b):pass
             elif binbxy(b,ub):nbs[nbx] = ub
             elif bintbxy(ub,b):
-                unfn.extend(ebuxy(nbs.pop(nbx),ub))
+                newunfn = ebuxy(nbs.pop(nbx),ub,epsilon)
+                for u in newunfn:unfn.insert(0,u)
+                #unfn.extend(ebuxy(nbs.pop(nbx),ub,epsilon))
                 fnd = True
                 break
         if not fnd:nbs.append(ub)
@@ -409,15 +420,13 @@ def bnrm(b):
         c1,c2,c3  = b[px-2],b[px-1],b[px]
         c1c2 = c1.tov(c2)
         c2c3 = c2.tov(c3)
-
-        if c2c3.mag() == 0 or c1c2.mag() == 0:
+        if gtl.isnear(c2c3.mag(),0) or gtl.isnear(c1c2.mag(),0):
             print('bnrm adjacency error!!',c1c2,c2c3)
-            #continue
             raise ValueError
-
         cang = c1c2.ang(c2c3)
-        if cang > -numpy.pi+0.001 and cang < numpy.pi-0.001:
-            pn.trn(c1c2.crs(c2c3).nrm())
+        if not gtl.isnear(cang,0) and not gtl.isnear(cang,gtl.PI):
+            if cang > -numpy.pi+0.001 and cang < numpy.pi-0.001:
+                pn.trn(c1c2.crs(c2c3).nrm())
     return pn.nrm()
 
 # determine if a polygon is ordered counterclockwise in the xy plane
@@ -518,9 +527,7 @@ def bdissolvep(b,xs,rps):
 # modify a boundary polygon such that its hmin will be above minhmin
 # NOTE: the resulting polygon should be contained by the input polygon
 def blimithmin(b,minhmin,maxhmin):
-
     m = lambda : min([b[x-1].d(b[x]) for x in range(len(b))])*math.sqrt(3)
-
     els = [b[x-1].d(b[x]) for x in range(len(b))]
     dps,rps = [],[]
     for elx in range(len(els)):
@@ -528,7 +535,6 @@ def blimithmin(b,minhmin,maxhmin):
         if el < minhmin:
             rps.append(None);rps.append([b[elx-1].mid(b[elx])])
             dps.append(elx-1);dps.append(elx)
-
     if dps:b = bdissolvep(b,dps,rps)
     b = splitb(b,maxhmin)
 
@@ -643,7 +649,6 @@ def contract(b,ds,epsilon = 0.1):
 
     fbnd.append(fbnd.pop(0))
 
-
     '''#
     print('amen3')
     ax = dtl.plot_axes_xy(500)
@@ -651,7 +656,6 @@ def contract(b,ds,epsilon = 0.1):
     plt.show()
     print('amen4')
     '''#
-
 
     if len(fbnd) > 3:fbnd = pinchb(fbnd,epsilon)
     return fbnd
@@ -703,13 +707,11 @@ def sstopg(segs,epsilon = 0.1,plot = False):
     for e1,e2 in segs:
         v1,v2 = g.fp(e1,epsilon),g.fp(e2,epsilon)
         if not v2 in g.rings[v1]:g.ae(v1,v2)
-
     '''#
     if plot:
         ax = g.plotxy(l = 500)
         plt.show()
     '''#
-
     return g
 
 # generate a full polygon from a planar graph

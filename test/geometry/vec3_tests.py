@@ -234,6 +234,8 @@ class test_vec3(unittest.TestCase):
         self.assertFalse(vec3(1,1,0).onbxy(py))
         self.assertTrue(vec3(2,0,0).onbxy(py))
 
+    #def test_onpxy(self):
+
     def test_mag2(self):
         v1,v2,v3 = vec3(1,0,0),vec3(1,1,1),vec3(2,5,11)
         self.assertEqual(dpr.isnear(v1.mag2(),1),1)

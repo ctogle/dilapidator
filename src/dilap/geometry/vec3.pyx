@@ -268,6 +268,14 @@ cdef class vec3:
             #if gtl.inseg_xy_c(self,p1,p2):return 1
         return 0
 
+    # is self on the boundary or any holes of a polygon
+    cdef bint onpxy_c(self,py):
+        eb,ibs = py
+        if self.onbxy(eb):return 1
+        for ib in ibs:
+            if self.onbxy(ib):return 1
+        return 0
+
     # return the squared magintude of self
     cdef float mag2_c(self):
         cdef float x2 = self.x*self.x
@@ -675,6 +683,11 @@ cdef class vec3:
     cpdef bint onbxy(self,ps):
         '''determine if self on an edge between any two adjacent points in ps'''
         return self.onbxy_c(ps)
+
+    # is self on the boundary or any holes of a polygon
+    cpdef bint onpxy(self,py):
+        '''determine if self on an edge between any two adjacent points in ps'''
+        return self.onpxy_c(py)
 
     # return the squared magintude of self
     cpdef float mag2(self):

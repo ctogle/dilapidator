@@ -45,15 +45,21 @@ def write_world_script(io = None,world_dir = None,**kws):
     if hasattr(io,'write_world_script'):
         io.write_world_script(world_dir)
 
-###############################################################################
+# stage is a function that returns a context for a world
+# wdir is an output directory to associate with this world
+def world(stage = cube_stage,wdir = None):
+    if wdir is None:wdir = os.getcwd()
+    write_materials(world_dir = wdir)
+    realize(stage(),world_dir = wdir)
+    write_world_script(world_dir = wdir)
 
-###############################################################################
-
-#def context(io = 'obj',dilaps = []):
-#    cx = dgc.context(iotype = io,dilapidors = dilaps)
-#    return cx
-
-###############################################################################
+def cube_stage(p = None,q = None,s = None):
+    m = dmo.model()
+    cx = dcx.context()
+    sgv = cx.amodel(p,q,s,m,cx.sgraph.root)
+    gm = m.atricube()
+    m.normals(gm)
+    return cx
 
 ###############################################################################
 

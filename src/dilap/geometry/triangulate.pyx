@@ -230,7 +230,7 @@ cdef list point_location(triangulation data,vec3 y):
 
 
 
-    print('never should have come to this')
+    print('never should have come to this',len(data.triangles))
     print('PROBABLY NEED LARGER CONVEXRAD FOR TRIANGULATION')
     ax = dtl.plot_axes_xy(500)
     for tri in data.triangles:

@@ -267,7 +267,7 @@ def build_model2(mod,**kwargs):
 
     for gfx in mod.gfxmeshes:
         faces = [f for f in gfx.faces if not f is None]
-        face_mats = [fs_lookup[gfx.fs_mats[f]] for f in faces]
+        face_mats = [fs_lookup[gfx.fs_mats[f][1]] for f in faces]
         oloc = (0,0,0)
 
         #mesh = mesh_from_data(mname,ps,us,faces,face_mats,mats)

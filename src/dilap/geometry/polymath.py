@@ -86,7 +86,7 @@ def prjmed(p1,p2,p3,p4,tn):
 # ie  : do endpoint intersections count (end of one segment only)
 # ieb : do endpoint intersections count (end of both segments)
 # col : do colinear intersections counts
-def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True):
+def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,sensi = 1.0):
     # if segments are colinear and overlapping
     # elif segments are colinear and nonoverlapping
     # elif segments are skew and possibly overlapping
@@ -138,8 +138,10 @@ def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True):
         # elif no proper intersection at neither segments endpoints
         # else must have intersected by one of three possible cases
         dscrss2 = ds.crs(s2tn)
-        u = gtl.near(gtl.near(dscrss1.z/s1crss2.z,0),1)
-        t = gtl.near(gtl.near(dscrss2.z/s1crss2.z,0),1)
+        #u = gtl.near(gtl.near(dscrss1.z/s1crss2.z,0),1)
+        #t = gtl.near(gtl.near(dscrss2.z/s1crss2.z,0),1)
+        u = dscrss1.z/s1crss2.z
+        t = dscrss2.z/s1crss2.z
         if not ieb and ((u == 0 or u == 1) and (t == 0 or t == 1)):return None
         elif not ie and ((u == 0 or t == 0) or (u == 1 or t == 1)):return None
         elif not (0 <= u and u <= 1) or not (0 <= t and t <= 1):return None
@@ -304,9 +306,20 @@ def ebuxy(b1,b2,epsilon = 0.1):
 def ebdxy(b1,b2,epsilon = 0.1):
     b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
     bo = lambda s1,s2,b : s1.mid(s2).inbxy(b)
-    b1only = [p for p in b1segs if not bo(p[0],p[1],b2)]
+    b1only = [p for p in b1segs if not bo(p[0],p[1],b2) and not p in b2segs]
     b2inb1 = [p for p in b2segs if bo(p[0],p[1],b1)]
     dfs = sloops(b1only+b2inb1,epsilon)
+    # need to throw away nonsatisfactory loops
+    #dfs = [l for l in dfs]
+    '''#
+    ax = dtl.plot_axes(100)
+    ax = dtl.plot_polygon(b1,ax,lw = 2,col = 'b')
+    ax = dtl.plot_polygon(b2,ax,lw = 2,col = 'g')
+    for x in range(len(dfs)):
+        vec3(0,0,10*x+2).trnos(dfs[x])
+        ax = dtl.plot_polygon(dfs[x],ax,col = 'r')
+    plt.show()
+    '''#
     return dfs
 
 # compute the intersection of two boundary polygons
@@ -420,8 +433,13 @@ def bnrm(b):
         c1,c2,c3  = b[px-2],b[px-1],b[px]
         c1c2 = c1.tov(c2)
         c2c3 = c2.tov(c3)
-        if gtl.isnear(c2c3.mag(),0) or gtl.isnear(c1c2.mag(),0):
+        #if gtl.isnear(c2c3.mag(),0) or gtl.isnear(c1c2.mag(),0):
+        if c2c3.mag() == 0 or c1c2.mag() == 0:
             print('bnrm adjacency error!!',c1c2,c2c3)
+            #ax = dtl.plot_axes_xy(200)
+            #ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'g')
+            #ax = dtl.plot_points_xy(b,ax,number = True)
+            #plt.show()
             raise ValueError
         cang = c1c2.ang(c2c3)
         if not gtl.isnear(cang,0) and not gtl.isnear(cang,gtl.PI):

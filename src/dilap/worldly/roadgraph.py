@@ -32,6 +32,8 @@ def checkseq(pg,fp,seq,show = False):
                 p2 = p1.lerp(ip,1-r/p1.d(ip))
         return p2
 
+    # place a pair of vertices on the edge of the footprint
+    # pointing inward, constituting an exit from the region
     def seed(rg,ss):
         print('SEED',ss)
         exp = fp[-1].lerp(fp[0],0.5)
@@ -42,6 +44,7 @@ def checkseq(pg,fp,seq,show = False):
         i2,r1 = rg.mev(i1,{'p':ex2,'l':0},{})
         return [i2]
 
+    # make an edge and a vertex attached to an existing vertex
     def grow(rg,ss):
         print('GROW',ss)
         tip = nvs[-1]

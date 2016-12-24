@@ -34,6 +34,8 @@ def write_default_materials_mtl(msio):
     def_mats.append(generic)
     grass2 = dma.material('grass2',dtexture = 'grass2.jpg')
     def_mats.append(grass2)
+    concrete1 = dma.material('concrete1',dtexture = 'concrete1.png')
+    def_mats.append(concrete1)
     mcount = len(def_mats)
     msio.write('# Material Count: ')
     msio.write(str(mcount))
@@ -53,6 +55,20 @@ def write_world_script(world_dir):
     s('SceneJS.createScene({');d += 1
     s('nodes: [');d += 1
     s('{');d += 1
+
+    #s('type: "environments/holodeck",')
+    #s('type: "environments/modelView",')
+    #s('type: "environments/gridRoom",')
+    #s('type: "environments/lawn",')
+
+    #s('type: "scenejs_api/latest/plugins/nodes/models/backgrounds/gradient"')
+    #depth: -30, (default)
+    #colors:[0.05, 0.06, 0.07, 1.0, // top left (R,G,B,A)
+    #s('colors: [0.05, 0.06, 0.07, 1.0, 0.05, 0.06, 0.07, 1.0, 0.85, 0.9, 0.98, 1.0, 0.85, 0.9, 0.98, 1.0]')
+
+    #s('nodes: [');d += 1
+    #s('{');d += 1
+
     s('type: "cameras/pickFlyOrbit",')
     s('yaw: -40,')
     s('pitch: -20,')
@@ -64,38 +80,23 @@ def write_world_script(world_dir):
     s('x: 1,')
     s('angle: -90,')
     s('nodes: [');d += 1
-
-    #s(matobjs(matobjfiles))
-
-    '''#
-    '''#
-    s('{');d += 1
-    s('type: "texture",')
-    s('src: "world0/orangeboxtex.png",')
-    s('nodes: [\n');d += 1
-    nodes = [modnode_line % (f,) for f in obj_filenames]
-    js.write(',\n'.join(nodes))
-    d -= 1;s(']');d -= 1;s('}')
-    
-    d -= 1;s(']');d -= 1;s('}')
+    textures = {}
+    for dfm in def_mats:
+        if dfm.name in tobj_filenames:
+            textures[dfm.name] = (dfm.dtexture,tobj_filenames[dfm.name])
+    modline = lambda t : ',\n'.join([modnode_line % (f,) for f in textures[t][1]])
+    matline = ',\n'.join([matnode_line % (textures[t][0],modline(t)) for t in textures])
+    s(matline)
+    d -= 1;s(']');d -= 1;s('}');
     d -= 1;s(']');d -= 1;s('}');d -= 1;s(']');d -= 1;s('});')
     with open(worldfile,'w') as h:h.write(js.getvalue())
     print('new world file',worldfile)
 
-def matobjs(matobjfiles):
-    sg = []
-    for matfile in matobjfiles:
-        objfiles = matobjfiles[matfile]
-        matnode = matnode_line[:].replace('<f>',matfile)
-        modnode = ',\n'.join([modnode_line % (m,) for m in objfiles])
-        sg.append(matnode.replace('<o>',modnode))
-    return ',\n'.join(sg)
-
 matnode_line = '''\
 {
     type: "texture",
-    src: "world0/<f>",
-    nodes: [\n<o>\n]
+    src: "world0/%s",
+    nodes: [\n%s\n]
 }'''
 modnode_line = '''\
 {
@@ -110,6 +111,7 @@ modnode_line = '''\
 #########################################################################
 
 obj_filenames = []
+tobj_filenames = {}
 def unique_objfile(ofile):
     if not ofile.endswith('.obj'):ofile += '.obj'
     if ofile in obj_filenames:
@@ -122,6 +124,7 @@ def unique_objfile(ofile):
 
 # represent the model mod as a string and give it a safe filename
 def obj_from_model(mod):
+    global tobj_filenames
     ofile = unique_objfile(mod.filename)
     faces = mod.face_dict()
     mats = [m for m in faces.keys()]
@@ -142,6 +145,10 @@ def obj_from_model(mod):
         
     for mdx in range(mcnt):
         m = mats[mdx]
+
+        if m in tobj_filenames:tobj_filenames[m].append(ofile)
+        else:tobj_filenames[m] = [ofile]
+
         mfaces = faces[m]
         fcnt = len(mfaces)
         sioio.write('usemtl ')

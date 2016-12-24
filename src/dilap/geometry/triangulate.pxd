@@ -29,6 +29,7 @@ cdef class triangulation:
     cdef void insert_vertex(self,int u,int v,int w,int x)
     cdef void insert_ghost_vertex(self,int u,int v,int w,int x)
     cdef void add_triangle(self,int u,int v,int w)
+    cdef void delete_triangle_by_index(self,int tri)
     cdef void delete_triangle(self,int u,int v,int w)
     cdef void add_ghost(self,int u,int v)
     cdef void delete_ghost(self,int u,int v)

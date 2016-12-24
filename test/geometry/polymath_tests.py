@@ -91,7 +91,7 @@ class test_polymath(unittest.TestCase):
         perm(s1,s2,s3,s4,True,ie = False)
         #pl(s1,s2,s3,s4)
 
-    def atest_sintsxyp(self):
+    def test_sintsxyp(self):
         def pl(s1,s2,s3,s4):
             ax = dtl.plot_axes_xy(10)
             ax = dtl.plot_edges_xy([s1,s2],ax,lw = 2,col = 'b')

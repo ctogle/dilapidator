@@ -8,6 +8,18 @@ import pdb
 ###
 ###############################################################################
 
+# from the footprint of a building, 
+# return a valid topological sequence
+def from_footprint(fp,**kws):
+    defv = lambda k,v : kws[k] if k in kws else v
+    seq = ''.join(['L<%i>'%j for j in range(defv('floors',2))])
+    #seq += 'S<0,0.5,0.5,0,1,0,0>'
+    seq += 'v<0>'
+    seq += 'X<0>'
+    return seq
+
+###############################################################################
+
 def apt():
     seq  = ''
     seq += 'S<0,0.5,0.5,0,0,1,0>'

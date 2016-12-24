@@ -143,6 +143,7 @@ class tmesh(db.base):
             z2 = chs[0].loop[chexs[0]].z
             dmax = max([vtpd]+list(chpds))
             dtot = (dmax-vtpd)+sum([dmax-chpd for chpd in chpds])
+            if dtot == 0:dtot = 1
             z = ((dmax-vtpd)*z1+sum([(dmax-chpd)*z2 for chpd in chpds]))/dtot
         else:
             z2 = z1

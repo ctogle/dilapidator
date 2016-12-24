@@ -207,7 +207,18 @@ class test_vec3(unittest.TestCase):
         self.assertFalse(vec3(1,0,0).inbxy(py))
         self.assertTrue(vec3(1,1,0).inbxy(py))
 
-    #def test_intrixy(self):
+    def test_intrixy(self):
+        a = vec3(-93.6169662475586, 46.23309326171875, 0.0)
+        b = vec3(28.083663940429688, 48.28422546386719, 0.0)
+        c = vec3(25.696874618530273, 48.28422546386719, 0.0)
+        p = vec3(-93.34214782714844, 43.73178482055664, 0.0)
+        i = p.intrixy(a,b,c)
+        self.assertFalse(i)
+
+        ax = dtl.plot_axes_xy(100)
+        ax = dtl.plot_points_xy((a,b,c,p),ax)
+        ax = dtl.plot_polygon_xy((a,b,c),ax,lw = 2,col = 'g')
+        plt.show()
 
     #def test_onsxy(self):
     '''#

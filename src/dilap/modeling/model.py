@@ -31,6 +31,7 @@ class model:
     def face_dict(self):
         mats = {}
         for gm in self.gfxmeshes:
+            #self.normals(gm)
             gmats = gm.face_dict()
             for gmat in gmats:
                 if gmat in mats:mats[gmat].extend(gmats[gmat])
@@ -308,7 +309,7 @@ class model:
         if   n.isnear(vec3(1,0,0)) or n.isnear(vec3(-1,0,0)):u = vec3(p.y,p.z,0)
         elif n.isnear(vec3(0,1,0)) or n.isnear(vec3(0,-1,0)):u = vec3(p.x,p.z,0)
         elif n.isnear(vec3(0,0,1)) or n.isnear(vec3(0,0,-1)):u = vec3(p.x,p.y,0)
-        else:u = vec3(0,0,0)
+        else:u = vec3(p.x,p.y,0)
         return u
 
     # add a triangulated surface to a trimesh

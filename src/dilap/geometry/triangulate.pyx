@@ -56,9 +56,11 @@ cdef class triangulation:
         if ekey in self.eg_tri_lookup:
             tri = self.eg_tri_lookup[(u,v)]
             if not tri is None:
-                #if self.triangles[tri] is None:return -3
+                ##if self.triangles[tri] is None:return -3
+
                 triv = [x for x in self.triangles[tri] if not x in ekey][0]
                 return triv
+
                 #if not self.triangles[tri] is None:
                 #    triv = [x for x in self.triangles[tri] if not x in ekey][0]
                 #    return triv
@@ -126,6 +128,14 @@ cdef class triangulation:
         self.eg_tri_lookup[(v,w)] = self.tricnt
         self.eg_tri_lookup[(w,u)] = self.tricnt
         self.tricnt += 1
+
+    # delete a triangle by index
+    cdef void delete_triangle_by_index(self,int tri):
+        u,v,w = self.triangles[tri]
+        self.triangles[tri] = None
+        self.eg_tri_lookup[(u,v)] = None
+        self.eg_tri_lookup[(v,w)] = None
+        self.eg_tri_lookup[(w,u)] = None
 
     # delete a positively oriented triangle u,v,w
     cdef void delete_triangle(self,int u,int v,int w):
@@ -257,6 +267,19 @@ cdef list loop_location(triangulation data,tuple loop):
     while ptstack:
         p1 = ptstack.pop(0)
         point_location(data,p1)
+
+        if False and len(data.triangles) >= 12584:
+            ax = dtl.plot_axes_xy(500)
+            for tri in data.triangles:
+                if tri is None:continue
+                u,v,w = tri
+                trip = tuple(data.points.gps_c((u,v,w)))
+                j = data.triangles.index(tri)
+                ax = dtl.plot_polygon_xy(trip,ax,col = 'b',lw = 2)
+                ax = dtl.plot_point_xy(vec3(0,0,0).com(trip),ax,col = 'g')
+                ax = dtl.plot_point_xy_annotate(vec3(0,0,0).com(trip),ax,str(j))
+            plt.show()
+
     return bnd
 
 # locate each loop associated with polygon
@@ -294,11 +317,7 @@ cdef void cover_polygon(triangulation data,tuple ebnd,tuple ibnds):
                 if tinbxy(pt1,pt2,pt3,ibnd):
                     extras.append(tdx)
                     break
-    for x in extras:
-        xtri = data.triangles[x]
-        if xtri is None:continue
-        x1,x2,x3 = xtri
-        data.delete_triangle(x1,x2,x3)
+    for x in extras:data.delete_triangle_by_index(x)
 
 # delete all ghosts and add new ghosts according to where they
 # should be after covering the plc edges
@@ -402,31 +421,45 @@ cdef triangulation tridata_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint 
     p0 = ebnd[0].cp()
     pn = pym.bnrm(ebnd)
     #if gtl.isnear(pn.mag_c(),0):
-    print('tri-pn:',pn)
+    #print('tri-pn:',pn)
     if pn.mag_c() == 0:
         print('\npolygon normal is invalid for triangulation!!',pn,'\n')
         raise ValueError
     prot = quat(0,0,0,0).toxy_c(pn)
     gtl.rot_poly_c((ebnd,ibnds),prot)
     data = triangulation(p0,pn)
-    print('initializing')
+    #print('initializing')
     initialize(data,list(ebnd))
-    print('initialized')
-    print('locating polygon')
+    #print('initialized')
+    #print('locating polygon')
     plcedges = polygon_location(data,ebnd,ibnds)
-    print('located polygon')
-    print('covering polygon')
+    #print('located polygon')
+    #print('covering polygon')
     cover_polygon(data,ebnd,ibnds)
-    print('covered polygon')
-    print('ghost bordering')
+    #print('covered polygon')
+    #print('ghost bordering')
     ghost_border(data,plcedges)              
-    print('ghost bordered')
-    print('constraining delaunay')
+    #print('ghost bordered')
+    #print('constraining delaunay')
     constrain_delaunay(data)
-    print('constrained delaunay')
-    print('refining chew')
+    #print('constrained delaunay')
+    #print('refining chew')
     if refine:refine_chews_first(data,hmin)
-    print('refined chew')
+
+    if False:
+        ax = dtl.plot_axes_xy(500)
+        for trix in range(data.tricnt):
+            tri = data.triangles[trix]
+            if tri is None:continue
+            u,v,w = tri
+            trip = tuple(data.points.gps_c((u,v,w)))
+            j = data.triangles.index(tri)
+            ax = dtl.plot_polygon_xy(trip,ax,col = 'b',lw = 2)
+            ax = dtl.plot_point_xy(vec3(0,0,0).com(trip),ax,col = 'g')
+            ax = dtl.plot_point_xy_annotate(vec3(0,0,0).com(trip),ax,str(j))
+        plt.show()
+
+    #print('refined chew')
     if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
     prot.flp_c()
     for p in data.points.ps:p.rot(prot)
@@ -446,9 +479,9 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
     if hmin < 0.01:
         print('HMIN IS TOO LOW:',hmin,' ->SKIPPING TRIANGULATION...')
         return smps,gsts
-    print('generating tridata')
+    #print('generating tridata')
     data = tridata_c(ebnd,ibnds,hmin,refine,smooth)
-    print('generated tridata')
+    #print('generated tridata')
     for tx in range(data.tricnt):
         tri = data.triangles[tx]
         if tri is None:continue

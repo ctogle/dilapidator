@@ -25,8 +25,11 @@ class test_roadgraph(unittest.TestCase):
         fp = vec3(0,0,0).pring(100,5)
         seq = 'S<>G<>L<>'
         
-        rg = pgr.graph()
+        rg = pgr.planargraph()
         rg = rdg.checkseq(rg,fp,seq,True)
+
+        ax = rg.plot()
+        plt.show()
 
 ###############################################################################
 

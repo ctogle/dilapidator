@@ -153,23 +153,31 @@ cdef class vec3:
     # return the u,v barycentric coordinates of self given 3 corners of a triangle
     # everything is assumed to be in the xy plane
     cdef tuple baryxy_c(self,vec3 a,vec3 b,vec3 c): 
-        cdef float v0x =  c.x-a.x
-        cdef float v0y =  c.y-a.y
-        cdef float v1x =  b.x-a.x
-        cdef float v1y =  b.y-a.y
-        cdef float v2x = self.x-a.x
-        cdef float v2y = self.y-a.y
-        cdef float dot00 = v0x*v0x + v0y*v0y
-        cdef float dot01 = v0x*v1x + v0y*v1y
-        cdef float dot02 = v0x*v2x + v0y*v2y
-        cdef float dot11 = v1x*v1x + v1y*v1y
-        cdef float dot12 = v1x*v2x + v1y*v2y
-        cdef float denom = (dot00 * dot11 - dot01 * dot01)
+        cdef float v0x,v0y,v1x,v1y,v2x,v2y
+        cdef float dot00,dot01,dot02,dot11,dot12,u,v,invdenom
+        v0x,v0y = c.x-a.x,c.y-a.y
+        v1x,v1y = b.x-a.x,b.y-a.y
+        v2x,v2y = self.x-a.x,self.y-a.y
+        dot00 = v0x*v0x + v0y*v0y
+        dot01 = v0x*v1x + v0y*v1y
+        dot02 = v0x*v2x + v0y*v2y
+        dot11 = v1x*v1x + v1y*v1y
+        dot12 = v1x*v2x + v1y*v2y
+        denom = (dot00 * dot11 - dot01 * dot01)
         if denom == 0:
             print('colinear triangle?',a,b,c,self,denom)
-        cdef float invdenom = 1.0 / denom
-        cdef float u = (dot11 * dot02 - dot01 * dot12) * invdenom
-        cdef float v = (dot00 * dot12 - dot01 * dot02) * invdenom
+            #import dilap.core.plotting as dtl
+            #import matplotlib.pyplot as plt
+            #ax = dtl.plot_axes_xy(100)
+            #ax = dtl.plot_polygon_xy((a,b,c),ax,lw = 3,col = 'b')
+            #ax = dtl.plot_point_xy(self,ax,mk = 's')
+            #plt.show()
+            u,v = self.baryxy_c(c,a,b)
+            print('not colinear afterall',u,v)
+        else:
+            invdenom = 1.0 / denom
+            u = (dot11 * dot02 - dot01 * dot12) * invdenom
+            v = (dot00 * dot12 - dot01 * dot02) * invdenom
         return u,v
 
     # is vec3 o within an open ball of raidus e centered at self

@@ -291,7 +291,7 @@ class test_planargraph(unittest.TestCase):
         #il = rg.loop(8,9,'ccw')
         #pl(il)
 
-    def test_uloops(self):
+    def atest_uloops(self):
         def pl():
             ax = rg.plotxy(l = 500)
             for lp in loops:
@@ -349,7 +349,7 @@ class test_planargraph(unittest.TestCase):
         print('itsher')
         pl()
 
-    def atest_polygon(self):
+    def test_polygon(self):
         def pl():
             ax = dtl.plot_axes_xy(50)
             ax = dtl.plot_polygon_full_xy(py,ax,lw = 2,col = 'b')
@@ -372,9 +372,10 @@ class test_planargraph(unittest.TestCase):
         r9 = rg.ae(i5,i6)
         i7,r10 = rg.mev(i1,{'p':vec3(12,-20,0),'l':0},{})
         i8,r11 = rg.mev(i3,{'p':vec3(-5,0,0),'l':0},{})
+        i9,r12 = rg.mev(i7,{'p':vec3(14,-28,0),'l':0},{})
 
-        py = rg.polygon(2,'ccw')
-        #pl()
+        py = pym.pgtopy(rg,2)
+        pl()
 
 ###############################################################################
 

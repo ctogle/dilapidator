@@ -173,8 +173,12 @@ class building(cx.context):
             belv = self.bgraph.vs[sh[shx-1]][2]
             rh = max(belv['wheights'])+belv['skirt']+belv['crown']
             ramp = [r4,r1,r2,r3]
-            #platform = pym.bisectb(pym.ebdxy(platform,ramp))
-            platform = pym.bisectb(pym.ebdxy(platform,ramp)[0])
+            platform = pym.ebdxy(platform,ramp)
+            #platform = pym.bisectb(pym.ebdxy(platform,ramp)[0])
+            #print(len(platform))
+
+            platform = platform[len(platform)//2] # HACK TO GET CORRECT POLYGON...
+
             ramp[0].ztrn(-rh)
             ramp[1].ztrn(-rh)
 
@@ -250,7 +254,6 @@ class building(cx.context):
             for x in range(len(vkw['bound'])):
                 b2,b1 = vkw['bound'][x-1],vkw['bound'][x]
                 w2,w1 = fbnd[x-1],fbnd[x]
-                #hs,wt = vkw['wholes'][x-1],vkw['wtypes'][x-1]
                 hs,wt = vkw['wholes'][x-1],vkw['wmetas'][x-1]['type']
                 wh,ww = vkw['wheights'][x-1],vkw['wwidths'][x-1]
 
@@ -267,10 +270,7 @@ class building(cx.context):
         m = dmo.model()
         sgv = self.amodel(self.p,self.q,self.s,m,self.sgraph.root)
         tm = m.agfxmesh()
-        z = 0
-
-        eww,ech = 0.2,0.5
-        fh = self.bgraph.floorheight
+        z,eww,ech,fh = 0,0.2,0.5,self.bgraph.floorheight
 
         self.rims = []
         for lvx in range(self.floors):
@@ -290,6 +290,15 @@ class building(cx.context):
                     wpys,portals = pyg.awall(crnp1,crnp2,fh,[])
                     for wpy in wpys:m.asurf(wpy,tm)
                     self.rims[-1].extend([crnp1.cp().ztrn(fh),crnp2.cp().ztrn(fh)])
+                elif tcrstz < 0:
+                    wnm1 = vec3(0,0,1).crs(wtn1).nrm().uscl(-eww)
+                    wnm2 = vec3(0,0,1).crs(wtn2).nrm().uscl(-eww)
+                    crnp0 = fp0.cp().trn(wnm1).ztrn(-ech)
+                    crnp1 = fp1.cp().trn(wnm1).ztrn(-ech)
+                    crnp2 = fp1.cp().trn(wnm2).ztrn(-ech)
+                    crnp3 = fp2.cp().trn(wnm2).ztrn(-ech)
+                    ip = pym.sintsxyp(crnp0,crnp1,crnp2,crnp3)
+                    self.rims[-1].append(ip.cp().ztrn(fh))
                 for v in self.bgraph.vs:
                     if v is None:continue
                     vx,ves,vkw = v
@@ -325,8 +334,9 @@ class building(cx.context):
     # do something which fills the scenegraph
     def generate(self,worn = 0):
         self.floors = len(list(self.bgraph.fl_look.keys()))
-        skirt = min([v[2]['skirt'] for v in self.bgraph.vs])
-        self.p = vec3(0,0,skirt)
+        skirt = min([v[2]['skirt'] for v in self.bgraph.vs if v])
+        if self.p is None:self.p = vec3(0,0,skirt)
+        else:self.p.ztrn(skirt)
         self.genrooms()
         self.genshafts()
         self.genshell()
@@ -425,7 +435,12 @@ class blggraph(db.base):
             ov = self.vs[adj]
             if ov is None:continue
             if ov[2]['level'] != rv[2]['level']:
-                #self.shafts.append(rx)
+                if not self.shafts:
+                    self.shafts.append([adj if ov[2]['level'] < rv[2]['level'] else rx])
+                for sh in self.shafts:
+                    if adj in sh and not rx in sh:
+                        sh.append(rx)
+                        break
                 continue
             ob = ov[2]['bound']
             aws = pym.badjbxy(rb,ob)
@@ -687,8 +702,8 @@ class blgfactory(dfa.factory):
         blgg = blggraph(**kws)
         blgg.graph()
 
-        blgg.plotxy()
-        plt.show()
+        #blgg.plotxy()
+        #plt.show()
 
         kws['bgraph'] = blgg
         n = self.bclass(*ags,**kws)

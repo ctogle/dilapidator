@@ -1,4 +1,4 @@
-import sys,os,time,pdb
+import sys,os,time,random,pdb
 
 import dilap.core.base as db
 from dilap.geometry.vec3 import vec3
@@ -43,7 +43,22 @@ def test_bseq():
 def stage():
     #cx = cube()
     #cx = bldg()
-    cx = dwo.worldfactory().new()
+
+    s = 736
+    s = 682
+    #s = 189
+    #s = 916
+    #s = 286
+    #s = random.randint(0,1000)
+
+    fkws = {
+        'seed' : s,
+            }
+    wkws = {
+        'boundary' : vec3(0,0,0).pring(250,8),
+        'landmasses' : [vec3(0,0,0).pring(100,8)],
+            }
+    cx = dwo.worldfactory(**fkws).new(**wkws)
     return cx
 
 

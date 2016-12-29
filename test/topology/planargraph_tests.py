@@ -1,3 +1,4 @@
+import dilap.core.base as db
 from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
 import dilap.geometry.tools as gtl
@@ -18,7 +19,7 @@ import pdb
 
 class test_planargraph(unittest.TestCase):
 
-    def test_avrvaerese(self):
+    def atest_avrvaerese(self):
 
         rg = pgr.planargraph()
 
@@ -43,7 +44,7 @@ class test_planargraph(unittest.TestCase):
             ax = rg.plot()
             plt.show()
 
-    def test_orings(self):
+    def atest_orings(self):
         rg = pgr.planargraph()
 
         i1 = rg.av(p = vec3(  0, 0,0),l = 0)
@@ -60,7 +61,7 @@ class test_planargraph(unittest.TestCase):
             ax = rg.plot()
             plt.show()
 
-    def test_peninsula(self):
+    def atest_peninsula(self):
         def pl():
             ax = rg.plot()
             ax = dtl.plot_polygon(fp,ax,col = 'b')
@@ -134,7 +135,7 @@ class test_planargraph(unittest.TestCase):
 
         if False:pl()
 
-    def test_mev(self):
+    def atest_mev(self):
         def pl():
             ax = rg.plot()
             ax = dtl.plot_polygon(fp,ax,col = 'b')
@@ -155,7 +156,16 @@ class test_planargraph(unittest.TestCase):
 
     #def test_cw(self):
 
-    def test_ccw(self):
+    def test_ccwboxes(self):
+        container = db.persistent_container('dump','boxes')
+        if container.load():boxes = container.data
+        blgfps = pym.ebuxy_special(boxes)
+
+        ax = dtl.plot_axes_xy(200)
+        for b in boxes:ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'g')
+        plt.show()
+
+    def atest_ccw(self):
         def pl(rg,u,v,t):
             ax = rg.plotxy(s = 0.02,number = True)
             plt.show()
@@ -197,7 +207,7 @@ class test_planargraph(unittest.TestCase):
         perm(rg,8,0,1)
         perm(rg,14,3,4)
 
-    def test_loop(self):
+    def atest_loop(self):
         def pl(il):
             ilp = [rg.vs[j][1]['p'] for j in il]
             ilp = pym.contract(ilp,2.0)
@@ -349,7 +359,7 @@ class test_planargraph(unittest.TestCase):
         print('itsher')
         pl()
 
-    def test_polygon(self):
+    def atest_polygon(self):
         def pl():
             ax = dtl.plot_axes_xy(50)
             ax = dtl.plot_polygon_full_xy(py,ax,lw = 2,col = 'b')

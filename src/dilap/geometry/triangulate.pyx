@@ -11,6 +11,7 @@ from dilap.geometry.quat cimport quat
 
 import dilap.geometry.polymath as pym
 
+import dilap.core.base as db
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
@@ -242,12 +243,13 @@ cdef list point_location(triangulation data,vec3 y):
 
     print('never should have come to this',len(data.triangles))
     print('PROBABLY NEED LARGER CONVEXRAD FOR TRIANGULATION')
-    ax = dtl.plot_axes_xy(500)
+    ax = dtl.plot_axes_xy(100)
     for tri in data.triangles:
         if tri is None:continue
         u,v,w = tri
         trip = tuple(data.points.gps_c((u,v,w)))
         ax = dtl.plot_polygon_xy(trip,ax,col = 'r')
+        ax = dtl.plot_point_xy(vec3(0,0,0).com(trip),ax)
     ax = dtl.plot_point_xy_annotate(y,ax,'yyyyy')
     plt.show()
 
@@ -268,6 +270,21 @@ cdef list loop_location(triangulation data,tuple loop):
         p1 = ptstack.pop(0)
         point_location(data,p1)
 
+
+        '''#
+        print('len(nnn',len(ptstack))
+        ax = dtl.plot_axes_xy(100)
+        for tri in data.triangles:
+            if tri is None:continue
+            u,v,w = tri
+            trip = tuple(data.points.gps_c((u,v,w)))
+            ax = dtl.plot_polygon_xy(trip,ax,col = 'r')
+            ax = dtl.plot_point_xy(vec3(0,0,0).com(trip),ax)
+        ax = dtl.plot_point_xy_annotate(p1,ax,'p1')
+        plt.show()
+        '''#
+
+        '''#
         if False and len(data.triangles) >= 12584:
             ax = dtl.plot_axes_xy(500)
             for tri in data.triangles:
@@ -279,6 +296,8 @@ cdef list loop_location(triangulation data,tuple loop):
                 ax = dtl.plot_point_xy(vec3(0,0,0).com(trip),ax,col = 'g')
                 ax = dtl.plot_point_xy_annotate(vec3(0,0,0).com(trip),ax,str(j))
             plt.show()
+        '''#
+
 
     return bnd
 
@@ -487,7 +506,11 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
         if tri is None:continue
         smp = tuple([data.points.ps[px] for px in tri])
         smps.append(smp)
-    if not smps:print('empty surface!')
+    if not smps:
+        print('empty surface!')
+        ax = dtl.plot_axes_xy(300)
+        ax = dtl.plot_polygon_full_xy((ebnd,ibnds),ax,lw = 3)
+        plt.show()
     for gdx in range(data.ghostcnt):
         gst = data.ghosts[gdx]
         if gst is None:continue

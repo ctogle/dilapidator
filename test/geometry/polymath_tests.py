@@ -2,9 +2,11 @@ from dilap.geometry.quat import quat
 from dilap.geometry.vec3 import vec3
 import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
+import dilap.topology.planargraph as pgr
 
 import dilap.worldly.blockletters as dbl
 
+import dilap.core.base as db
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
@@ -91,7 +93,7 @@ class test_polymath(unittest.TestCase):
         perm(s1,s2,s3,s4,True,ie = False)
         #pl(s1,s2,s3,s4)
 
-    def test_sintsxyp(self):
+    def atest_sintsxyp(self):
         def pl(s1,s2,s3,s4):
             ax = dtl.plot_axes_xy(10)
             ax = dtl.plot_edges_xy([s1,s2],ax,lw = 2,col = 'b')
@@ -441,6 +443,15 @@ class test_polymath(unittest.TestCase):
             ax = dtl.plot_points_xy(fp,ax,number = True)
             plt.show()
 
+        ebnd = db.persistent_container('/home/cogle/dev/dilapidator/test/','ebnd')
+        ebnd.load()
+        ebnd = ebnd.data
+
+        ax = dtl.plot_axes_xy(120)
+        ax = dtl.plot_polygon_xy(ebnd,ax,lw = 4,col = 'r')
+        ax = dtl.plot_points_xy(ebnd,ax,number = True)
+        plt.show()
+
         fp = [
             vec3(-6.9831085205078125, 121.9827880859375, 0.0),
             vec3(-26.983108520507812, 121.9827880859375, 0.0),
@@ -578,6 +589,102 @@ class test_polymath(unittest.TestCase):
     #def test_smoothxy(self):
 
     #def test_aggregate(self):
+
+    def atest_pgtopy(self):
+        def trimtofp(p1,p2,r = 5):
+            ips = pym.sintbxyp(p1,p2,fp)
+            if len(ips) > 0:
+                for ip in ips:
+                    if ip.isnear(p1):continue
+                    p2 = p1.lerp(ip,1-r/p1.d(ip))
+            return p2
+
+        rg = pgr.planargraph()
+
+        easement = 10
+        fp = vec3(0,0,0).pring(100,8)
+
+        exp = fp[-1].lerp(fp[0],0.5)
+        exn = vec3(0,0,1).crs(fp[-1].tov(fp[0])).nrm()
+        ex1 = exp.cp()
+        ex2 = ex1.cp().trn(exn.cp().uscl(easement))
+        i1 = rg.av(p = ex1,l = 0)
+        i2,r1 = rg.mev(i1,{'p':ex2,'l':0},{})
+        
+        tip = i2
+        tv = rg.vs[tip]
+        avs = [rg.vs[k] for k in rg.orings[tip]]
+        if len(avs) == 1:
+            op = tv[1]['p']
+            nptn = avs[0][1]['p'].tov(op).nrm().uscl(100)
+            np = op.cp().trn(nptn)
+            np = trimtofp(op,np,easement+10)
+            nv,nr = rg.mev(tip,{'p':np,'l':0},{})
+
+        start = nv
+        tip = start
+        fp_relax = pym.aggregate(pym.contract(fp,20),20)
+        for p_relax in fp_relax:
+            nv,nr = rg.mev(tip,{'p':p_relax,'l':0},{})
+            tip = nv
+        ne = rg.ae(tip,start,**{})
+
+        rpy = pym.pgtopy(rg,15)
+
+        ax = dtl.plot_axes_xy(300)
+        #ax = rg.plotxy(ax)
+        ax = dtl.plot_polygon_xy(fp,ax,lw = 2,col = 'b')
+        ax = dtl.plot_polygon_xy(fp_relax,ax,lw = 2,col = 'b')
+        ax = dtl.plot_polygon_full_xy(rpy,ax,lw = 2,col = 'g')
+        plt.show()
+
+    def atest_pgbleed(self):
+        def trimtofp(p1,p2,r = 5):
+            ips = pym.sintbxyp(p1,p2,fp)
+            if len(ips) > 0:
+                for ip in ips:
+                    if ip.isnear(p1):continue
+                    p2 = p1.lerp(ip,1-r/p1.d(ip))
+            return p2
+
+        rg = pgr.planargraph()
+
+        easement = 10
+        fp = vec3(0,0,0).pring(100,8)
+
+        exp = fp[-1].lerp(fp[0],0.5)
+        exn = vec3(0,0,1).crs(fp[-1].tov(fp[0])).nrm()
+        ex1 = exp.cp()
+        ex2 = ex1.cp().trn(exn.cp().uscl(easement))
+        i1 = rg.av(p = ex1,l = 0)
+        i2,r1 = rg.mev(i1,{'p':ex2,'l':0},{})
+        
+        tip = i2
+        tv = rg.vs[tip]
+        avs = [rg.vs[k] for k in rg.orings[tip]]
+        if len(avs) == 1:
+            op = tv[1]['p']
+            nptn = avs[0][1]['p'].tov(op).nrm().uscl(100)
+            np = op.cp().trn(nptn)
+            np = trimtofp(op,np,easement+10)
+            nv,nr = rg.mev(tip,{'p':np,'l':0},{})
+
+        start = nv
+        tip = start
+        fp_relax = pym.aggregate(pym.contract(fp,20),20)
+        for p_relax in fp_relax:
+            nv,nr = rg.mev(tip,{'p':p_relax,'l':0},{})
+            tip = nv
+        ne = rg.ae(tip,start,**{})
+
+        rpy = pym.pgbleed(rg,5)
+
+        ax = dtl.plot_axes_xy(300)
+        ax = rg.plotxy(ax)
+        ax = dtl.plot_polygon_xy(fp,ax,lw = 2,col = 'b')
+        ax = dtl.plot_polygon_xy(fp_relax,ax,lw = 2,col = 'b')
+        ax = dtl.plot_polygon_full_xy(rpy,ax,lw = 2,col = 'g')
+        plt.show()
 
 if __name__ == '__main__':
     unittest.main()

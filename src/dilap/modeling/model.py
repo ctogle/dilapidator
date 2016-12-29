@@ -31,7 +31,7 @@ class model:
     def face_dict(self):
         mats = {}
         for gm in self.gfxmeshes:
-            #self.normals(gm)
+            self.normals(gm)
             gmats = gm.face_dict()
             for gmat in gmats:
                 if gmat in mats:mats[gmat].extend(gmats[gmat])
@@ -76,7 +76,7 @@ class model:
 
     # iterate over the faces of a mesh and fix its
     # normal vectors based on geometry
-    def normals(self,mesh):
+    def normals(self,mesh,skipuv = True):
         for f in mesh.faces:
             if f is None:continue
             vs = [mesh.verts[x] for x in f]
@@ -88,7 +88,8 @@ class model:
             nrm = gtl.nrm(*pps)
             for p,n,u in zip(pps,nps,ups):
                 n.x,n.y,n.z = nrm
-                u.x,u.y,u.z = self.defuv(p,n)
+                if not skipuv:
+                    u.x,u.y,u.z = self.defuv(p,n)
         return self
 
     # generate a gfx trimesh for a nice cube
@@ -309,6 +310,7 @@ class model:
         if   n.isnear(vec3(1,0,0)) or n.isnear(vec3(-1,0,0)):u = vec3(p.y,p.z,0)
         elif n.isnear(vec3(0,1,0)) or n.isnear(vec3(0,-1,0)):u = vec3(p.x,p.z,0)
         elif n.isnear(vec3(0,0,1)) or n.isnear(vec3(0,0,-1)):u = vec3(p.x,p.y,0)
+        elif gtl.isnear(n.z,0):u = vec3(p.x,p.z,0)
         else:u = vec3(p.x,p.y,0)
         return u
 
@@ -348,8 +350,8 @@ class model:
             v3 = tm.avert(wpx,nx,wux)
             ngvs.append(v1);ngvs.append(v2);ngvs.append(v3)
 
-            if rv:f1 = tm.aface(v1,v3,v2,fm) 
-            else:f1  = tm.aface(v1,v2,v3,fm) 
+            if rv:f1 = tm.aface(v1,v3,v2,fm = fm) 
+            else:f1  = tm.aface(v1,v2,v3,fm = fm) 
 
         return ngvs
 
@@ -382,8 +384,8 @@ class model:
                 p1,p2,p3 = eb
                 n = gtl.nrm(p1,p2,p3)
                 v1,v2,v3 = av(p1,n),av(p2,n),av(p3,n)
-                if rv:f1 = tm.aface(v1,v3,v2,fm) 
-                else:f1  = tm.aface(v1,v2,v3,fm) 
+                if rv:f1 = tm.aface(v1,v3,v2,fm = fm) 
+                else:f1  = tm.aface(v1,v2,v3,fm = fm) 
                 ngvs.append(v1);ngvs.append(v2);ngvs.append(v3)
 
             elif len(eb) == 4:
@@ -391,11 +393,11 @@ class model:
                 n = gtl.nrm(p1,p2,p3)
                 v1,v2,v3,v4 = av(p1,n),av(p2,n),av(p3,n),av(p4,n)
                 if rv:
-                    f1 = tm.aface(v1,v3,v2,fm) 
-                    f2 = tm.aface(v1,v4,v3,fm) 
+                    f1 = tm.aface(v1,v3,v2,fm = fm) 
+                    f2 = tm.aface(v1,v4,v3,fm = fm) 
                 else:
-                    f1  = tm.aface(v1,v2,v3,fm) 
-                    f2  = tm.aface(v1,v3,v4,fm) 
+                    f1  = tm.aface(v1,v2,v3,fm = fm) 
+                    f2  = tm.aface(v1,v3,v4,fm = fm) 
                 ngvs.append(v1);ngvs.append(v2);ngvs.append(v3);ngvs.append(v4)
 
         else:
@@ -418,8 +420,8 @@ class model:
                 p1,p2,p3 = tri
                 n = gtl.nrm(p1,p2,p3)
                 v1,v2,v3 = av(p1,n),av(p2,n),av(p3,n)
-                if rv:f1 = tm.aface(v1,v3,v2,fm) 
-                else:f1  = tm.aface(v1,v2,v3,fm) 
+                if rv:f1 = tm.aface(v1,v3,v2,fm = fm) 
+                else:f1  = tm.aface(v1,v2,v3,fm = fm) 
 
         # need to somehow require all loops are placed before doing this
         # need to somehow require all loops are placed before doing this

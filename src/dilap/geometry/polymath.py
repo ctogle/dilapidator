@@ -155,6 +155,9 @@ def sloops(es,epsilon = 0.1):
     g = sstopg(es,epsilon)
     uls = g.uloops('ccw')
     ols = [[g.vs[j][1]['p'].cp() for j in ul] for ul in uls]
+    #for ol in ols:
+    #    if bnrm(ol).z < 0:
+    #        ol.reverse()
     return ols
 
 # does a segment intersect a boundary polygon
@@ -213,6 +216,17 @@ def bsegsxy(b,s1,s2,epsilon = 0.1):
     return bs
 
 ###############################################################################
+
+# determine if a boundary polygon intersects itself
+def bintselfxy(b):
+    for b1x in range(len(b)):
+        b1p1,b1p2 = b[b1x-1],b[b1x]
+        for b2x in range(len(b)):
+            if abs(b1x-b2x) < 2:continue
+            b2p1,b2p2 = b[b2x-1],b[b2x]
+            if sintsxy(b1p1,b1p2,b2p1,b2p2,True,True,True):
+                return 1
+    return 0
 
 # is a boundary polygon contained within another polygon
 # ie : do edge intersections mean no containment
@@ -279,6 +293,26 @@ def badjbxy(b1,b2,minovlp = 1):
 ### csg type functions for boundary polygons
 ###############################################################################
 
+# compute the union of many adjacent boundary polygons
+# similar to ebuxy except using a planar graph
+def ebuxy_special(bs,epsilon = 5,cellperimlength = 4):
+    bsegs = [(b[x-1],b[x]) for b in bs for x in range(len(b))]
+    pg = sstopg(bsegs,epsilon)
+    loops = pg.uloops('ccw')
+    bigloops = [l for l in loops if len(l) > cellperimlength]
+
+    '''#
+    ax = pg.plotxy(l = 150,aspect = 'equal')
+    #for lp in loops:
+    for lp in bigloops:
+        lpp = [pg.vs[lpx][1]['p'] for lpx in lp]
+        lpp = contract(lpp,2)
+        ax = dtl.plot_polygon_xy(lpp,ax,lw = 4,col = 'r')
+        #ax = dtl.plot_points_xy(lpp,ax,number = True)
+    plt.show()
+    '''#
+    return [[pg.vs[lpx][1]['p'].cp() for lpx in lp] for lp in bigloops]
+
 # compute the union of two boundary polygons
 def ebuxy(b1,b2,epsilon = 0.1):
     b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
@@ -326,7 +360,8 @@ def ebdxy(b1,b2,epsilon = 0.1):
 def ebixy(b1,b2,epsilon = 0.1):
     b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
     #bo = lambda s1,s2,b : s1.inbxy(b) or s2.inbxy(b) or (s1.onbxy(b) and s2.onbxy(b))
-    bo = lambda s1,s2,b : s1.mid(s2).inbxy(b)
+    #bo = lambda s1,s2,b : s1.mid(s2).inbxy(b)
+    bo = lambda s1,s2,b : s1.mid(s2).inbxy(b) or s1.mid(s2).onbxy(b)
     b1inb2 = [p for p in b1segs if bo(p[0],p[1],b2)]
     b2inb1 = [p for p in b2segs if bo(p[0],p[1],b1)]
     dfs = sloops(b1inb2+b2inb1,epsilon)
@@ -344,12 +379,31 @@ def bsuxy(bs,epsilon = 0.1):
             if   binbxy(ub,b):pass
             elif binbxy(b,ub):nbs[nbx] = ub
             elif bintbxy(ub,b):
-                newunfn = ebuxy(nbs.pop(nbx),ub,epsilon)
-                for u in newunfn:unfn.insert(0,u)
-                #unfn.extend(ebuxy(nbs.pop(nbx),ub,epsilon))
+                nbbb = nbs.pop(nbx)
+                newunfn = ebuxy(nbbb,ub,epsilon)
+
+                print('len((((',len(newunfn))
+                if len(newunfn) == 3:
+                    ax = dtl.plot_axes_xy(500)
+                    ax = dtl.plot_polygon_xy(contract(ub,2),ax,col = 'r')
+                    ax = dtl.plot_polygon_xy(contract(nbbb,2),ax,col = 'b')
+                    for u in newunfn:
+                        ax = dtl.plot_polygon_xy(contract(u,2),ax)
+                    plt.show()
+
+                for u in newunfn:unfn.insert(-1,u)
                 fnd = True
                 break
         if not fnd:nbs.append(ub)
+
+        '''#
+        ax = dtl.plot_axes_xy(700)
+        for b in bs:ax = dtl.plot_polygon_xy(b,ax,lw = 1,col = 'b')
+        for b in unfn:ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'r')
+        for b in nbs:ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'g')
+        plt.show()
+        '''#
+
     return nbs
 
 ###############################################################################
@@ -675,7 +729,7 @@ def contract(b,ds,epsilon = 0.1):
     print('amen4')
     '''#
 
-    if len(fbnd) > 3:fbnd = pinchb(fbnd,epsilon)
+    #if len(fbnd) > 3:fbnd = pinchb(fbnd,epsilon)
     return fbnd
 
 # return an xy plane laplacian smoothed version of a boundary polygon
@@ -710,7 +764,7 @@ def aggregate(b,ds,da = numpy.pi/4):
         if not dmerges[x] == 0:
             piece.append(b[x])
         if not amerges[x] == 0:
-            u,v,w = x-1,x,x+1 if x < len(b)-1 else 0
+            u,v,w = (x-1,x,x+1) if x < len(b)-1 else (x-1,x,0)
             piece.extend([b[u],b[v],b[w]])
         if piece:
             #nb.append(vec3(0,0,0).com(piece))
@@ -724,7 +778,7 @@ def sstopg(segs,epsilon = 0.1,plot = False):
     g = pgr.planargraph()
     for e1,e2 in segs:
         v1,v2 = g.fp(e1,epsilon),g.fp(e2,epsilon)
-        if not v2 in g.rings[v1]:g.ae(v1,v2)
+        if not v2 in g.rings[v1]:g.fe(v1,v2)
     '''#
     if plot:
         ax = g.plotxy(l = 500)
@@ -733,9 +787,8 @@ def sstopg(segs,epsilon = 0.1,plot = False):
     return g
 
 # generate a full polygon from a planar graph
-def pgtopy(pg,r,epsilon = 0.1):
-    z = vec3(0,0,1)
-
+##### why is it sometimes useful to flip z???
+def pgtopy(pg,r,epsilon = 0.1,z = vec3(0,0,1)):
     loops,seams,eseam = pg.uloops('ccw'),[],None
     for lp in loops:
         seam = []
@@ -760,19 +813,66 @@ def pgtopy(pg,r,epsilon = 0.1):
                     s4 = lpp2.cp().trn(lpnm2).trn(lptn2.cp().uscl( 1000))
                     ip = sintsxyp(s1,s2,s3,s4,col = 0)
                     cnm = lpp1.tov(ip)
+
+                    '''#
+                    ax = dtl.plot_axes_xy(200)
+                    ax = dtl.plot_vector_xy(lpp0,lpnm1,ax)
+                    ax = dtl.plot_vector_xy(lpp1,lpnm1,ax)
+                    ax = dtl.plot_vector_xy(lpp1,lpnm2,ax)
+                    ax = dtl.plot_vector_xy(lpp2,lpnm2,ax)
+                    ax = dtl.plot_vector_xy(lpp0,lpnm12,ax)
+                    ax = dtl.plot_vector_xy(lpp1,lpnm12,ax)
+                    ax = dtl.plot_vector_xy(lpp1,lpnm22,ax)
+                    ax = dtl.plot_vector_xy(lpp2,lpnm22,ax)
+                    ax = dtl.plot_edges_xy((s1,s2),ax,lw = 2,col = 'b')
+                    ax = dtl.plot_edges_xy((s3,s4),ax,lw = 2,col = 'g')
+                    ax = dtl.plot_edges_xy((lpp0,lpp1,lpp2),ax,col = 'k')
+                    if seam:ax = dtl.plot_edges_xy(seam,ax,col = 'k',lw = 4)
+                    ax = dtl.plot_points_xy((ip,),ax,number = True)
+                    plt.show()
+                    '''#
+
                 seam.append(lpp1.cp().trn(cnm))
+
         if eseam is None:eseam = 0
         else:
             if binbxy(seams[eseam],seam):
-                seams.append(eseam)
                 eseam = len(seams)-1
 
     for sx in range(len(seams)):
-        #if bnrm(seams[sx]).z < 0:seams[sx].reverse()
         if not bccw(seams[sx]):seams[sx].reverse()
 
-    #py = (tuple(seams.pop(eseam)),tuple(tuple(s) for s in seams))
+    if eseam is None:return None
     py = [seams.pop(eseam),seams]
+    return py
+
+# generate a full polygon from a planar graph (different from pgtopy)
+def pgbleed(pg,r,epsilon = 0.1):
+
+    # get a copy of the points of the graph without 
+    # duplicates within neighborhood of epsilon
+    ps = []
+    for vx in range(pg.vcnt):
+        ps.append(pg.fp(pg.vs[vx][1]['p'],epsilon))
+
+    pdb.set_trace()
+
+
+    '''#
+                    ax = dtl.plot_axes_xy(200)
+                    ax = dtl.plot_edges_xy(seam,ax,lw = 2,col = 'k')
+                    ax = dtl.plot_edges_xy((s1,s2),ax,col = 'b')
+                    ax = dtl.plot_edges_xy((s3,s4),ax,col = 'g')
+                    ax = dtl.plot_point_xy(ip,ax,mk = 's')
+                    plt.show()
+    '''#
+
+    py = [eb,ibs]
+
+    ax = dtl.plot_axes_xy(200)
+    ax = dtl.plot_polygon_full_xy(py,ax,lw = 2,col = 'k')
+    plt.show()
+
     return py
 
 ###############################################################################

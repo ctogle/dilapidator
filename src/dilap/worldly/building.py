@@ -166,17 +166,17 @@ class building(cx.context):
             platform = [p.cp() for p in fbnd]
             r1,r2 = platform[2].cp(),platform[3].cp()
             rtn = r1.tov(r2).nrm().uscl(buff)
-            rnm = vec3(0,0,1).crs(rtn).nrm().uscl(rw)
+            #rnm = vec3(0,0,1).crs(rtn).nrm().uscl(rw)
+            rnm = pym.bnrm(fbnd).crs(rtn).nrm().uscl(rw)
             r2,r1 = r2.trn(rtn.flp()),r1.trn(rtn.flp())
             r3,r4 = r2.cp().trn(rnm),r1.cp().trn(rnm)
 
             belv = self.bgraph.vs[sh[shx-1]][2]
             rh = max(belv['wheights'])+belv['skirt']+belv['crown']
             ramp = [r4,r1,r2,r3]
-            platform = pym.ebdxy(platform,ramp)
-            #platform = pym.bisectb(pym.ebdxy(platform,ramp)[0])
-            #print(len(platform))
 
+            platform = pym.ebdxy(platform,ramp)
+            #print(len(platform))
             platform = platform[len(platform)//2] # HACK TO GET CORRECT POLYGON...
 
             ramp[0].ztrn(-rh)
@@ -279,8 +279,8 @@ class building(cx.context):
             self.rims.append([])
             for fpx in range(len(fp)):
                 fp0,fp1,fp2 = fp[fpx-2],fp[fpx-1],fp[fpx]
-                wtn1 = fp0.tov(fp1)
-                wtn2 = fp1.tov(fp2)
+                wtn1 = fp0.tov(fp1).nrm()
+                wtn2 = fp1.tov(fp2).nrm()
                 tcrstz = gtl.near(wtn1.crs(wtn2).z,0)
                 if tcrstz > 0:
                     wnm1 = vec3(0,0,1).crs(wtn1).nrm().uscl(-eww)
@@ -538,6 +538,7 @@ class blggraph(db.base):
             if not k in kws:kws[k] = d
         wcnt = len(b)
         dwh = self.floorheight-1.0
+        if pym.bnrm(b).z < 0:b.reverse()
         defkw('bound',tuple(b));defkw('exits',[]);defkw('rtype','room')
         defkw('floor',None);defkw('ceiling',None);defkw('shaft',False)
         defkw('level',0);defkw('skirt',0.5);defkw('crown',0.5)
@@ -701,10 +702,8 @@ class blgfactory(dfa.factory):
     def new(self,*ags,**kws):
         blgg = blggraph(**kws)
         blgg.graph()
-
         #blgg.plotxy()
         #plt.show()
-
         kws['bgraph'] = blgg
         n = self.bclass(*ags,**kws)
         return n

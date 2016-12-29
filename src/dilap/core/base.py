@@ -1,4 +1,5 @@
 import os,time,appdirs,pstats,cProfile
+import six.moves.cPickle as pickle
 
 __doc__ = '''
 A base class from which dilapidator classes may inherit and some useful functions
@@ -15,6 +16,31 @@ class base(object):
             else:aval = dval
             self.__dict__[key] = aval
         return self.__dict__[key]
+
+# convenient class for saving/loading capability
+class persistent_container(base):
+
+    def save(self):
+        with open(self.spath,'wb') as h:pickle.dump(self,h)
+        return self
+
+    def load(self):
+        if not os.path.exists(self.spath):return False
+        with open(self.spath,'rb') as h:
+            scopy = pickle.load(h)
+            for key in scopy.__dict__.keys():
+                scopyvalue = scopy.__dict__[key]
+                self.__dict__[key] = scopyvalue
+        return self
+
+    def __init__(self,savedir,name,absolute = False):
+        self.savedir = savedir
+        self.name = name
+        if not absolute:
+            sdir = os.path.join(os.getcwd(),savedir)
+        else:sdir = savedir
+        if not os.path.exists(sdir):os.mkdir(sdir)
+        self.spath = os.path.join(sdir,name+'.pkl')
 
 # a generator for endlessly looping through a sequence
 def roundrobin(seq):

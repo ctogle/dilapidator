@@ -77,30 +77,44 @@ class worldfactory(dfa.factory):
             #seq = 'S<>G<>L<>'
             #rg = rdg.checkseq(rg,fp,seq,False)
             
-
-            easement = 10
+            easement = 20
 
             exp = fp[-1].lerp(fp[0],0.5)
             exn = vec3(0,0,1).crs(fp[-1].tov(fp[0])).nrm()
             ex1 = exp.cp()
             ex2 = ex1.cp().trn(exn.cp().uscl(easement))
-            i1 = rg.av(p = ex1,l = 0)
-            i2,r1 = rg.mev(i1,{'p':ex2,'l':0},{})
+            i1 = rg.av(p = ex1,l = 0,w = 0)
+            i2,r1 = rg.mev(i1,{'p':ex2,'l':0,'w':0.5},{})
             
             tip = i2
             tv = rg.vs[tip]
             avs = [rg.vs[k] for k in rg.orings[tip]]
             if len(avs) == 1:
                 op = tv[1]['p']
-                nptn = avs[0][1]['p'].tov(op).nrm().uscl(100)
+                nptn = avs[0][1]['p'].tov(op).nrm().uscl(20)
                 np = op.cp().trn(nptn)
-                np = trimtofp(op,np,easement+10)
-                nv,nr = rg.mev(tip,{'p':np,'l':0},{})
+                np = trimtofp(op,np,easement)
+                nv,nr = rg.mev(tip,{'p':np,'l':0,'w':1},{})
 
+            start = nv
+            tip = start
+            fp_relax = pym.aggregate(pym.contract(fp,30),30)
+            #fp_relax = fp[:]
+            for p_relax in fp_relax:
+                nv,nr = rg.mev(tip,{'p':p_relax,'l':0,'w':1},{})
+                tip = nv
+            ne = rg.ae(tip,start,**{})
+
+            ax = rg.plotxy(l = 220)
+            plt.show()
+            rg.smooth_sticks(1,0.5)
+            ax = rg.plotxy(l = 220)
+            plt.show()
 
             ax = dtl.plot_axes_xy(300)
             ax = rg.plotxy(ax)
             ax = dtl.plot_polygon_xy(fp,ax,lw = 2,col = 'b')
+            ax = dtl.plot_polygon_xy(fp_relax,ax,lw = 2,col = 'b')
             plt.show()
 
             #pdb.set_trace()
@@ -116,11 +130,15 @@ class worldfactory(dfa.factory):
 
     # generate the topographical data for the world
     def genregions(self,t,r):
-        rpy = pym.pgtopy(r,3)
         pg = ptg.partitiongraph()
+        rpy = pym.pgtopy(r,3)
+
+        #rtl = t.al(rpy[0],t.locloop(rpy[0],1)[0])
+
         ### create the ocean vertex
         b = t.root.loop
         ov = pg.av(b = [b,[]],p = vec3(0,0,0).com(b),t = ['ocean'])
+
         ### create landmass vertices
         ls = t.looptree.below(t.root)
         lmvs = []
@@ -128,44 +146,51 @@ class worldfactory(dfa.factory):
             lv = pg.sv(ov,b,l.loop)
             pg.vs[lv][1]['t'] = ['natural']
 
-            loops = pym.ebdxy(l.loop,rpy[0])
+            if not rpy is None:
+                loops = pym.ebdxy(l.loop,rpy[0])
 
-            ax = dtl.plot_axes_xy(200)
-            ax = pg.plotxy(ax)
-            ax = dtl.plot_polygon_xy(loops[0],ax)
-            plt.show()
+                '''#
+                print('looooopeed',[len(l) for l in loops])
+                ax = dtl.plot_axes_xy(100)
+                ax = pg.plotxy(ax)
+                for j in range(len(loops)):
+                    ax = dtl.plot_polygon_xy(loops[j],ax)
+                ax = dtl.plot_polygon_full_xy(rpy,ax)
+                plt.show()
+                '''#
 
-            if len(loops) > 1:pdb.set_trace()
-            else:
-                rv = pg.sv(lv,loops[0],rpy[0])
-                pg.vs[rv][1]['t'] = ['infrastructure']
+                if len(loops) > 1:
+                    for loop in loops[:-1]:
+                        rv = pg.sv(lv,l.loop,loop)
+                        pg.vs[rv][1]['t'] = ['natural']
+                    rv = pg.sv(lv,loops[-1],rpy[0])
+                    pg.vs[rv][1]['t'] = ['infrastructure']
+                else:
+                    rv = pg.sv(lv,loops[0],rpy[0])
+                    pg.vs[rv][1]['t'] = ['infrastructure']
 
-            for dpy in rpy[1]:
-                dv = pg.sv(rv,rpy[0],dpy)
-                pg.vs[dv][1]['t'] = ['developed']
+                for dpy in rpy[1]:
+                    dv = pg.sv(rv,rpy[0],dpy)
+                    pg.vs[dv][1]['t'] = ['developed']
 
-            ax = dtl.plot_axes_xy(200)
-            #ax = r.plotxy(ax)
-            ax = pg.plotxy(ax)
-            #ax = dtl.plot_polygon_full_xy(rpy,ax)
-            plt.show()
+                '''#
+                ax = dtl.plot_axes_xy(200)
+                #ax = r.plotxy(ax)
+                ax = pg.plotxy(ax)
+                #ax = dtl.plot_polygon_full_xy(rpy,ax)
+                plt.show()
+                '''#
 
             lmvs.append(lv)
 
-
-
         ### create the details of each landmass vertex
         for lm in lmvs:self.genregion(t,r,lm,pg)
+
         ### attach the terrain mesh to the partition vertices...
         for vx in range(pg.vcnt):
             pv = pg.vs[vx]
             if pv is None:continue
             pv[1]['tmesh'] = t
-        
-        ###
-        #ax = pg.plotxy()
-        #plt.show()
-        ###
 
         ### return partition graph
         return pg
@@ -216,14 +241,13 @@ class worldfactory(dfa.factory):
     # NOTE: this should eventually be parallelizable
     def gen(self,w,pg):
         random.seed(0)
+        for primarytype in ('ocean','natural','developed','infrastructure'):
+            for vx in range(pg.vcnt):
+                v = pg.vs[vx]
+                if v is None:continue
+                if not primarytype in v[1]['t']:continue
+                self.vgen(w,v,pg)
         for vx in range(pg.vcnt):
-            v = pg.vs[vx]
-            if v is None:continue
-            self.vgen(w,v,pg)
-        for vx in range(pg.vcnt):
-
-            #if not vx in (2,):continue
-
             v = pg.vs[vx]
             if v is None:continue
             if 'ocean' in v[1]['t']:continue
@@ -287,6 +311,7 @@ class worldfactory(dfa.factory):
     def vgen_developed(self,w,v,pg):
         print('developed vertex',v[0])
         ### create a child context for a set of buildings within the vertex
+
         blgs,blgfps = self.vgen_buildings(v,pg)
         for blg in blgs:w.achild(blg.generate(0))
 
@@ -296,7 +321,7 @@ class worldfactory(dfa.factory):
         sgv = w.amodel(None,None,None,m,w.sgraph.root)
         tm = m.agfxmesh()
 
-        rh = 1.0
+        rh = 0.0
         vb = [b.cp().ztrn(rh) for b in v[1]['b'][0]]
         vibs = [[b.cp().ztrn(rh) for b in v[1]['b'][1][x]] 
             for x in range(len(v[1]['b'][1]))]
@@ -305,10 +330,10 @@ class worldfactory(dfa.factory):
         v[1]['b'] = vb,vibs
 
         ngvs = m.asurf((vb,vibs),tm,
-            fm = 'concrete1',ref = False,hmin = 100,zfunc = v[1]['tmesh'],
-            uvstacked = None,autoconnect = False)
-        #lockf = lambda p : p.onpxy(v[1]['b']) 
-        #m.subdiv(tm,False,True,lockf)
+            fm = 'concrete1',ref = True,hmin = 100,zfunc = v[1]['tmesh'],
+            uvstacked = None,autoconnect = True)
+        lockf = lambda p : p.onpxy(v[1]['b']) 
+        m.subdiv(tm,False,True,lockf)
         #m.subdiv(tm,False,True,lockf)
         #m.subdiv(tm,False,True,lockf)
         #m.uvs(tm)
@@ -318,47 +343,53 @@ class worldfactory(dfa.factory):
     ###########################################################################
 
     # create a context representing an entire world
-    def new(self,*ags,**kws):
+    def new(self,*ags,boundary = None,landmasses = None,**kws):
         ### create the boundary of the world
-        #boundary = vec3(0,0,0).pring(5000,8)
-        #boundary = vec3(0,0,0).pring(500,8)
-        boundary = vec3(0,0,0).pring(250,8)
+        if boundary is None:
+            #boundary = vec3(0,0,0).pring(5000,8)
+            #boundary = vec3(0,0,0).pring(500,8)
+            boundary = vec3(0,0,0).pring(250,8)
+
         ### generate the topographical structure of the world
-        t = ter.continent(boundary)
+        t = ter.continent(boundary,landmasses)
+
         ### generate a graph for infrastructure
         r = self.genroadnetwork(t)
+        #r = pgr.planargraph()
+
         ### generate the region partitions of each landmass
         pg = self.genregions(t,r)
+
         ### create a world context from the partition graph
         w = self.bclass(*ags,**kws)
         self.gen(w,pg)
+
         # show the topography
-        #ax = t.plot()
-        #plt.show()
+        ax = t.plot(l = 200)
+        plt.show()
         # ###################
         return w
 
     ###########################################################################
 
+    def setseed(self,s = None):
+        if s is None:s = self.random.randint(0,1000)
+        self.seed = s
+        random.seed(self.seed)
+        print('set new seed:',self.seed)
+
     def __str__(self):return 'world factory:'
     def __init__(self,*ags,**kws):
+        self._def('seed',0,**kws)
         self._def('bclass',cx.context,**kws)
         dfa.factory.__init__(self,*ags,**kws)
-
-        s = 736
-        s = 682
-        s = 189
-        s = 916
-
-        #s = random.randint(0,1000)
-        print('landmass seed:',s)
-        random.seed(s)
+        self.setseed(self.seed)
 
     ###########################################################################
 
     # segment the boundary of a vertex based on edges of other vertices
     #def vstitch(self,v,pg,l = 5):
-    def vstitch(self,vb,v,pg,l = 5):
+    def vstitch(self,vb,v,pg,l = 10):
         #vb = [b.cp() for b in v[1]['b'][0]]
         if not pym.bccw(vb):vb.reverse()
         fnd = True
@@ -387,6 +418,8 @@ class worldfactory(dfa.factory):
         return vb
 
     def vgen_terrain(self,w,v,pg):
+        print('vgen',v[1]['t'])
+
         tmesh = v[1]['tmesh']
         m = dmo.model()
         sgv = w.amodel(None,None,None,m,w.sgraph.root)
@@ -410,16 +443,16 @@ class worldfactory(dfa.factory):
         print('generating terrain')
         ngvs = m.asurf((vb,vibs),tm,
             fm = 'grass2',ref = True,hmin = 100,zfunc = v[1]['tmesh'],
-            uvstacked = None,autoconnect = True)
+            rv = pym.bnrm(vb).z < 0,uvstacked = None,autoconnect = True)
         lockf = lambda p : p.onpxy(v[1]['b']) 
-        #m.subdiv(tm,False,True,lockf)
+        m.subdiv(tm,False,True,lockf)
         #m.subdiv(tm,False,True,lockf)
         #m.subdiv(tm,False,True,lockf)
         m.uvs(tm)
         print('generated terrain')
         return m
 
-    def vblgsplotch(self,v,pg):
+    def vblgsplotch(self,v,pg,easement = 10):
         vb = v[1]['b']
         vbes = [(vb[0][x-1],vb[0][x]) for x in range(len(vb[0]))]
         vbels = [vb[0][x-1].d(vb[0][x]) for x in range(len(vb[0]))]
@@ -427,27 +460,61 @@ class worldfactory(dfa.factory):
         vbe_primary_tn = vb[0][vbe_primary-1].tov(vb[0][vbe_primary]).nrm()
         bq = quat(0,0,0,1).uu(vec3(1,0,0),vbe_primary_tn)
         if not bq:bq = quat(1,0,0,0)
-        bq = quat(1,0,0,0)
+        #bq = quat(1,0,0,0)
+        vbcon = pym.aggregate(pym.contract(vb[0],easement),5)
+        #vbcon = pym.aggregate(pym.contract(vb[0],0),5)
+
+        #ax = dtl.plot_axes_xy(120)
+        #ax = dtl.plot_polygon_xy(vbcon,ax,lw = 3,col = 'g')
+        #plt.show()
+
+        #if len(fbnd) > 3:fbnd = pinchb(fbnd,epsilon)
 
         vbxpj = vbe_primary_tn.prjps(vb[0])
-        vbxl = vbxpj[1]-vbxpj[0]
         vbypj = vbe_primary_tn.cp().zrot(gtl.PI2).prjps(vb[0])
-        vbyl = vbypj[1]-vbypj[0]
+        vbxl,vbyl = vbxpj[1]-vbxpj[0],vbypj[1]-vbypj[0]
 
         dx,dy = 20,20
-        xn,yn = int(1.*vbxl/dx),int(1.*vbyl/dy)
+        xn,yn = int(1.5*vbxl/dx),int(1.5*vbyl/dy)
+        print('xn,yn',xn,yn)
         #do = vec3(-dx*xn/2.0,-dy*yn/2.0,0)
-        o = vec3(0,0,0).com(vb[0])
-        vgrid = [o.cp().xtrn(dx*(x-(xn/2.0))).ytrn(dy*(y-(yn/2.0))).rot(bq)
+        o = vec3(0,0,0).com(vbcon)
+        vgrid = [o.cp().xtrn(dx*(x-(xn/2.0))).ytrn(dy*(y-(yn/2.0)))
             for x in range(xn) for y in range(yn)]
-        boxes = [p.sq(dx,dy) for p in vgrid]
-        #boxes = [p.sq(dx,dy) for p in vgrid if abs(p.x - o.x) > dx]
-        for b in boxes:bq.rotps(b)
-        boxes = [b for b in boxes if pym.binbxy(b,vb[0])]
+        boxes = [p.cp().trn(o.flp()).rot(bq).trn(o.flp()).sq(dx,dy) for p in vgrid]
+        #boxes = [p.cp().trn(o.flp()).rot(bq).trn(o.flp()).sq(dx,dy) 
+        #    for p in vgrid if abs(p.x - o.x) > dx]
+
+        for b in boxes:
+            bcom = vec3(0,0,0).com(b).flp()
+            bcom.trnos(b)
+            bq.rotps(b)
+            bcom.flp().trnos(b)
+        boxes = [b for b in boxes if pym.binbxy(b,vbcon)]
         for ib in vb[1]:
             boxes = [b for b in boxes if not pym.bintbxy(b,ib) 
                 and not b[0].inbxy(ib) and not ib[0].inbxy(b[0])]
-        blgfps = pym.bsuxy(boxes)
+
+        '''#
+        ax = dtl.plot_axes_xy(400)
+        ax = dtl.plot_point_xy(o,ax)
+        ax = dtl.plot_polygon_xy(vb[0],ax,lw = 2,col = 'b')
+        ax = dtl.plot_polygon_xy(vbcon,ax,ls = '--',lw = 2,col = 'r')
+        #ax = dtl.plot_polygon_xy(box,ax,lw = 2,col = 'r')
+        for b in boxes:ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'g')
+        plt.show()
+        '''#
+
+        #blgfps = pym.bsuxy(boxes)
+        blgfps = pym.ebuxy_special(boxes,5,4)
+
+        ps = [vec3(0,0,0).com(blgfp) for blgfp in blgfps]
+        qs = [bq.cp() for blgfp in blgfps]
+        ss = [vec3(1,1,1) for blgfp in blgfps]
+
+        for p,q,s,blgfp in zip(ps,qs,ss,blgfps):
+            p.cpxy().flp().trnos(blgfp)
+            q.cpf().rotps(blgfp)
 
         '''#
         ax = dtl.plot_axes_xy(700)
@@ -455,7 +522,7 @@ class worldfactory(dfa.factory):
         ax = dtl.plot_polygon_xy(vb[0],ax,lw = 2,col = 'b')
         #ax = dtl.plot_polygon_xy(box,ax,lw = 2,col = 'r')
         for b in boxes:ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'g')
-        for b in box:ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'r')
+        for b in blgfps:ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'r')
         plt.show()
         '''#
 
@@ -485,26 +552,27 @@ class worldfactory(dfa.factory):
         #    r = v[1]['b'][0][0].z+abs(random.random())*20
         #    for p in blgfp:
         #        p.ztrn(r)
-        return blgfps
+        return zip(ps,qs,ss,blgfps)
 
     def vgen_buildings(self,v,pg):
         blgfps = self.vblgsplotch(v,pg)
         bfa = blg.blgfactory()
         blgs = []
-
-        z = 5*random.random()
-        #z = 0
-
-        for blgfp in blgfps:
-            for p in blgfp:p.ztrn(z)
-
+        for p,q,s,blgfp in blgfps:
+            # create a loop denoting the hole in the terrain mesh
+            blgth = [p.cp() for p in blgfp]
+            q.rotps(blgth)
+            p.cpxy().trnos(blgth)
+            v[1]['b'][1].append(blgth)
+            # create a loop for the terrain mesh
             blgtl = [p.cp() for p in blgfp]
-            blgtv = v[1]['tmesh'].al(blgtl,v[1]['tmesh'].locloop(blgtl)[0])
+            q.rotps(blgtl)
+            p.cpxy().trnos(blgtl)
+            blgtv = v[1]['tmesh'].al(blgtl,v[1]['tmesh'].locloop(blgtl,1)[0])
+            # create the building given its footprint,p,q,s
             seq = bseq.from_footprint(blgfp,floors = 2*random.randint(1,3))
-            print('seqqq',seq)
-            nblg = bfa.new(vec3(0,0,z),None,None,footprint = blgfp,sequence = seq)
+            nblg = bfa.new(p,q,s,footprint = blgfp,sequence = seq)
             blgs.append(nblg)
-            v[1]['b'][1].append(blgfp)
         return blgs,blgfps
 
 ###############################################################################

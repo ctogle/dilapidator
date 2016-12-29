@@ -33,22 +33,20 @@ class planargraph(dwg.wiregraph):
         vp = self.vs[v][1]['p']
         wp = self.vs[w][1]['p']
 
-        e1 = up.tov(vp)
-        e2 = up.tov(wp)
+        e1 = vp.tov(up)
+        e2 = vp.tov(wp)
 
         etn1 = e1.cp().nrm()
         etn2 = e2.cp().nrm()
         para = gtl.isnear(abs(etn1.dot(etn2)),1)
         if para:sa = numpy.pi
         else:sa = e1.sang(e2,vec3(0,0,1))
-
-        #print('easa1',sa,para,etn1.dot(etn2))
-        #print('alkdfj',up,vp,wp)
-
-        if sa <= 0:sa = numpy.pi+sa
+        if sa < 0:sa = 2*numpy.pi+sa
 
         '''#
+        print('wwwwwwwa',e1,e2,gtl.deg(sa),para)
         ax = dtl.plot_axes_xy(500)
+        #ax = self.plotxy(ax)
         ax = dtl.plot_edges_xy((vp,wp),ax,lw = 2,col = 'b')
         ax = dtl.plot_edges_xy((up,vp),ax,lw = 2,col = 'g')
         ax = dtl.plot_point_xy_annotate(up,ax,'u '+str(gtl.deg(sa)))
@@ -60,17 +58,37 @@ class planargraph(dwg.wiregraph):
         plt.show()
         '''#
 
-        #print('easa2',sa)
-
         return sa
+
+    # compute the edge ordering of a vertex v relative to an edge u,v
+    def eo(self,u,v):
+        uvas,avor = [],[]
+        vor = self.orings[v]
+        for w in vor:
+            if w == u:uvwa = 0
+            else:uvwa = self.ea(u,v,w)
+            if not uvas or uvwa > uvas[-1]:
+                uvas.append(uvwa);avor.append(w)
+            else:
+                fnd = False
+                for uvax in range(len(uvas)):
+                    if uvwa < uvas[uvax]:
+                        fnd = True
+                        break
+                if fnd:
+                    uvas.insert(uvax,uvwa)
+                    avor.insert(uvax,w)
+                else:
+                    uvas.append(uvwa)
+                    avor.append(w)
+        uori = uvas.index(min(uvas))
+        ror = avor[uori+1:]+avor[:uori]
+        return ror
 
     # given an edge, find the next edge taking the first
     # clockwise turn available
     def cw(self,u,v):
-        uor = self.orings[u]
-        vor = self.orings[v]
-        uori = vor.index(u)
-        ror = vor[uori+1:]+vor[:uori]
+        ror = self.eo(u,v)
         if ror:tip = ror[0]
         else:tip = u
         return tip
@@ -78,10 +96,7 @@ class planargraph(dwg.wiregraph):
     # given an edge, find the next edge taking the first
     # counterclockwise turn available
     def ccw(self,u,v):
-        uor = self.orings[u]
-        vor = self.orings[v]
-        uori = vor.index(u)
-        ror = vor[uori+1:]+vor[:uori]
+        ror = self.eo(u,v)
         if ror:tip = ror[-1]
         else:tip = u
         return tip
@@ -93,16 +108,61 @@ class planargraph(dwg.wiregraph):
                 return j
         return self.av(p = p.cp(),**vkws)
 
+    # find an edge between two vertices or create one 
+    def fe(self,u,v,**ekws):
+        if   (u,v) in self.elook:return self.elook[(u,v)]
+        elif (v,u) in self.elook:return self.elook[(v,u)]
+        return self.ae(u,v,**ekws)
+
+    ###################################
+
+    def smooth(self,i = 1,w = 1.0):
+        for s in range(i):
+            dels = []
+            for j in range(self.vcnt):
+                v = self.vs[j]
+                if v is None:continue
+                ops = [self.vs[o][1]['p'] for o in self.rings[j]]
+                dels.append(v[1]['p'].tov(vec3(0,0,0).com(ops)).uscl(w*v[1]['w']))
+            for j in range(self.vcnt):
+                v = self.vs[j]
+                if v is None:continue
+                v[1]['p'].trn(dels[j])
+        return self
+
+    def smooth_sticks(self,i = 1,w = 1.0,d = 5.0):
+        for s in range(i):
+            dels = []
+            for j in range(self.vcnt):
+                v = self.vs[j]
+                if v is None:continue
+                ops = []
+                for o in self.rings[j]:
+                    vod = v[1]['p'].d(self.vs[o][1]['p'])
+                    stickp = v[1]['p'].lerp(self.vs[o][1]['p'],1.0-d/vod)
+                    ops.append(stickp)
+                dels.append(v[1]['p'].tov(vec3(0,0,0).com(ops)).uscl(w*v[1]['w']))
+            for j in range(self.vcnt):
+                v = self.vs[j]
+                if v is None:continue
+                v[1]['p'].trn(dels[j])
+        return self
+
     ###################################
 
     # plot the vertices and edges of the graph
-    def plotxy(self,ax = None,l = 10,s = 1.0,number = True):
-        if ax is None:ax = dtl.plot_axes_xy(l)
+    def plotxy(self,ax = None,l = 10,s = 1.0,number = True,**kws):
+        if ax is None:ax = dtl.plot_axes_xy(l,**kws)
         for j in range(self.vcnt):
             i = self.vs[j]
             if i is None:continue
             ip = i[1]['p']
-            if number:ax = dtl.plot_point_xy_annotate(ip,ax,str(j))
+            if number:
+                jstr = str(j)+str([v for v in self.rings[j]])
+                jstrccw = str([self.ccw(j,v) for v in self.rings[j]])
+                jstrcw = str([self.cw(j,v) for v in self.rings[j]])
+                jstr += '\n'+jstrccw+'\n'+jstrcw
+                ax = dtl.plot_point_xy_annotate(ip,ax,jstr)
             ax = dtl.plot_point_xy(ip,ax,col = 'r')
         for k in self.rings:
             vr = self.rings[k]

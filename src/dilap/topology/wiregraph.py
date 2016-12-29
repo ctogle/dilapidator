@@ -52,7 +52,10 @@ class wiregraph(db.base):
         self.elook[(v,u)] = m
         if not v in ur:ur[v] = r
         if not u in vr:vr[u] = r
+
         urcnt = len(uor)
+        uor.append(v)
+        '''#
         if urcnt < 2:uor.append(v)
         else:
             w = uor[0]
@@ -64,7 +67,11 @@ class wiregraph(db.base):
                     f = True
                     break
             if not f:uor.append(v)
+        '''#
+              
         vrcnt = len(vor)
+        vor.append(u)
+        '''#
         if vrcnt < 2:vor.append(u)
         else:
             w = vor[0]
@@ -76,7 +83,13 @@ class wiregraph(db.base):
                     f = True
                     break
             if not f:vor.append(u)
+        '''#
+
         self.ecnt += 1
+
+        #self.plotxy(l = 200)
+        #plt.show()
+
         return m
 
     # remove an edge between u and v
@@ -119,7 +132,7 @@ class wiregraph(db.base):
         return 0
 
     def cw(self,u,v):
-        uor = self.orings[u]
+        #uor = self.orings[u]
         vor = self.orings[v]
         uori = vor.index(u)
         ror = vor[uori+1:]+vor[:uori]
@@ -128,7 +141,7 @@ class wiregraph(db.base):
         return tip
 
     def ccw(self,u,v):
-        uor = self.orings[u]
+        #uor = self.orings[u]
         vor = self.orings[v]
         uori = vor.index(u)
         ror = vor[uori+1:]+vor[:uori]
@@ -148,16 +161,18 @@ class wiregraph(db.base):
         while True:
 
             c += 1
-            if c > 100:
-                print('shit',d,u,v)
+            if c > 250:
+                print('shit',d,u,v,len(lp))
                 for j in range(self.vcnt):
                     print(self.vs[j][1]['p'])
                 ax = dtl.plot_axes_xy(400)
+                ax = self.plotxy(ax)
                 ax = dtl.plot_polygon_xy([self.vs[lx][1]['p'] for lx in lp],ax)
-                ax = dtl.plot_points_xy([self.vs[lx][1]['p'] for lx in lp],ax,number = True)
+                #ax = dtl.plot_points_xy([self.vs[lx][1]['p'] for lx in lp],ax,number = True)
                 plt.show()
+                pdb.set_trace()
 
-            if d == 'cw':tip = self.cw(lp[-2],lp[-1])
+            if   d == 'cw': tip = self.cw( lp[-2],lp[-1])
             elif d == 'ccw':tip = self.ccw(lp[-2],lp[-1])
             else:raise ValueError
             lp.append(tip)

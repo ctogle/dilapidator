@@ -17,6 +17,8 @@ from libc.math cimport hypot
 cimport numpy
 import numpy
  
+import copyreg
+
 stuff = 'hi'
 
 
@@ -94,6 +96,9 @@ cdef class vec3:
     cdef float ang_c(self,vec3 o):
         cdef float sm = self.mag_c()
         cdef float om = o.mag_c()
+        if sm*om == 0:
+            print('ang_c asserting fake zero')
+            return 0.0
         cdef float sod = (self.x*o.x + self.y*o.y + self.z*o.z)/(sm*om)
         cdef float a
         if   gtl.isnear_c(sod, 1.0):a = 0.0
@@ -220,7 +225,8 @@ cdef class vec3:
             else:
                 if ps[px].y <= self.y:
                     if read < 0:wn -= 1
-        if wn > 0:return 1
+        #if wn > 0:return 1
+        if not wn == 0:return 1
         else:return 0
 
     # determine if the point pt is inside the triangle abc
@@ -894,12 +900,11 @@ cpdef vec3 nz():
 
 ###########################################################################
 
-    
+def pickle_vec3(v):
+    print("pickling a vec3 instance...")
+    return vec3,(v.x,v.y,v.z)
 
+copyreg.pickle(vec3,pickle_vec3)
 
-
-
-
-
-
+###########################################################################
 

@@ -89,6 +89,7 @@ class test_vec3(unittest.TestCase):
         self.assertTrue(dpr.isnear(v3.ang(v1),3*dpr.PI4))
         self.assertTrue(dpr.isnear(v1.ang(v4),numpy.arctan(1.0/math.sqrt(2))))
         self.assertTrue(dpr.isnear(v4.ang(v1),numpy.arctan(1.0/math.sqrt(2))))
+        v1.ang(vec3(0,0,0))
 
     def test_sang(self):
         p1,p2,p3,p4 = vec3(1,1,0),vec3(0,1,0),vec3(0,-1,0),vec3(0,0,1)

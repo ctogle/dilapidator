@@ -232,16 +232,19 @@ class trimesh:
         self.rface(f,False,True)
         self.fan(piv,blade)
 
+    # flip an edge (delauney flip)
     def fedge(self,u,v):
         efr = self.ef_rings
         if not (u,v) in efr or not (v,u) in efr:return
         f1,f2 = efr[(u,v)],efr[(v,u)]
         f1x = tuple(x for x in f1 if not x == u and not x == v)[0]
         f2x = tuple(x for x in f2 if not x == u and not x == v)[0]
+        f1matx,f1mat = self.fs_mats[f1]
+        f2matx,f2mat = self.fs_mats[f2]
         self.rface(f1,False,True)
         self.rface(f2,False,True)
-        self.aface(f1x,u,f2x)
-        self.aface(f2x,v,f1x)
+        self.aface(f1x,u,f2x,f1mat)
+        self.aface(f2x,v,f1x,f2mat)
 
     # given the indices of three existing vertices,
     # create new face and return its index
@@ -288,12 +291,11 @@ class trimesh:
     # v,w,x are the three vertex indices of the face
     def sface(self,u,v,w,x):
         #cnts = self.vcnt(),self.ecnt(),self.fcnt()
-
+        fx,fm = self.fs_mats[(v,w,x)]
         self.rface((v,w,x),False,True)
-        self.aface( u,v,w )
-        self.aface( u,w,x )
-        self.aface( u,x,v )
-
+        self.aface(u,v,w,fm = fm)
+        self.aface(u,w,x,fm = fm)
+        self.aface(u,x,v,fm = fm)
         #if not self.vcnt() == cnts[0]:raise ValueError
         #if not self.ecnt() == cnts[1]+6:raise ValueError
         #if not self.fcnt() == cnts[2]+2:raise ValueError

@@ -114,8 +114,21 @@ def teststage(**kws):
 
     '''#
 
-    #cx = dwo.world()
-    cx = dwo.worldfactory().new()
+    s = 736
+    s = 682
+    s = 189
+    s = 916
+    s = 286
+    #s = random.randint(0,1000)
+
+    fkws = {
+        'seed' : s,
+            }
+    wkws = {
+        'boundary' : vec3(0,0,0).pring(250,8),
+        'landmasses' : [vec3(0,0,0).pring(100,8)],
+            }
+    cx = dwo.worldfactory(**fkws).new(**wkws)
     realize(cx,**kws)
 
 def test_bseq():

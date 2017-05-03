@@ -1,4 +1,4 @@
-import os,time,appdirs,pstats,cProfile
+import os,time,appdirs,pstats,cProfile,datetime,pdb
 import six.moves.cPickle as pickle
 
 __doc__ = '''
@@ -88,6 +88,15 @@ def seqread(seq,sx):
         elif seq[sx] == '>':
             if score > 0:score -= 1
     return sx
+
+def nowdt():
+    dt = datetime.datetime.now()
+    return dt
+
+def timestamp(outformat = '%Y-%m-%d %H:%M:%S:000',dt = None):
+    if dt is None:dt = nowdt()
+    ts = dt.strftime(outformat)
+    return ts
 
 
 

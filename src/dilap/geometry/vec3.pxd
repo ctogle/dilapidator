@@ -122,6 +122,7 @@ cdef class vec3:
     cpdef list pring(self,float r,int n)
     cpdef list sq(self,float l,float w)
     cpdef vec3 com(self,os)
+    cpdef vec3 wrap(self)
 
 # functions to quickly generate R3 basis vectors and their flips
 cdef vec3 x_c()

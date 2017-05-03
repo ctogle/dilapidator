@@ -222,6 +222,8 @@ def raise_earth(t,tips,e,mingrad = 1.0,mindelz = 5.0):
     for tip in tips:
         if tip is None:continue
 
+        #if True:continue
+
         newoffset = vec3(-30,-30,mindelz)
         newloop = [p.cp().trn(newoffset) for p in tip.loop]
 

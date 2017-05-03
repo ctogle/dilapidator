@@ -5,6 +5,8 @@ from dilap.geometry.tform import tform
 import dilap.topology.tree as dtr
 import dilap.topology.vert as dvt
 
+import os,pdb
+
 class scenevert(dvt.vert):
 
     def __init__(self,ix,tform,models = None):
@@ -54,7 +56,15 @@ class scenegraph(dtr.tree):
         for x in self.below(vrt):self.graphvert(x,wtform,io,**kws)
 
     def graph(self,io,**kws):
-        self.graphvert(self.root,None,io,**kws)
+        if hasattr(io,'new'):
+            tree = io.new(self)
+            if not io.worlddir:
+                io.worlddir = os.path.join(os.getcwd(),'fbxworld')
+            if not os.path.exists(io.worlddir):
+                os.mkdir(io.worlddir)
+            tree.write(os.path.join(io.worlddir,'world.fbx'))
+        else:
+            self.graphvert(self.root,None,io,**kws)
       
 
 

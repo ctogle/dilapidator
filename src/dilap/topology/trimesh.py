@@ -93,9 +93,12 @@ class trimesh:
                 results.append(self.verts[e[0]])
                 results.append(self.verts[e[1]])
             if not f is None:
-                results.append(self.verts[self.edges[f[0]][0]])
-                results.append(self.verts[self.edges[f[1]][0]])
-                results.append(self.verts[self.edges[f[2]][0]])
+                results.append(self.verts[f[0]])
+                results.append(self.verts[f[1]])
+                results.append(self.verts[f[2]])
+                #results.append(self.verts[self.edges[f[0]][0]])
+                #results.append(self.verts[self.edges[f[1]][0]])
+                #results.append(self.verts[self.edges[f[2]][0]])
         elif d == 1:
             if not v is None:results.extend(self.ve_rings[v])
             if not e is None:
@@ -323,10 +326,6 @@ class trimesh:
         tris,bnds = dtg.triangulate(ebnd,ibnds,hmin,refine,smooth)
 
         pdb.set_trace()
-
-
-
-
 
  
 

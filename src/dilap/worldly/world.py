@@ -105,26 +105,28 @@ class worldfactory(dfa.factory):
                 tip = nv
             ne = rg.ae(tip,start,**{})
 
-            ax = rg.plotxy(l = 220)
-            plt.show()
+            #ax = rg.plotxy(l = 220)
+            #plt.show()
             rg.smooth_sticks(1,0.5)
-            ax = rg.plotxy(l = 220)
-            plt.show()
+            #ax = rg.plotxy(l = 220)
+            #plt.show()
 
+            '''#
             ax = dtl.plot_axes_xy(300)
             ax = rg.plotxy(ax)
             ax = dtl.plot_polygon_xy(fp,ax,lw = 2,col = 'b')
             ax = dtl.plot_polygon_xy(fp_relax,ax,lw = 2,col = 'b')
             plt.show()
+            '''#
 
             #pdb.set_trace()
 
-        #fp = vec3(0,0,0).pring(100,5)
-        #rpy = pym.pgtopy(rg,5)
+        for rgv in rg.vs:
+            rgp = rgv[1]['p']
+            rgp.ztrn(t(rgp.x,rgp.y))
 
-        #ax = dtl.plot_axes_xy(100)
-        #ax = dtl.plot_polygon_full_xy(rpy,ax,lw = 2,col = 'b')
-        #plt.show()
+        ax = rg.plot(l = 220)
+        plt.show()
 
         return rg
 
@@ -132,6 +134,13 @@ class worldfactory(dfa.factory):
     def genregions(self,t,r):
         pg = ptg.partitiongraph()
         rpy = pym.pgtopy(r,3)
+
+        ax = dtl.plot_axes(200)
+        #ax = pg.plotxy(ax)
+        #for j in range(len(loops)):
+        #    ax = dtl.plot_polygon_xy(loops[j],ax)
+        if rpy:ax = dtl.plot_polygon_full(rpy,ax)
+        plt.show()
 
         #rtl = t.al(rpy[0],t.locloop(rpy[0],1)[0])
 
@@ -172,6 +181,11 @@ class worldfactory(dfa.factory):
                 for dpy in rpy[1]:
                     dv = pg.sv(rv,rpy[0],dpy)
                     pg.vs[dv][1]['t'] = ['developed']
+            
+                print('chea1')
+                for dpy in rpy[1]:
+                    rtv = t.al(dpy,t.locloop(dpy,0)[0])
+                print('chea2')
 
                 '''#
                 ax = dtl.plot_axes_xy(200)
@@ -354,8 +368,8 @@ class worldfactory(dfa.factory):
         t = ter.continent(boundary,landmasses)
 
         ### generate a graph for infrastructure
-        r = self.genroadnetwork(t)
-        #r = pgr.planargraph()
+        #r = self.genroadnetwork(t)
+        r = pgr.planargraph()
 
         ### generate the region partitions of each landmass
         pg = self.genregions(t,r)

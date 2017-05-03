@@ -858,6 +858,15 @@ cdef class vec3:
 
     ###########################################################################
 
+    cpdef vec3 wrap(self):
+        '''wrap each coordinate onto the interval [0,1] periodically'''
+        if not self.x == 1:self.x = self.x % 1
+        if not self.y == 1:self.y = self.y % 1
+        if not self.z == 1:self.z = self.z % 1
+        return self
+
+    ###########################################################################
+
 ###########################################################################
 
 # functions to quickly generate R3 basis vectors and their flips

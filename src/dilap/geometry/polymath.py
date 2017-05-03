@@ -793,6 +793,17 @@ def pgtopy(pg,r,epsilon = 0.1,z = vec3(0,0,1)):
     for lp in loops:
         seam = []
         seams.append(seam)
+
+        # IF PG IS NONPLANAR, PY SHOULD BE NONPLANAR
+        # NONPLANAR PG CAUSES ISSUES IN THIS COMPUTATION CURRENTLY
+        # MODIFY TO USE XY PROJECTION OF PG INSTEAD!!!
+        # NONPLANAR PG CAUSES ISSUES IN THIS COMPUTATION CURRENTLY
+        # MODIFY TO USE XY PROJECTION OF PG INSTEAD!!!
+        # NONPLANAR PG CAUSES ISSUES IN THIS COMPUTATION CURRENTLY
+        # MODIFY TO USE XY PROJECTION OF PG INSTEAD!!!
+        # NONPLANAR PG CAUSES ISSUES IN THIS COMPUTATION CURRENTLY
+        # MODIFY TO USE XY PROJECTION OF PG INSTEAD!!!
+
         for lpx in range(len(lp)):
             lp0,lp1,lp2 = lp[lpx-2],lp[lpx-1],lp[lpx]
             lpp0 = pg.vs[lp0][1]['p']

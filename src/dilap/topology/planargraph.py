@@ -177,8 +177,8 @@ class planargraph(dwg.wiregraph):
     ###################################
 
     # plot the vertices and edges of the graph
-    def plot(self,ax = None):
-        if ax is None:ax = dtl.plot_axes(50)
+    def plot(self,ax = None,l = 10,**kws):
+        if ax is None:ax = dtl.plot_axes(l)
         for j in range(self.vcnt):
             i = self.vs[j]
             if i is None:continue

@@ -1,5 +1,6 @@
 import dilap.core.base as db
 import dilap.geometry.tools as gtl
+import dilap.geometry.polymath as pym
 
 from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
@@ -12,7 +13,7 @@ from dilap.topology.polygonmesh import polygonmesh
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
-import pdb
+import functools,pdb
 
 
 
@@ -91,6 +92,33 @@ class model:
                 if not skipuv:
                     u.x,u.y,u.z = self.defuv(p,n)
         return self
+
+    def smoothnormal(self,mesh,v):
+        fring = (v for v in mesh.mask(2,mesh.verts[v],None,None))
+        fnorms = [self.flatnormal(mesh,f) for f in fring]
+        n = functools.reduce(lambda x,y : x+y,fnorms).nrm()
+        return n
+
+    def flatnormal(self,mesh,f):
+        if self.isneedle(mesh,f):
+            pdb.set_trace()
+        vs = mesh.mask(0,None,None,f)
+        ps = [self.pset.ps[v[0]] for v in vs]
+        n = pym.bnrm(ps)
+        return n
+
+    def facenormals(self,mesh,f,smooth = True):
+        if smooth:
+            for v in f:
+                yield self.smoothnormal(mesh,v)
+        else:
+            n = self.flatnormal(mesh,f)
+            for v in f:
+                yield n
+
+    def isneedle(self,mesh,f):
+        vs = mesh.mask(0,None,None,f)
+        return not len(set(vs)) == 3
 
     # generate a gfx trimesh for a nice cube
     def atricube(self,fm = None):
@@ -233,6 +261,52 @@ class model:
         ps = self.pset.gps(pxs)
         return ps
 
+    # given the indices of some vertices, 
+    # yield their position,normal,uv vectors
+    def gvs_i(self,mesh,vxs = None):
+        if vxs is None:vxs = range(mesh.vertcount)
+        pxs,nxs,uxs = zip(*(mesh.verts[vx] for vx in vxs))
+        ps = self.pset.gps(pxs)
+        ns = self.pset.gps(nxs)
+        us = self.pset.gps(uxs)
+        for j in range(len(vxs)):
+            yield ps[j],ns[j],us[j]
+
+    # given the indices of some vertices, 
+    # yield their position vectors
+    def gvps_i(self,mesh,vxs = None):
+        if vxs is None:vxs = range(mesh.vertcount)
+        for vx in vxs:
+            v = mesh.verts[vx]
+            if v is None:continue
+            p = self.pset.ps[v[0]]
+            if p is None:continue
+            yield p
+
+    # given the indices of some vertices, 
+    # yield their normal vectors
+    def gvns_i(self,mesh,vxs = None):
+        if vxs is None:vxs = range(mesh.vertcount)
+        for vx in vxs:
+            v = mesh.verts[vx]
+            if v is None:continue
+            n = self.nset.ps[v[1]]
+            if n is None:continue
+            yield n
+
+    # given the indices of some vertices, 
+    # yield their uv vectors
+    def gvus_i(self,mesh,vxs = None):
+        if vxs is None:vxs = range(mesh.vertcount)
+        for vx in vxs:
+            v = mesh.verts[vx]
+            #if v is None:continue
+            if v is None:raise ValueError
+            u = self.uset.ps[v[2]]
+            #if u is None:continue
+            if u is None:raise ValueError
+            yield u
+
     # subdivide the boundary of the mesh
     def subdivbnd(self,mesh,smooth = True,lockf = None):
         # iterate over the edges
@@ -313,47 +387,6 @@ class model:
         elif gtl.isnear(n.z,0):u = vec3(p.x,p.z,0)
         else:u = vec3(p.x,p.y,0)
         return u
-
-    # add a triangulated surface to a trimesh
-    def _____asurf2(self,poly,tm = None,fm = 'generic',rv = False,
-                            ref = False,smo = False,hmin = 1):
-        if tm is None:tm = self.agfxmesh()
-        eb,ibs = poly
-
-        eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
-        if ref:
-            newhmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
-            if newhmin < hmin:
-                hmin = newhmin
-                print('newhmin < hmin ...',newhmin)
-        tdata = dtg.tridata(eb,ibs,hmin,ref,smo)
-
-        ngvs = []
-        n = None
-        for tri in tdata.triangles:
-            if tri is None:continue
-            u,v,w = tri
-            up,vp,wp = tdata.points.gps((u,v,w))
-            upx,vpx,wpx = self.pset.nps([up,vp,wp])
-
-            if n is None:
-                n = gtl.nrm(up,vp,wp)
-                nx = self.nset.np(n)
-
-            uu = self.defuv(up,n)
-            vu = self.defuv(vp,n)
-            wu = self.defuv(wp,n)
-            uux,vux,wux = self.pset.nps([up,vp,wp])
-
-            v1 = tm.avert(upx,nx,uux)
-            v2 = tm.avert(vpx,nx,vux)
-            v3 = tm.avert(wpx,nx,wux)
-            ngvs.append(v1);ngvs.append(v2);ngvs.append(v3)
-
-            if rv:f1 = tm.aface(v1,v3,v2,fm = fm) 
-            else:f1  = tm.aface(v1,v2,v3,fm = fm) 
-
-        return ngvs
 
     # add a triangulated surface to a trimesh
     def asurf(self,poly,tm = None,fm = 'generic',rv = False,

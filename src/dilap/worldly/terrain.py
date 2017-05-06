@@ -218,93 +218,49 @@ def sow_earth(t,b,e):
 
 # generate the topographical decisions of a set of topo loops
 def raise_earth(t,tips,e,mingrad = 1.0,mindelz = 5.0):
+
+    j = 0
+    x = lambda : j+2
+    y = lambda : j+j**0.5
+    z = lambda : mindelz+j**0.5
+    s = lambda : vec3(x(),y(),z())
+
     newtips = None
     for tip in tips:
         if tip is None:continue
-
-        #if True:continue
-
-        newoffset = vec3(-30,-30,mindelz)
+        newoffset = s()
         newloop = [p.cp().trn(newoffset) for p in tip.loop]
-
-        oldloop = [p.cp().ztrn(mindelz) for p in tip.loop]
-        oldloop = pym.aggregate(pym.contract(oldloop,mindelz/mingrad),20)
-
-        uloops = pym.ebixy(oldloop,newloop)
+        #newloop = pyg.ajagged(newloop,2)
+        oldloop = [p.cp().ztrn(z()) for p in tip.loop]
+        oldloop = pym.aggregate(pym.contract(oldloop,mindelz/mingrad),5)
+        newtip = None
+        if len(oldloop) > 2:uloops = pym.ebixy(oldloop,newloop)
+        else:uloops = []
         if len(uloops) == 1:
-            newtip = t.al(uloops[0],tip)
+            newtiparea = pym.bareaxy(uloops[0])
+            #if newtiparea > (e*40.0)**2:
+            if newtiparea > (e)**2:
+                newtip = t.al(uloops[0],tip)
+                j += 1
+        '''#
         else:
-            newtip = None
             print('ebicnt',len(uloops))
 
             ax = dtl.plot_axes(200)
             ax = dtl.plot_polygon(tip.loop,ax,ls = '--',lw = 2,col = 'k')
-            ax = dtl.plot_polygon(oldloop,ax,lw = 3,col = 'b')
+            if oldloop:
+                ax = dtl.plot_polygon(oldloop,ax,lw = 3,col = 'b')
             ax = dtl.plot_polygon(newloop,ax,lw = 3,col = 'g')
             for uloop in uloops:
                 ax = dtl.plot_polygon(uloop,ax,lw = 3,col = 'r')
             plt.show()
 
             #pdb.set_trace()
-
+        '''#
         if newtip is None:continue
+        elif newtips:newtips.append(newtip)
         else:newtips = [newtip]
-
-        '''#
-        ax = dtl.plot_axes(200)
-        ax = dtl.plot_polygon(tip.loop,ax,ls = '--',lw = 2,col = 'k')
-        ax = dtl.plot_polygon(oldloop,ax,lw = 3,col = 'b')
-        ax = dtl.plot_polygon(newloop,ax,lw = 3,col = 'g')
-        ax = dtl.plot_polygon(newtip.loop,ax,lw = 3,col = 'r')
-        plt.show()
-        '''#
-
-        '''#
-        try:tiparea = pym.bareaxy(tip.loop)
-        except ValueError:continue
-        if tiparea > (e*50.0)**2:
-            d = 1.0
-            grad = 0.5
-            z = e*5.0
-
-            newtip = t.grow(tip,d*z,abs(z/grad),e)
-
-            if newtip is None:continue
-            else:newtips = [newtip]
-
-            newtiparea = pym.bareaxy(newtip.loop)
-            print('EARTHRAISED',newtiparea,pym.bccw(newtip.loop))
-
-            if newtiparea > (e*40.0)**2:
-                print('break topo')
-                newtips = t.split(newtip,None,d*z,abs(z/grad),e)
-        '''#
-
-
     if not newtips is None:raise_earth(t,newtips,e)
-
-    return
-
-
-
-    tipsarea = [pym.bareaxy(tip.loop) for tip in tips]
-    z = e*5.0
-    while max(tipsarea) > (e*50.0)**2:
-        for tip in tips:
-            d = 1.0
-            grad = 0.5
-
-            tip = t.grow(tip,d*z,abs(z/grad),e)
-            if tip is None:break
-            tiparea = pym.bareaxy(tip.loop)
-            print('EARTHRAISED',tiparea,pym.bccw(tip.loop))
-
-            if tiparea > (e*10.0)**2:
-                print('break topo')
-                tips = t.split(tip,None,d*z,abs(z/grad),e)
-
-        #ax = t.plot()
-        #plt.show()
 
 # create a terrain mesh for a continent
 def continent(b,landmasses = None,epsilon = None):
@@ -316,10 +272,83 @@ def continent(b,landmasses = None,epsilon = None):
     if landmasses is None:
         landmasses = sow_earth(t,b,epsilon)
     for l in landmasses:
-        tips = [t.al(l,t.root)]
+        #tips = [t.al(l,t.root)]
+        #tips = pepper(t,t.al(l,t.root))
+        tips = mountains(t,t.al(l,t.root))
+
         raise_earth(t,tips,epsilon)
     print('RAISED TERRAIN WITH EPSILON:',epsilon)
     return t
+
+###############################################################################
+
+def pepper(t,tip,e = 2):
+    print('pepper')
+
+    c = vec3(0,0,0).com(tip.loop)
+    d = vec3(1,0,0).uscl(1000)
+    s1,s2 = c.cp().trn(d.flp()),c.cp().trn(d.flp())
+    ch = lambda b : pyg.chunk(b,e,random.random()+0.2,edge = random.randint(0,1))
+    bs = [ch(tip.loop) for x in range(10)]
+    bs = pym.bsuxy(bs,e)
+
+    ax = dtl.plot_axes_xy(200)
+    for b in bs:
+        dtl.plot_polygon_xy(b,ax,lw = 2)
+    plt.show()
+
+    newtips = []
+    for sb in bs:
+        if not pym.bccw(sb):sb.reverse()
+
+        sb = pyg.ajagged(sb,2)
+        sb = pyg.ajagged(sb,2)
+        sb = pyg.ajagged(sb,2)
+        #sb = pyg.ajagged(sb,2)
+
+        #for x in range(3):b = pyg.ajagged(b,e)
+        sb = pym.bisectb(sb)
+        #sb = pym.smoothxy(sb,0.5,e)
+        sb = pym.smoothxy(sb,0.5,e)
+        sb = pym.aggregate(sb,4)
+        #sb = pym.blimithmin(sb,2,50)
+
+        for p in sb:p.ztrn(2)
+        newtips.append(t.al(sb,tip))
+
+    ax = dtl.plot_axes(200)
+    ax = dtl.plot_polygon(t.root.loop,ax,ls = '--',lw = 2,col = 'k')
+    ax = dtl.plot_polygon(tip.loop,ax,lw = 3,col = 'r')
+    for b in bs:
+        ax = dtl.plot_polygon(b,ax,lw = 3,col = 'g')
+    plt.show()
+
+    return newtips
+
+def mountains(t,tip,e = 2):
+    '''Add a terrain loop that outlines the base of a mountain range'''
+    print('mountains')
+
+    # TURN THIS INTO A BASIN FUNCTION - RAISE_TERRAIN IN NEGATIVE SPACE!!
+    # TURN THIS INTO A BASIN FUNCTION - RAISE_TERRAIN IN NEGATIVE SPACE!!
+    # TURN THIS INTO A BASIN FUNCTION - RAISE_TERRAIN IN NEGATIVE SPACE!!
+    # TURN THIS INTO A BASIN FUNCTION - RAISE_TERRAIN IN NEGATIVE SPACE!!
+    # TURN THIS INTO A BASIN FUNCTION - RAISE_TERRAIN IN NEGATIVE SPACE!!
+
+    pyl = pyg.lsystemboundary(tip.loop)
+    pyr = pyl[:]
+    flip = quat(0,0,0,0).av(numpy.pi,vec3(0,0,1)).rotps(pyr)
+    py = pym.ebuxy(pyl,pyr)[0]
+    pyscale = vec3(0,1,0).prjps(py)
+    tipscale = vec3(0,1,0).prjps(tip.loop)
+    pyscale = pyscale[1]-pyscale[0]
+    tipscale = tipscale[1]-tipscale[0]
+    scale = tipscale/pyscale
+
+    newtips = []
+    for p in py:p.scl(vec3(scale,scale,0)).ztrn(2)
+    newtips.append(t.al(py,tip))
+    return newtips
 
 ###############################################################################
 

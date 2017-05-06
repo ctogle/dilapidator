@@ -43,21 +43,6 @@ class planargraph(dwg.wiregraph):
         else:sa = e1.sang(e2,vec3(0,0,1))
         if sa < 0:sa = 2*numpy.pi+sa
 
-        '''#
-        print('wwwwwwwa',e1,e2,gtl.deg(sa),para)
-        ax = dtl.plot_axes_xy(500)
-        #ax = self.plotxy(ax)
-        ax = dtl.plot_edges_xy((vp,wp),ax,lw = 2,col = 'b')
-        ax = dtl.plot_edges_xy((up,vp),ax,lw = 2,col = 'g')
-        ax = dtl.plot_point_xy_annotate(up,ax,'u '+str(gtl.deg(sa)))
-        ax = dtl.plot_point_xy(up,ax)
-        ax = dtl.plot_point_xy_annotate(vp,ax,'v ')
-        ax = dtl.plot_point_xy(vp,ax)
-        ax = dtl.plot_point_xy_annotate(wp,ax,'w ')
-        ax = dtl.plot_point_xy(wp,ax)
-        plt.show()
-        '''#
-
         return sa
 
     # compute the edge ordering of a vertex v relative to an edge u,v

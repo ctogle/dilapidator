@@ -456,7 +456,7 @@ class worldfactory(dfa.factory):
 
         print('generating terrain')
         ngvs = m.asurf((vb,vibs),tm,
-            fm = 'grass2',ref = True,hmin = 100,zfunc = v[1]['tmesh'],
+            fm = 'grass2',ref = True,hmin = 8,zfunc = v[1]['tmesh'],
             rv = pym.bnrm(vb).z < 0,uvstacked = None,autoconnect = True)
         lockf = lambda p : p.onpxy(v[1]['b']) 
         m.subdiv(tm,False,True,lockf)

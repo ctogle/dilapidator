@@ -22,7 +22,7 @@ class test_fbx(unittest.TestCase):
     newcubefile  = os.path.join(os.getcwd(),'newcube.fbx')
     thecubefile  = os.path.join(os.getcwd(),'thecube.fbx')
 
-    def test_countstuff(self):
+    def aatest_countstuff(self):
         tree = fbx.read(self.thecubefile)
         model = tree.find('Model')[0]
         vertices = model.find('Vertices')[0][1][1]
@@ -104,8 +104,8 @@ def teststage(**kws):
         'seed' : s,
             }
     wkws = {
-        'boundary' : vec3(0,0,0).pring(250,8),
-        'landmasses' : [vec3(0,0,0).pring(100,8)],
+        'boundary' : vec3(0,0,0).pring(500,8),
+        'landmasses' : [vec3(0,0,0).pring(250,8)],
             }
     cx = dwo.worldfactory(**fkws).new(**wkws)
     dlc.realize(cx,**kws)

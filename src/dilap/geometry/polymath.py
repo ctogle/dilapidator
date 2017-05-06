@@ -150,6 +150,59 @@ def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,sensi =
         # NOTE: THE ERROR HERE GETS TOO LARGE WHEN THE GEOMETRIC PROBLEM SCALES UP...
         else:return s11.cp().trn(s1tn.cp().uscl(t))
 
+# return acceptable endpoints wrt s1,s2 and s3,s4
+def ssegsxy(s1,s2,s3,s4):
+    endpoint = lambda p : p.isnear(s1) or p.isnear(s2) or p.isnear(s3) or p.isnear(s4)
+    ips = sintsxyp(s1,s2,s3,s4)
+    if isinstance(ips,tuple):
+        tn = s1.tov(s2).nrm()
+        prjs = (s1.dot(tn),s2.dot(tn),s3.dot(tn),s4.dot(tn))
+
+        if not s4.onsxy(s1,s2,0):prjs.pop(3)
+        if not s3.onsxy(s1,s2,0):prjs.pop(2)
+
+        prjs = sorted(prjs)
+        line = []
+        for prj in prjs:
+            p = s1.cp().trn(tn.cp().uscl(prj-s1.dot(tn)))
+            clear = True
+            for l in line:
+                if l.isnear(p.cp()):
+                    clear = False
+                    break
+            if clear:
+                line.append(p.cp())
+        #ax = dtl.plot_axes_xy(200)
+        #ax = dtl.plot_points_xy(line,ax,number = True)
+        #plt.show()
+        return [(line[x-1],line[x]) for x in range(1,len(line))]
+    elif isinstance(ips,vec3):
+        if endpoint(ips):
+            # split one of the segments in two...
+            if   s1.onsxy(s3,s4,0):
+                #return [(s1.cp(),s2.cp()),(s3.cp(),s1.cp()),(s4.cp(),s1.cp())]
+                return [(s1.cp(),s2.cp())]
+            elif s2.onsxy(s3,s4,0):
+                #return [(s1.cp(),s2.cp()),(s3.cp(),s2.cp()),(s4.cp(),s2.cp())]
+                return [(s1.cp(),s2.cp())]
+            elif s3.onsxy(s1,s2,0):
+                #return [(s3.cp(),s4.cp()),(s3.cp(),s2.cp()),(s3.cp(),s1.cp())]
+                return [(s3.cp(),s2.cp()),(s3.cp(),s1.cp())]
+            elif s4.onsxy(s1,s2,0):
+                #return [(s3.cp(),s4.cp()),(s4.cp(),s2.cp()),(s4.cp(),s1.cp())]
+                return [(s4.cp(),s2.cp()),(s4.cp(),s1.cp())]
+            else:
+                #return [(s1.cp(),s2.cp()),(s3.cp(),s4.cp())]
+                return [(s1.cp(),s2.cp())]
+        else:
+            #return [
+            #    (s1.cp(),ips.cp()),(s2.cp(),ips.cp()),
+            #    (s3.cp(),ips.cp()),(s4.cp(),ips.cp())]
+            return [(s1.cp(),ips.cp()),(s2.cp(),ips.cp())]
+    else:
+        #return [(s1.cp(),s2.cp()),(s3.cp(),s4.cp())]
+        return [(s1.cp(),s2.cp())]
+
 # produce some number of closed loops from a set of edges
 def sloops(es,epsilon = 0.1):
     g = sstopg(es,epsilon)
@@ -213,6 +266,18 @@ def bsegsxy(b,s1,s2,epsilon = 0.1):
         else:bs = [b]
         if len(bs) > 2:
             print('multi bsegsxy...')
+
+        '''#
+        ax = dtl.plot_axes_xy(200)
+        ax = dtl.plot_polygon_xy(b,ax,ls = '--',lw = 2,col = 'k')
+        ax = dtl.plot_edges_xy((s1,s2),ax,col = 'g')
+        for e in left:ax = dtl.plot_edges_xy(e,ax,col = 'r')
+        for e in right:ax = dtl.plot_edges_xy(e,ax,col = 'b')
+        ax = dtl.plot_points_xy(b,ax,number = True)
+        for b in bs:ax = dtl.plot_polygon_xy(b,ax,col = 'g')
+        plt.show()
+        '''#
+
     return bs
 
 ###############################################################################
@@ -295,23 +360,81 @@ def badjbxy(b1,b2,minovlp = 1):
 
 # compute the union of many adjacent boundary polygons
 # similar to ebuxy except using a planar graph
-def ebuxy_special(bs,epsilon = 5,cellperimlength = 4):
-    bsegs = [(b[x-1],b[x]) for b in bs for x in range(len(b))]
-    pg = sstopg(bsegs,epsilon)
-    loops = pg.uloops('ccw')
-    bigloops = [l for l in loops if len(l) > cellperimlength]
+def ebuxy_special(bs,epsilon = 5,cellperimlength = 2):
 
+    # do i need this function at all???
+    # do i need this function at all???
+    # do i need this function at all???
+
+    #return bsuxy(bs,epsilon)
+
+    # bs -> set of edges
+    # -> ssegsxy until none overlap
+    # -> sstopg using segments
+    # -> counterclockwise loop around pg
+    new = lambda s1,s2 : not ((s1,s2) in unfin or (s1,s2) in unfin)
+    unfin = [(b[x-1],b[x]) for b in bs for x in range(len(b))]
+    fin = []
+    while unfin:
+        u1,u2 = unfin.pop(0)
+        clear = True
+        for e1,e2 in unfin:
+            if e1.onsxy(u1,u2,0):
+                if new(u1,e1):unfin.append((u1,e1))
+                if new(e1,u2):unfin.append((e1,u2))
+                clear = False
+                break
+            elif e2.onsxy(u1,u2,0):
+                if new(u1,e2):unfin.append((u1,e2))
+                if new(e2,u2):unfin.append((e2,u2))
+                clear = False
+                break
+            elif sintsxy(u1,u2,e1,e2,ie = False,ieb = False):
+                plt.show()
+                '''#
+                ax = dtl.plot_axes_xy(200)
+                for u in unfin:
+                    ax = dtl.plot_edges_xy(u,ax,col = 'r',lw = 8)
+                for f in fin:
+                    ax = dtl.plot_edges_xy(f,ax,col = 'g',lw = 7)
+                ax = dtl.plot_edges_xy((u1,u2),ax,col = 'c',lw = 5)
+                ax = dtl.plot_edges_xy((e1,e2),ax,col = 'b',lw = 2)
+                plt.show()
+                '''#
+                if sintsxy(u1,u2,e1,e2,ie = False,ieb = False,col = False):
+                    ip = sintsxyp(u1,u2,e1,e2)
+                    if new(u1,ip):unfin.append((u1,ip))
+                    if new(ip,u2):unfin.append((ip,u2))
+                    clear = False
+                    break
+                else:
+                    if new(u1,u2):unfin.append((u1,u2))
+                    clear = False
+        if clear:
+            fin.append((u1,u2))
+    '''#
+    unfin2 = [(b[x-1],b[x]) for b in bs for x in range(len(b))]
+    ax = dtl.plot_axes_xy(200)
+    for e in unfin2:
+        ax = dtl.plot_edges_xy(e,ax,lw = 4,col = 'b')
+    for e in fin:
+        ax = dtl.plot_edges_xy(e,ax,lw = 2,col = 'g')
+    plt.show()
+    '''#
+    uloops = bsuxy(sloops(fin,epsilon),epsilon)
     '''#
     ax = pg.plotxy(l = 150,aspect = 'equal')
     #for lp in loops:
-    for lp in bigloops:
-        lpp = [pg.vs[lpx][1]['p'] for lpx in lp]
+    colors = ['b','g','r','c','m','y','k','g']
+    for j in range(len(uloops)):
+        lpp = uloops[j]
+        #lpp = [pg.vs[lpx][1]['p'] for lpx in lp]
         lpp = contract(lpp,2)
-        ax = dtl.plot_polygon_xy(lpp,ax,lw = 4,col = 'r')
+        ax = dtl.plot_polygon_xy(lpp,ax,lw = (j+1)*2,col = colors[j])
         #ax = dtl.plot_points_xy(lpp,ax,number = True)
     plt.show()
     '''#
-    return [[pg.vs[lpx][1]['p'].cp() for lpx in lp] for lp in bigloops]
+    return uloops
 
 # compute the union of two boundary polygons
 def ebuxy(b1,b2,epsilon = 0.1):
@@ -334,6 +457,40 @@ def ebuxy(b1,b2,epsilon = 0.1):
     b2only = [p for p in b2segs if not p in b2inb1 and not inn(p)]
 
     dfs = sloops(b1only+b2only,epsilon)
+
+    if not (b1inb2 or b2inb1):
+        print('yep')
+    else:
+        print('nope')
+
+    if len(dfs) == 3:
+
+        print(bintbxy(b1,b2,ie = False,ieb = False))
+        ax = dtl.plot_axes_xy(200)
+        #for e in b1only:ax = dtl.plot_edges_xy(e,ax,col = 'b',lw = 8)
+        #for e in b2only:ax = dtl.plot_edges_xy(e,ax,col = 'r',lw = 8)
+        for e in b1inb2:ax = dtl.plot_edges_xy(e,ax,col = 'c',lw = 5,ls = '--')
+        for e in b2inb1:ax = dtl.plot_edges_xy(e,ax,col = 'm',lw = 3,ls = '--')
+        plt.show()
+
+        ax = dtl.plot_axes_xy(200)
+        colors = 'k','r','m'
+        for j in range(3):
+            ax = dtl.plot_polygon_xy(b2,ax,lw = 12-(j+1)*3,col = colors[j])
+        ax = dtl.plot_polygon_xy(b1,ax,lw = 3,col = 'b',ls = '--')
+        ax = dtl.plot_polygon_xy(b2,ax,lw = 3,col = 'g',ls = '--')
+        plt.show()
+
+        ax = dtl.plot_axes_xy(200)
+        colors = 'k','r','m'
+        for j in range(3):
+            ax = dtl.plot_polygon_xy(b2,ax,lw = 12-(j+1)*3,col = colors[j])
+        ax = dtl.plot_polygon_xy(b1,ax,lw = 3,col = 'b',ls = '--')
+        ax = dtl.plot_polygon_xy(b2,ax,lw = 3,col = 'g',ls = '--')
+        plt.show()
+
+        pdb.set_trace()
+
     return dfs
 
 # compute difference of boundary polygons
@@ -382,14 +539,16 @@ def bsuxy(bs,epsilon = 0.1):
                 nbbb = nbs.pop(nbx)
                 newunfn = ebuxy(nbbb,ub,epsilon)
 
-                print('len((((',len(newunfn))
+                '''#
                 if len(newunfn) == 3:
+                    print('len((((',len(newunfn))
                     ax = dtl.plot_axes_xy(500)
                     ax = dtl.plot_polygon_xy(contract(ub,2),ax,col = 'r')
                     ax = dtl.plot_polygon_xy(contract(nbbb,2),ax,col = 'b')
                     for u in newunfn:
                         ax = dtl.plot_polygon_xy(contract(u,2),ax)
                     plt.show()
+                '''#
 
                 for u in newunfn:unfn.insert(-1,u)
                 fnd = True
@@ -397,7 +556,7 @@ def bsuxy(bs,epsilon = 0.1):
         if not fnd:nbs.append(ub)
 
         '''#
-        ax = dtl.plot_axes_xy(700)
+        ax = dtl.plot_axes_xy(110)
         for b in bs:ax = dtl.plot_polygon_xy(b,ax,lw = 1,col = 'b')
         for b in unfn:ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'r')
         for b in nbs:ax = dtl.plot_polygon_xy(b,ax,lw = 2,col = 'g')
@@ -778,12 +937,11 @@ def sstopg(segs,epsilon = 0.1,plot = False):
     g = pgr.planargraph()
     for e1,e2 in segs:
         v1,v2 = g.fp(e1,epsilon),g.fp(e2,epsilon)
-        if not v2 in g.rings[v1]:g.fe(v1,v2)
-    '''#
+        if v1 == v2:print('seg is smaller than epsilon')
+        elif not v2 in g.rings[v1]:g.fe(v1,v2)
     if plot:
         ax = g.plotxy(l = 500)
         plt.show()
-    '''#
     return g
 
 # generate a full polygon from a planar graph

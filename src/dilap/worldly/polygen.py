@@ -2,6 +2,8 @@ from dilap.geometry.vec3 import vec3
 from dilap.geometry.quat import quat
 import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
+import dilap.topology.planargraph as dpg
+import dilap.core.lsystem as lsy
 
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
@@ -71,18 +73,11 @@ def ajagged(b,epsilon):
     j = random.randint(0,len(b)-1)
     l = b[j-1].d(b[j])
     t = random.uniform(0,2.0*numpy.pi)
-    t = random.uniform(0,2.0*numpy.pi)
     n = random.randint(3,8)
 
     stamp = b[j-1].mid(b[j]).pring(l/2.0,n)
     q = quat(1,0,0,0).av(t,vec3(0,0,1))
     q.rotps(stamp)
-
-    #xpj = vec3(1,0,0).prjps(b)
-    #xsc = xpj[1]-xpj[0]
-    #r = random.uniform(xsc/8.0-100,xsc/8.0+100)
-    #r = xsc/8.0
-    #stamp = vec3(xsc/2.0*math.cos(t),xsc/2.0*math.sin(t),0).pring(r,n)
     
     if pym.bintbxy(b,stamp,col = False,ie = False):
         nbs = pym.ebdxy(b,stamp,epsilon)
@@ -91,19 +86,8 @@ def ajagged(b,epsilon):
         nb = pym.aggregate(nb,1)
         if pym.bvalidxy(nb) > 0:b = nb
 
-        print('ISVALID',pym.bvalidxy(b),nbas,max(nbas))
-        '''#
-        ax = dtl.plot_axes_xy(600)
-        for nb in nbs:
-            ax = dtl.plot_polygon_xy(nb,ax,lw = 1,col = 'k')
-        ax = dtl.plot_polygon_xy(b,ax,lw = 4,col = 'b')
-        ax = dtl.plot_polygon_xy(stamp,ax,lw = 2,col = 'r')
-        plt.show()
-        '''#
-
     bval = pym.bvalidxy(b)
     if bval == -1:b.reverse()
-
     if not pym.bvalidxy(b) > 0:
         ax = dtl.plot_axes_xy(700)
         ax = dtl.plot_polygon_xy(b,ax,lw = 4,col = 'b')
@@ -114,6 +98,151 @@ def ajagged(b,epsilon):
         raise ValueError
     
     return b
+
+def chunk(b,epsilon,lscl = 1.0,j1 = None,j2 = None,edge = False):
+    if j1 is None:j1 = random.randint(0,len(b)-1)
+    if j2 is None:j2 = j1-1
+    l = b[j1].d(b[j2])*lscl
+    t = random.uniform(0,2.0*numpy.pi)
+    n = random.randint(3,8)
+
+    if edge:
+        stamp = b[j1].mid(b[j2]).pring(l/2.0,n)
+    else:
+        stamp = vec3(
+            random.randint(int(l/4),int(l)),
+            random.randint(int(l/4),int(l)),
+            0).com(b).pring(l/2.0,n)
+    q = quat(1,0,0,0).av(t,vec3(0,0,1))
+    q.rotps(stamp)
+    
+    if pym.binbxy(stamp,b):
+        return stamp
+    elif pym.bintbxy(b,stamp,col = False,ie = False):
+        nbs = pym.ebixy(b,stamp,epsilon)
+        nbas = [pym.bareaxy(nb) for nb in nbs]
+        nb = nbs[nbas.index(max(nbas))]
+        nb = pym.aggregate(nb,1)
+        if pym.bvalidxy(nb) > 0:
+            return nb
+    else:
+        ax = dtl.plot_axes_xy(200)
+        ax = dtl.plot_polygon_xy(b,ax,col = 'r',lw = 2)
+        ax = dtl.plot_polygon_xy(stamp,ax,col = 'b',lw = 2)
+        plt.show()
+        raise ValueError
+
+def splotch(vb,easement = 10):
+    # WIP
+    vbes = [(vb[0][x-1],vb[0][x]) for x in range(len(vb[0]))]
+    vbels = [vb[0][x-1].d(vb[0][x]) for x in range(len(vb[0]))]
+    vbe_primary = vbels.index(max(vbels))
+    vbe_primary_tn = vb[0][vbe_primary-1].tov(vb[0][vbe_primary]).nrm()
+    bq = quat(0,0,0,1).uu(vec3(1,0,0),vbe_primary_tn)
+    if not bq:bq = quat(1,0,0,0)
+
+    vbcon = pym.aggregate(pym.contract(vb[0],easement),5)
+
+    vbxpj = vbe_primary_tn.prjps(vb[0])
+    vbypj = vbe_primary_tn.cp().zrot(gtl.PI2).prjps(vb[0])
+    vbxl,vbyl = vbxpj[1]-vbxpj[0],vbypj[1]-vbypj[0]
+
+    dx,dy = 20,20
+    xn,yn = int(1.5*vbxl/dx),int(1.5*vbyl/dy)
+    print('xn,yn',xn,yn)
+    o = vec3(0,0,0).com(vbcon)
+    vgrid = [o.cp().xtrn(dx*(x-(xn/2.0))).ytrn(dy*(y-(yn/2.0)))
+        for x in range(xn) for y in range(yn)]
+    #vgrid = [p for p in vgrid if abs(p.x-10) > 10]
+    boxes = [p.cp().trn(o.flp()).rot(bq).trn(o.flp()).sq(dx,dy) for p in vgrid]
+
+    for b in boxes:
+        bcom = vec3(0,0,0).com(b).flp()
+        bcom.trnos(b)
+        bq.rotps(b)
+        bcom.flp().trnos(b)
+    boxes = [b for b in boxes if pym.binbxy(b,vbcon)]
+    for ib in vb[1]:
+        boxes = [b for b in boxes if not pym.bintbxy(b,ib) 
+            and not b[0].inbxy(ib) and not ib[0].inbxy(b[0])]
+
+    blgfps = pym.ebuxy_special(boxes,5,4)
+
+    ps = [vec3(0,0,0).com(blgfp) for blgfp in blgfps]
+    qs = [bq.cp() for blgfp in blgfps]
+    ss = [vec3(1,1,1) for blgfp in blgfps]
+
+    for p,q,s,blgfp in zip(ps,qs,ss,blgfps):
+        p.cpxy().flp().trnos(blgfp)
+        q.cpf().rotps(blgfp)
+
+    return zip(ps,qs,ss,blgfps)
+
+def lsystemboundary(b):
+    i = 5
+    p,d = vec3(0,0,0).com(b),vec3(0,1,0)
+    #p = b[0].mid(b[1])
+    #d = p.tov(vec3(0,0,0).com(b)).nrm()
+    axiom = '{X}${X}'
+    #rules = dict([('X','{[X}{]X}FX')])
+    rules = dict([('X','A{[X}{]X}AX'),('F','FF'),('A','F')])
+    params = dict(dazimuthal = gtl.rad(25.7),rho = 5)
+
+    i = 3
+    p,d = vec3(0,0,0),vec3(0,1,0)
+    axiom = '{X}${X}'
+    rules = dict([('X','F]{{X}[X}[F{[FX}]X'),('F','FF')])
+    params = dict(dazimuthal = gtl.rad(25),rho = 20)
+
+    pg = dpg.planargraph()
+    for piece in lsy.lgen(p,d,axiom,rules,i,**params):
+        if isinstance(piece,tuple):
+            p1,p2 = piece
+            v1,v2 = pg.fp(p1,10),pg.fp(p2,10)
+            e12 = pg.fe(v1,v2)
+        elif isinstance(piece,vec3):pass
+    py = pym.pgtopy(pg,16)[0]
+    py = pym.smoothxy(py,0.5,2)
+    #py = pym.aggregate(py,2)
+
+    ax = dtl.plot_axes_xy(400)
+    ax = pg.plotxy(ax,l = 300)
+    ax = dtl.plot_polygon_xy(b,ax,lw = 3,col = 'b')
+    ax = dtl.plot_polygon_xy(py,ax,lw = 3,col = 'g')
+    plt.show()
+
+    pyscale = vec3(0,1,0).prjps(py)
+    tipscale = vec3(0,1,0).prjps(b)
+    pyscale = pyscale[1]-pyscale[0]
+    tipscale = tipscale[1]-tipscale[0]
+    scale = tipscale/pyscale
+    com = vec3(0,0,0).com(b).tov(vec3(0,0,0).com(py)).uscl(-1.4)
+    for p in py:p.scl(vec3(scale,scale,0)).trn(com)
+
+    ax = dtl.plot_axes_xy(400)
+    ax = dtl.plot_polygon_xy(b,ax,lw = 3,col = 'b')
+    ax = dtl.plot_polygon_xy(py,ax,lw = 3,col = 'g')
+    plt.show()
+
+    return py
+
+
+    p = b[0].mid(b[1])
+    d = p.tov(vec3(0,0,0).com(b)).nrm()
+    #p,d = vec3(0,0,0).com(b),vec3(1,1,0)
+
+    ax = dtl.plot_axes(10)
+
+    axiom = 'Q'
+    rules = [('F','FF'),('Q','F[/Q]\\Q')]
+
+    #l = lsy.pythagoras_tree()._realize(p,d,ax)
+    ax = dtl.plot_axes(300)
+    ax = dtl.plot_polygon(b,ax,lw = 2)
+    l = lsy.lsystem(axiom = axiom,rules = rules,iterations = 10)._realize(p,d,ax)
+    plt.show()
+
+    pdb.set_trace()
 
 ###############################################################################
 

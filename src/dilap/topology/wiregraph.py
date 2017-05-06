@@ -161,7 +161,7 @@ class wiregraph(db.base):
         while True:
 
             c += 1
-            if c > 250:
+            if c > 2500:
                 print('shit',d,u,v,len(lp))
                 for j in range(self.vcnt):
                     print(self.vs[j][1]['p'])
@@ -192,9 +192,11 @@ class wiregraph(db.base):
                 r = self.rings[vx][ox]
                 rx,rkws = r
                 if rx in unfn:
-                    lp = self.loop(vx,ox,'ccw')
+                    #lp = self.loop(vx,ox,'ccw')
+                    lp = self.loop(vx,ox,d)
                     lpk = tuple(set(lp))
-                    if not lpk in loops:
+                    #if not lpk in loops:
+                    if newloopkey(lpk,loops):
                         loops[lpk] = lp
                     unfn.remove(rx)
                 else:continue
@@ -215,7 +217,12 @@ class wiregraph(db.base):
 
     ###################################
 
-
-
+def newloopkey(key,loops):
+    keylen = len(key)
+    for loop in loops:
+        looplen = len(loop)
+        if loop == key:return False
+        elif set(loop) == set(key):return False
+    return True
 
  

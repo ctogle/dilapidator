@@ -23,6 +23,8 @@ class vert:
     def __init__(self,ix,*args,**kwargs):
         self.ix = ix
         self.ring = []
+        self.args = args
+        self.kwargs = kwargs
 
 
 

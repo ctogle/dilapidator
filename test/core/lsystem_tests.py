@@ -1,6 +1,6 @@
 import dilap.core.plotting as dtl
 import dilap.core.lsystem as lsy
-import dilap.worldly.treeskin as ltr
+#import dilap.worldly.treeskin as ltr
 from dilap.geometry.vec3 import vec3
 import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
@@ -16,16 +16,8 @@ import pdb
 
 ###############################################################################
 
-'''
-l,w,n = 25,25,3
-ax = dtl.plot_axes(50)
-pd = it.product(range(n),range(n),range(1))
-pstack = [vec3(*p).scl(vec3(l,w,1)) for p in pd]
-dstack = [vec3(0,0,1) for x in range(len(pstack))]
-'''
-
 def realize(i,p,d,axiom,rules,**params):
-    ax = dtl.plot_axes()
+    ax = dtl.plot_axes(10)
     for piece in lsy.lgen(p,d,axiom,rules,i,**params):
         if isinstance(piece,tuple):
             ax = dtl.plot_edges(piece,ax,lw = 2,col = 'k')
@@ -33,16 +25,13 @@ def realize(i,p,d,axiom,rules,**params):
             ax = dtl.plot_point(piece,ax)
     plt.show()
             
-class test_lsystem(unittest.TestCase):
+class lsystem(unittest.TestCase):
 
     def test_pythagorastree(self):
-        i = 3
+        i = 5
         p,d = vec3(0,0,0),vec3(1,0,0)
         axiom = 'Q'
-        rules = {
-            'F' : 'FF',
-            'Q' : 'F{[Q}]Q',
-                }
+        rules = dict([('F','FF'),('Q','F{[Q}]Q')])
         params = dict(dazimuthal = numpy.pi/12)
         realize(i,p,d,axiom,rules,**params)
 
@@ -70,66 +59,84 @@ class test_lsystem(unittest.TestCase):
         params = dict(dazimuthal = gtl.rad(25))
         realize(i,p,d,axiom,rules,**params)
 
-    def test_axialmtn(self):
+    def test_grass(self):
         i = 5
         p,d = vec3(0,0,0),vec3(0,1,0)
-        axiom = 'X'
-        rules = dict([('X','F{[X}{]X}FX'),('F','FF')])
+        axiom = 'F'
+        rules = dict([('F','F{[F}F{]F}F')])
         params = dict(dazimuthal = gtl.rad(25.7))
+        realize(i,p,d,axiom,rules,**params)
+
+
+class axialmtn(unittest.TestCase):
+
+    keepers = {
+        'lake':((vec3(0,0,0),vec3(0,1,0),'X',
+                dict([('X','{[[X}{]X}F]X'),('F','FA'),('A','F')]),6),
+                dict(dazimuthal = gtl.rad(25.7),drho = 20)),
+            }
+
+    def pg(self,*ags,**kws):
+        pg = dpg.planargraph()
+        for piece in lsy.lgen(*ags,**kws):
+            if isinstance(piece,tuple):
+                p1,p2 = piece
+                v1,v2 = pg.fp(p1,10),pg.fp(p2,10)
+                e12 = pg.fe(v1,v2)
+            elif isinstance(piece,vec3):pass
+        py = pym.pgtopy(pg,1)[0]
+        py = pym.bisectb(py)
+        py = pym.smoothxy(py,0.5,2)
+
+        #ax = pg.plotxy(l = 20)
+        ax = dtl.plot_axes_xy(50)
+        ax = dtl.plot_polygon_xy(py,ax,lw = 3)
+        plt.show()
+
+    def test_lake(self):
+        lakeags,params = self.keepers['lake']
+        self.pg(*lakeags,**params)
+
+    def aaatest(self):
+        #i = 5
+        i = 6
+        p,d = vec3(0,0,0),vec3(0,1,0)
+        axiom = 'X'
+        rules = dict([('X','{[[X}{]X}F]X'),('F','FA'),('A','F')])
+        #rules = dict([('X','F{[X}{]X}FX'),('F','FF')])
+        #axiom = 'F'
+        #rules = dict([('F','F{[F}F{]F}F')])
+        params = dict(dazimuthal = gtl.rad(25.7),drho = 20)
         
         pg = dpg.planargraph()
         for piece in lsy.lgen(p,d,axiom,rules,i,**params):
             if isinstance(piece,tuple):
                 p1,p2 = piece
-                v1,v2 = pg.fp(p1,0.1),pg.fp(p2,0.1)
+                v1,v2 = pg.fp(p1,10),pg.fp(p2,10)
                 e12 = pg.fe(v1,v2)
             elif isinstance(piece,vec3):pass
 
         py = pym.pgtopy(pg,1)[0]
-        py = pym.smoothxy(py,0.7,2)
+        py = pym.bisectb(py)
+        py = pym.smoothxy(py,0.5,2)
         #py = pym.aggregate(py,2)
-        #py = pym.smoothxy(py,0.1,1)
-        #py = pym.aggregate(py,1)
 
         #ax = pg.plotxy(l = 20)
         ax = dtl.plot_axes_xy(20)
         ax = dtl.plot_polygon_xy(py,ax,lw = 3)
         plt.show()
 
-
-
+if __name__ == '__main__':
+    unittest.main()
 
 '''#
+l,w,n = 25,25,3
+ax = dtl.plot_axes(50)
+pd = it.product(range(n),range(n),range(1))
+pstack = [vec3(*p).scl(vec3(l,w,1)) for p in pd]
+dstack = [vec3(0,0,1) for x in range(len(pstack))]
+
 class ___KEEPTOGETEXAMPLEStest_lsystem(unittest.TestCase):
-
-    def tearDownClass():plt.show()
-    #def setUpClass():
-
-    def atest_pythagoras_tree(self):
-        p,d = pstack.pop(0),dstack.pop(0)
-        l = lsy.pythagoras_tree()._realize(p,d,ax)
-
-    def atest_dragon_curve(self):
-        p,d = pstack.pop(0),dstack.pop(0)
-        l = lsy.dragon_curve()._realize(p,d,ax)
-
-    def atest_axial_tree(self):
-        p,d = pstack.pop(0),dstack.pop(0)
-        l = lsy.axial_tree()._realize(p,d,ax)
-
-    def atest_plant(self):
-        p,d = pstack.pop(0),dstack.pop(0)
-        l = lsy.plant()._realize(p,d,ax)
-
-    def atest_grass(self):
-        kws = {
-            'axiom':'F',
-            'rules':[('F','F[+F]F[-F]F')],
-            'iterations':5,'seed':0,
-            'angle':gtl.rad(25.7),
-                }
-        p,d = pstack.pop(0),dstack.pop(0)
-        l = lsy.lsystem(**kws)._realize(p,d,ax)
 
     def atest_ltree_loadout(self):
         p,d = pstack.pop(0),dstack.pop(0)
@@ -195,15 +202,3 @@ class ___KEEPTOGETEXAMPLEStest_lsystem(unittest.TestCase):
         p,d = pstack.pop(0),dstack.pop(0)
         l = ltr.treeskin(p,d,ax = ax)
 '''#
-
-###############################################################################
-
-if __name__ == '__main__':
-    unittest.main()
-
-###############################################################################
-
-
-
-
-

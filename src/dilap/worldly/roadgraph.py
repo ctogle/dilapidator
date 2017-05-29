@@ -8,7 +8,6 @@ from dilap.geometry.quat import quat
 import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
 
-import dilap.worldly.treeskin as ltr
 import dilap.worldly.building as blg
 import dilap.worldly.blgsequencing as bseq
 import dilap.worldly.partitiongraph as ptg

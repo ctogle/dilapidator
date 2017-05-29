@@ -120,7 +120,7 @@ class wiregraph(db.base):
         ruv = self.re(u,v)
         ruw = self.ae(u,w,**ruv[1])
         rwv = self.ae(w,v,**ruv[1])
-        return ruv,rwv
+        return ruw,rwv
 
     ###################################
     ### edge ordering mechanisms
@@ -152,7 +152,7 @@ class wiregraph(db.base):
     # return a list of vertex indices which form a loop
     #   the first edge will be from u to v, turns of direction 
     #   d (clockwise or counterclockwise) form the loop
-    def loop(self,u,v,d = 'cw'):
+    def loop(self,u,v,d = 'cw',usematch = False):
         if not v in self.rings[u]:raise ValueError
         lp = [u,v]
 
@@ -161,16 +161,9 @@ class wiregraph(db.base):
         while True:
 
             c += 1
-            if c > 2500:
-                print('shit',d,u,v,len(lp))
-                for j in range(self.vcnt):
-                    print(self.vs[j][1]['p'])
-                ax = dtl.plot_axes_xy(400)
-                ax = self.plotxy(ax)
-                ax = dtl.plot_polygon_xy([self.vs[lx][1]['p'] for lx in lp],ax)
-                #ax = dtl.plot_points_xy([self.vs[lx][1]['p'] for lx in lp],ax,number = True)
-                plt.show()
-                pdb.set_trace()
+            if c > self.vcnt*5:
+                print('LOOPWARNING',d,u,v,len(lp))
+                return self.loop(u,v,d,True)
 
             if   d == 'cw': tip = self.cw( lp[-2],lp[-1])
             elif d == 'ccw':tip = self.ccw(lp[-2],lp[-1])
@@ -180,6 +173,14 @@ class wiregraph(db.base):
                 lp.pop(-1)
                 lp.pop(-1)
                 return lp
+            if usematch:
+                lseqmatch = seqmatch(lp)
+                if lseqmatch[0]:
+                    print('LOOPWARNINGRECONCILED')
+                    if lseqmatch[0]:
+                        lp.pop(-1)
+                        lp.pop(-1)
+                        return lp
 
     # return a list of all unique loops of the graph
     def uloops(self,d = 'cw'):
@@ -225,4 +226,30 @@ def newloopkey(key,loops):
         elif set(loop) == set(key):return False
     return True
 
+def seqmatch(l = list(range(10))+list(range(5))):
+    #print('seqmatch: %s' % str(l))
+    longest,longestseq = None,None
+    gperm = lambda lx : l[lx-n:]+l[:lx] if lx-n < 0 else l[lx-n:lx]
+    for n in range(2,int(len(l)+1/2)):
+        fnd = False
+        perms = [gperm(lx) for lx in range(len(l))]
+        uniq = []
+        for p in perms:
+            if not p in uniq:
+                uniq.append(p)
+            else:
+                longest = n
+                fnd = True
+        plen,ulen = len(perms),len(uniq)
+        if plen == ulen:pass
+        elif plen > ulen:
+            for p in uniq:
+                if perms.count(p) > 1:
+                    longestseq = p
+                    #print('found repeated permutation: %s' % p)
+        else:pdb.set_trace()
+        if not fnd:break
+    #print('seqmatch (of length %d) had longest match: %s' % (len(l),str(longest)))
+    #print(n)
+    return longest,longestseq
  

@@ -105,7 +105,7 @@ def teststage(**kws):
             }
     wkws = {
         'boundary' : vec3(0,0,0).pring(500,8),
-        'landmasses' : [vec3(0,0,0).pring(250,8)],
+        #'landmasses' : [vec3(0,0,0).pring(250,8)],
             }
     cx = dwo.worldfactory(**fkws).new(**wkws)
     dlc.realize(cx,**kws)

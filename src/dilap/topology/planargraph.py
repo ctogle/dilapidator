@@ -32,17 +32,16 @@ class planargraph(dwg.wiregraph):
         up = self.vs[u][1]['p']
         vp = self.vs[v][1]['p']
         wp = self.vs[w][1]['p']
-
         e1 = vp.tov(up)
         e2 = vp.tov(wp)
-
         etn1 = e1.cp().nrm()
         etn2 = e2.cp().nrm()
-        para = gtl.isnear(abs(etn1.dot(etn2)),1)
-        if para:sa = numpy.pi
+        para  = gtl.isnear(etn1.dot(etn2), 1)
+        apara = gtl.isnear(etn1.dot(etn2),-1)
+        if apara:sa = numpy.pi
+        elif para:sa = 0
         else:sa = e1.sang(e2,vec3(0,0,1))
         if sa < 0:sa = 2*numpy.pi+sa
-
         return sa
 
     # compute the edge ordering of a vertex v relative to an edge u,v
@@ -73,6 +72,9 @@ class planargraph(dwg.wiregraph):
     # given an edge, find the next edge taking the first
     # clockwise turn available
     def cw(self,u,v):
+        vor = self.orings[v][:]
+        if len(vor) == 2:vor.remove(u)
+        if len(vor) == 1:return vor[0]
         ror = self.eo(u,v)
         if ror:tip = ror[0]
         else:tip = u
@@ -81,17 +83,29 @@ class planargraph(dwg.wiregraph):
     # given an edge, find the next edge taking the first
     # counterclockwise turn available
     def ccw(self,u,v):
+        vor = self.orings[v][:]
+        if len(vor) == 2:vor.remove(u)
+        if len(vor) == 1:return vor[0]
         ror = self.eo(u,v)
         if ror:tip = ror[-1]
         else:tip = u
         return tip
 
     # find a vertex within epsilon of p or create one
-    def fp(self,p,epsilon,**vkws):
+    # ie : 0 - split edges if sufficiently close to an edge
+    def fp(self,p,epsilon,ie = 1,**vkws):
         for j in range(self.vcnt):
             if self.vs[j][1]['p'].d(p) < epsilon:
                 return j
-        return self.av(p = p.cp(),**vkws)
+        nv = self.av(p = p.cp(),**vkws)
+        if ie:
+            for u,v in self.elook:
+                up,vp = self.vs[u][1]['p'],self.vs[v][1]['p']
+                ped = p.dexy(up,vp)
+                if ped > -1 and ped < epsilon:
+                    self.se(u,v,nv)
+                    break
+        return nv
 
     # find an edge between two vertices or create one 
     def fe(self,u,v,**ekws):

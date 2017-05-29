@@ -210,11 +210,14 @@ def mstringargs(mname,m,gm,s,r,t):
     vertices = sio()
     for p in m.gvps_i(gm,range(gm.vertcount)):
         vertices.write('%.6f,%.6f,%.6f,' % (p.x,p.y,p.z))
-    vertices.truncate(len(vertices.getvalue())-1)
+    vertexcnt = len(vertices.getvalue())
+    if vertexcnt > 0:vertices.truncate(vertexcnt-1)
     uvs = sio()
     for u in m.gvus_i(gm,range(gm.vertcount)):
         uvs.write('%.6f,%.6f,' % (u.x,u.y))
-    uvs.truncate(len(uvs.getvalue())-1)
+    uvcnt = len(uvs.getvalue())
+    if uvcnt > 0:uvs.truncate(uvcnt-1)
+    #uvs.truncate(len(uvs.getvalue())-1)
     polygonvertexindex = sio()
     normals = sio()
     uvindex = sio()
@@ -227,9 +230,15 @@ def mstringargs(mname,m,gm,s,r,t):
         uvindex.write('%d,%d,%d,' % (u1,u2,u3))
         for n in m.facenormals(gm,f):
             normals.write('%.6f,%.6f,%.6f,' % (n.x,n.y,n.z))
-    polygonvertexindex.truncate(len(polygonvertexindex.getvalue())-1)
-    normals.truncate(len(normals.getvalue())-1)
-    uvindex.truncate(len(uvindex.getvalue())-1)
+    polygonvertexindexcnt = len(polygonvertexindex.getvalue())
+    if polygonvertexindexcnt > 0:polygonvertexindex.truncate(polygonvertexindexcnt-1)
+    #polygonvertexindex.truncate(len(polygonvertexindex.getvalue())-1)
+    normalcnt = len(normals.getvalue())
+    if normalcnt > 0:normals.truncate(normalcnt-1)
+    #normals.truncate(len(normals.getvalue())-1)
+    uvindexcnt = len(uvindex.getvalue())
+    if uvindexcnt > 0:uvindex.truncate(uvindexcnt-1)
+    #uvindex.truncate(len(uvindex.getvalue())-1)
     a = (mname,
         '%.12f,%.12f,%.12f' % (t.x,t.y,t.z),
         '%.12f,%.12f,%.12f' % (-90,0,0),

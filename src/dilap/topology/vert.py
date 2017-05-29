@@ -24,7 +24,9 @@ class vert:
         self.ix = ix
         self.ring = []
         self.args = args
-        self.kwargs = kwargs
+        for k in kwargs:
+            if not hasattr(self,k):
+                self.__setattr__(k,kwargs[k])
 
 
 

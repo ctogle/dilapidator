@@ -178,21 +178,10 @@ def splotch(vb,easement = 10):
 
     return zip(ps,qs,ss,blgfps)
 
-def lsystemboundary(b):
-    i = 5
-    p,d = vec3(0,0,0).com(b),vec3(0,1,0)
-    #p = b[0].mid(b[1])
-    #d = p.tov(vec3(0,0,0).com(b)).nrm()
-    axiom = '{X}${X}'
-    #rules = dict([('X','{[X}{]X}FX')])
-    rules = dict([('X','A{[X}{]X}AX'),('F','FF'),('A','F')])
-    params = dict(dazimuthal = gtl.rad(25.7),rho = 5)
-
-    i = 3
-    p,d = vec3(0,0,0),vec3(0,1,0)
-    axiom = '{X}${X}'
-    rules = dict([('X','F]{{X}[X}[F{[FX}]X'),('F','FF')])
-    params = dict(dazimuthal = gtl.rad(25),rho = 20)
+def ___lsystemboundary(b):
+    p,d,i,axiom,rules = ((vec3(0,0,0),vec3(0,1,0),5,
+        'X',dict([('X','{[[X}{]X}F]X'),('F','FA'),('A','F')])))
+    params = dict(dazimuthal = gtl.rad(25.7),drho = 20)
 
     pg = dpg.planargraph()
     for piece in lsy.lgen(p,d,axiom,rules,i,**params):
@@ -201,22 +190,23 @@ def lsystemboundary(b):
             v1,v2 = pg.fp(p1,10),pg.fp(p2,10)
             e12 = pg.fe(v1,v2)
         elif isinstance(piece,vec3):pass
-    py = pym.pgtopy(pg,16)[0]
+    py = pym.pgtopy(pg,5)[0]
     py = pym.smoothxy(py,0.5,2)
     #py = pym.aggregate(py,2)
+    py = pym.pinchb(py,5)
 
-    ax = dtl.plot_axes_xy(400)
-    ax = pg.plotxy(ax,l = 300)
-    ax = dtl.plot_polygon_xy(b,ax,lw = 3,col = 'b')
-    ax = dtl.plot_polygon_xy(py,ax,lw = 3,col = 'g')
-    plt.show()
+    #ax = dtl.plot_axes_xy(400)
+    #ax = pg.plotxy(ax,l = 300)
+    #ax = dtl.plot_polygon_xy(b,ax,lw = 3,col = 'b')
+    #ax = dtl.plot_polygon_xy(py,ax,lw = 3,col = 'g')
+    #plt.show()
 
     pyscale = vec3(0,1,0).prjps(py)
     tipscale = vec3(0,1,0).prjps(b)
     pyscale = pyscale[1]-pyscale[0]
     tipscale = tipscale[1]-tipscale[0]
     scale = tipscale/pyscale
-    com = vec3(0,0,0).com(b).tov(vec3(0,0,0).com(py)).uscl(-1.4)
+    com = vec3(0,0,0).com(b).tov(vec3(0,0,0).com(py)).uscl(-1)
     for p in py:p.scl(vec3(scale,scale,0)).trn(com)
 
     ax = dtl.plot_axes_xy(400)
@@ -226,27 +216,4 @@ def lsystemboundary(b):
 
     return py
 
-
-    p = b[0].mid(b[1])
-    d = p.tov(vec3(0,0,0).com(b)).nrm()
-    #p,d = vec3(0,0,0).com(b),vec3(1,1,0)
-
-    ax = dtl.plot_axes(10)
-
-    axiom = 'Q'
-    rules = [('F','FF'),('Q','F[/Q]\\Q')]
-
-    #l = lsy.pythagoras_tree()._realize(p,d,ax)
-    ax = dtl.plot_axes(300)
-    ax = dtl.plot_polygon(b,ax,lw = 2)
-    l = lsy.lsystem(axiom = axiom,rules = rules,iterations = 10)._realize(p,d,ax)
-    plt.show()
-
-    pdb.set_trace()
-
 ###############################################################################
-
-
-
-
-

@@ -14,6 +14,15 @@ __doc__ = '''dilapidator\'s implementation of a topological tree'''
 # dilapidators implementation of a topological tree
 class tree:
 
+    def enum(self,terminals = True,v = None,depth = 0):
+        if v is None:v = self.root
+        b = self.below(v)
+        if not terminals or not b:
+            yield v,depth
+        for c in b:
+            for u in self.enum(terminals,c,depth+1):
+                yield u
+
     vertclass = dvt.vert
     edgeclass = deg.edge
 

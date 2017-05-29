@@ -34,8 +34,8 @@ cdef class vec3:
     ### python object overrides ###############################################
     ###########################################################################
 
-    def __str__(self):return 'vec3:'+str(tuple(self))
-    def __repr__(self):return 'vec3:'+str(tuple(self))
+    def __str__(self):return 'vec3(%f,%f,%f)' % tuple(self)
+    def __repr__(self):return 'vec3(%f,%f,%f)' % tuple(self)
     def __iter__(self):yield self.x;yield self.y;yield self.z
     def __add__(self,o):return vec3(self.x+o.x,self.y+o.y,self.z+o.z)
     def __sub__(self,o):return vec3(self.x-o.x,self.y-o.y,self.z-o.z)
@@ -90,6 +90,23 @@ cdef class vec3:
         cdef float dx = self.x - o.x
         cdef float dy = self.y - o.y
         cdef float ds = sqrt(dx*dx + dy*dy)
+        return ds
+
+    # return the R3 euclidean distance between self and edge segment e1,e2
+    cdef float dexy_c(self,vec3 e1,vec3 e2,bint ie = 0):
+        cdef vec3 tn = e1.tov(e2).nrm()
+        cdef vec3 nm = vec3(tn.y,-tn.x,0)
+        cdef float pe1 = e1.dot(tn)
+        cdef float pe2 = e2.dot(tn)
+        cdef float eleft = pe1 if pe1 < pe2 else pe2
+        cdef float eright = pe1 if pe1 > pe2 else pe2
+        cdef float pself = gtl.near(gtl.near(self.dot(tn),eleft),eright)
+        cdef float ds
+        if ie and (pself == eleft or pself == eright):
+            ds = self.dot(nm)-e1.dot(nm)
+        elif eleft < pself and pself < eright:
+            ds = self.dot(nm)-e1.dot(nm)
+        else:ds = -1.0
         return ds
 
     # return the angle between self and vec3 o
@@ -215,19 +232,21 @@ cdef class vec3:
         cdef int wn = 0
         cdef int px
         cdef int pcnt = len(ps)
-        cdef float read
+        cdef vec3 p1,p2
+        cdef float isleft
         for px in range(pcnt):
-            if self.onsxy_c(ps[px-1],ps[px],1):return 0
-            read = gtl.orient2d_c(self,ps[px-1],ps[px])
-            if ps[px-1].y <= self.y:
-                if ps[px].y > self.y:
-                    if read > 0:wn += 1
+            p1,p2 = ps[px-1],ps[px]
+            if self.onsxy_c(p1,p2,1):return 0
+            isleft = ((p1.x-self.x)*(p2.y-self.y)-(p2.x-self.x)*(p1.y-self.y))
+            if p1.y <= self.y:
+                if p2.y > self.y:
+                    if isleft > 0:
+                        wn += 1
             else:
-                if ps[px].y <= self.y:
-                    if read < 0:wn -= 1
-        #if wn > 0:return 1
-        if not wn == 0:return 1
-        else:return 0
+                if p2.y <= self.y:
+                    if isleft < 0:
+                        wn -= 1
+        return wn
 
     # determine if the point pt is inside the triangle abc
     # assume all points are in the xy plane 
@@ -617,6 +636,11 @@ cdef class vec3:
     cpdef float dxy(self,vec3 o):
         '''determine the R3 euclidean distance between the xy projections of this point and another'''
         return self.dxy_c(o)
+
+    # return the R3 euclidean distance between self and edge segment e1,e2
+    cpdef float dexy(self,vec3 e1,vec3 e2,bint ie = 0):
+        '''determine the R3 euclidean distance between self and edge segment e1,e2'''
+        return self.dexy_c(e1,e2,ie)
 
     # return the angle between self and vec3 o
     cpdef float ang(self,vec3 o):

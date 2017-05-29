@@ -1,5 +1,5 @@
 #imports
-# cython: profile=True
+# cython: profile=False
 #cimport cython
 cimport dilap.geometry.tools as gtl
 import dilap.geometry.tools as gtl
@@ -266,38 +266,14 @@ cdef list loop_location(triangulation data,tuple loop):
         bnd.append((p1.cp(),p2.cp()))
     cdef list ptstack = [lp.cp() for lp in loop]
     #cdef list ptstack = gtl.lexicographic([lp.cp() for lp in loop])
+
+    #prog(0)
+
     while ptstack:
         p1 = ptstack.pop(0)
         point_location(data,p1)
 
-
-        '''#
-        print('len(nnn',len(ptstack))
-        ax = dtl.plot_axes_xy(100)
-        for tri in data.triangles:
-            if tri is None:continue
-            u,v,w = tri
-            trip = tuple(data.points.gps_c((u,v,w)))
-            ax = dtl.plot_polygon_xy(trip,ax,col = 'r')
-            ax = dtl.plot_point_xy(vec3(0,0,0).com(trip),ax)
-        ax = dtl.plot_point_xy_annotate(p1,ax,'p1')
-        plt.show()
-        '''#
-
-        '''#
-        if False and len(data.triangles) >= 12584:
-            ax = dtl.plot_axes_xy(500)
-            for tri in data.triangles:
-                if tri is None:continue
-                u,v,w = tri
-                trip = tuple(data.points.gps_c((u,v,w)))
-                j = data.triangles.index(tri)
-                ax = dtl.plot_polygon_xy(trip,ax,col = 'b',lw = 2)
-                ax = dtl.plot_point_xy(vec3(0,0,0).com(trip),ax,col = 'g')
-                ax = dtl.plot_point_xy_annotate(vec3(0,0,0).com(trip),ax,str(j))
-            plt.show()
-        '''#
-
+        #prog(len(ptstack)/lcnt)
 
     return bnd
 
@@ -524,6 +500,10 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
 # bounds are ordered loops of points with no duplicates
 # bounds are possibly concave; interior bounds represent holes
 cpdef tuple triangulate(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
+    xprjmin,xprjmax = vec3(1,0,0).prjps(ebnd)
+    if hmin/(xprjmax-xprjmin) < 0.001:
+        print('TRIANGULATION HMIN IS DANGEROUSLY LOW... SKIPPING TRIANGULATION')
+        return ([],[])
     return triangulate_c(ebnd,ibnds,hmin,refine,smooth)
 
 def split_nondelauney_edges(eb,ibs):

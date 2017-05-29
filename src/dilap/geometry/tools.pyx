@@ -37,7 +37,7 @@ __doc__ = '''General purpose tool functions...'''
 # if a is within c of b, return True
 # else return False
 cdef bint isnear_c(float a,float b):
-    cdef d = a-b
+    cdef float d = a-b
     d *= d
     if d < epsilon_c:return 1
     else:return 0

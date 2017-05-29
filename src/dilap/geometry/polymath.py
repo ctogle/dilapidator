@@ -18,7 +18,7 @@ import pdb
 # ie  : do endpoint intersections count (end of one segment only)
 # ieb : do endpoint intersections count (end of both segments)
 # col : do colinear intersections counts
-def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True):
+def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,e = 0.01):
     # if segments are colinear and overlapping
     # elif segments are colinear and nonoverlapping
     # elif segments are skew and possibly overlapping
@@ -26,9 +26,16 @@ def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True):
     s1tn,s2tn = s11.tov(s12),s21.tov(s22)
     ds = s11.tov(s21)
     s1crss2 = s1tn.crs(s2tn)
-    s1s2area = gtl.near(s1crss2.mag(),0)
     dscrss1 = ds.crs(s1tn)
-    dss1area = gtl.near(dscrss1.mag(),0)
+
+    #s1s2area = gtl.near(s1crss2.mag(),0)
+    #dss1area = gtl.near(dscrss1.mag(),0)
+
+    s1s2area = s1crss2.mag()
+    if s1s2area < e:s1s2area = 0
+    dss1area = dscrss1.mag()
+    if dss1area < e:dss1area = 0
+
     if s1s2area == 0 and dss1area == 0:
         if not col:return 0
         # if uncontained overlap
@@ -86,7 +93,7 @@ def prjmed(p1,p2,p3,p4,tn):
 # ie  : do endpoint intersections count (end of one segment only)
 # ieb : do endpoint intersections count (end of both segments)
 # col : do colinear intersections counts
-def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,sensi = 1.0):
+def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,e = 0.01):
     # if segments are colinear and overlapping
     # elif segments are colinear and nonoverlapping
     # elif segments are skew and possibly overlapping
@@ -94,9 +101,17 @@ def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,sensi =
     s1tn,s2tn = s11.tov(s12),s21.tov(s22)
     ds = s11.tov(s21)
     s1crss2 = s1tn.crs(s2tn)
-    s1s2area = gtl.near(s1crss2.mag(),0)
+    #s1s2area = gtl.near(s1crss2.mag(),0)
+    s1s2area = s1crss2.mag()
+    if s1s2area < e:
+        #print('ROUND s1s2area',s1s2area)
+        s1s2area = 0
     dscrss1 = ds.crs(s1tn)
-    dss1area = gtl.near(dscrss1.mag(),0)
+    #dss1area = gtl.near(dscrss1.mag(),0)
+    dss1area = dscrss1.mag()
+    if dss1area < e:
+        #print('ROUND dss1area',dss1area)
+        dss1area = 0
     if s1s2area == 0 and dss1area == 0:
         if not col:return None
         # if uncontained overlap
@@ -321,7 +336,7 @@ def bsegbxy(b1,b2):
     while unfn:
         u1,u2 = unfn.pop(0)
         ips = sintbxyp(u1,u2,b2,ieb = False)
-        ips = [p for p in ips if not p.isnear(u1) and not p.isnear(u2)]
+        ips = [p for p in ips if not (p.isnear(u1) or p.isnear(u2))]
         if len(ips) == 0:b1es.append((u1.cp(),u2.cp()))
         else:
             u1u2 = u1.tov(u2)
@@ -436,12 +451,24 @@ def ebuxy_special(bs,epsilon = 5,cellperimlength = 2):
     '''#
     return uloops
 
-# compute the union of two boundary polygons
-def ebuxy(b1,b2,epsilon = 0.1):
-    b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
-    #bo = lambda s1,s2,b : s1.inbxy(b) or s2.inbxy(b) or (s1.onbxy(b) and s2.onbxy(b))
-    bo = lambda s1,s2,b : s1.mid(s2).inbxy(b)
+# compute the union of two full polygons
+# return a list of full polygons
+def epuxy(py1,py2,epsilon = 0.1,debug = False):
+    b1,h1 = py1
+    b2,h2 = py2
+    pys = ebuxy(b1,b2,epsilon,debug,holes = True)
+    if h1 or h2:
+        print('epuxy not implemented warning...')
+    #ax = dtl.plot_axes_xy(200)
+    #for py in pys:
+    #    ax = dtl.plot_polygon_full_xy(py,ax,lw = 2,col = 'b')
+    #plt.show()
+    return pys
 
+# compute the union of two boundary polygons
+def ebuxy(b1,b2,epsilon = 0.1,debug = False,holes = False):
+    b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
+    bo = lambda s1,s2,b : s1.mid(s2).inbxy(b)
     def inn(p):
         pn = vec3(0,0,1).crs(p[0].tov(p[1])).nrm().uscl(2*epsilon)
         pm = p[0].mid(p[1])
@@ -450,48 +477,48 @@ def ebuxy(b1,b2,epsilon = 0.1):
         ep = pm.cp().trn(pn.flp())
         if not ep.inbxy(b1) and not ep.inbxy(b2):return False
         return True
-
     b1inb2 = [p for p in b1segs if bo(p[0],p[1],b2)]
     b2inb1 = [p for p in b2segs if bo(p[0],p[1],b1)]
     b1only = [p for p in b1segs if not p in b1inb2 and not inn(p)]
     b2only = [p for p in b2segs if not p in b2inb1 and not inn(p)]
-
     dfs = sloops(b1only+b2only,epsilon)
 
-    if not (b1inb2 or b2inb1):
-        print('yep')
-    else:
-        print('nope')
-
-    if len(dfs) == 3:
-
-        print(bintbxy(b1,b2,ie = False,ieb = False))
+    if debug:
         ax = dtl.plot_axes_xy(200)
-        #for e in b1only:ax = dtl.plot_edges_xy(e,ax,col = 'b',lw = 8)
-        #for e in b2only:ax = dtl.plot_edges_xy(e,ax,col = 'r',lw = 8)
-        for e in b1inb2:ax = dtl.plot_edges_xy(e,ax,col = 'c',lw = 5,ls = '--')
-        for e in b2inb1:ax = dtl.plot_edges_xy(e,ax,col = 'm',lw = 3,ls = '--')
+        ax = dtl.plot_polygon_xy(b2,ax,lw = 2,col = 'm')
+        for edge in b1segs:
+            ax = dtl.plot_edges_xy(edge,ax,lw = 5,col = 'b')
+        for edge in b1only:
+            ax = dtl.plot_edges_xy(edge,ax,lw = 8,col = 'b')
+        for edge in b1inb2:
+            ax = dtl.plot_edges_xy(edge,ax,lw = 3,col = 'g')
+        #for edge in b2only:
+        #    ax = dtl.plot_edges_xy(edge,ax,lw = 5,col = 'g')
         plt.show()
 
+    if len(dfs) > 1:
+        edfs = 0
+        for jdfs,lp in enumerate(dfs):
+            if binbxy(dfs[edfs],lp,ie = 0):
+                edfs = jdfs
+        if holes:
+            print('genus of ebuxy changed!')
+            return [(dfs.pop(edfs),dfs)]
+        else:
+            print('discarding holes resulting from ebuxy!')
+            return [dfs[edfs]]
+        '''
+        print('promisedland?')
         ax = dtl.plot_axes_xy(200)
-        colors = 'k','r','m'
-        for j in range(3):
-            ax = dtl.plot_polygon_xy(b2,ax,lw = 12-(j+1)*3,col = colors[j])
-        ax = dtl.plot_polygon_xy(b1,ax,lw = 3,col = 'b',ls = '--')
-        ax = dtl.plot_polygon_xy(b2,ax,lw = 3,col = 'g',ls = '--')
+        ax = dtl.plot_polygon_xy(dfs[edfs],ax,lw = 7,col = 'r')
+        ax = dtl.plot_polygon_xy(dfs[0],ax,lw = 5,col = 'b')
+        ax = dtl.plot_polygon_xy(dfs[1],ax,lw = 3,col = 'g')
+        #ax = dtl.plot_polygon_xy(b1,ax,ls = '-.',lw = 5,col = 'k')
+        #ax = dtl.plot_polygon_xy(b2,ax,ls = '--',lw = 5,col = 'k')
         plt.show()
-
-        ax = dtl.plot_axes_xy(200)
-        colors = 'k','r','m'
-        for j in range(3):
-            ax = dtl.plot_polygon_xy(b2,ax,lw = 12-(j+1)*3,col = colors[j])
-        ax = dtl.plot_polygon_xy(b1,ax,lw = 3,col = 'b',ls = '--')
-        ax = dtl.plot_polygon_xy(b2,ax,lw = 3,col = 'g',ls = '--')
-        plt.show()
-
-        pdb.set_trace()
-
-    return dfs
+        '''
+    if holes:return [(dfs[0],[])]
+    else:return dfs
 
 # compute difference of boundary polygons
 def ebdxy(b1,b2,epsilon = 0.1):
@@ -535,7 +562,8 @@ def bsuxy(bs,epsilon = 0.1):
             b = nbs[nbx]
             if   binbxy(ub,b):pass
             elif binbxy(b,ub):nbs[nbx] = ub
-            elif bintbxy(ub,b):
+            #elif bintbxy(ub,b):
+            elif bintbxy(ub,b,ie = True,ieb = True):
                 nbbb = nbs.pop(nbx)
                 newunfn = ebuxy(nbbb,ub,epsilon)
 
@@ -630,12 +658,12 @@ def cleanbxy(b,epsilon = 0.1):
     return b
 
 # compute the area of a boundary polygon in the xy plane
-def bareaxy(b):
+def bareaxy(b,allowzero = False):
     area = 0.0
     for x in range(len(b)):
         b1,b2 = b[x-1],b[x]
         area += (b1.x+b2.x)*(b1.y-b2.y)
-    if area == 0:raise ValueError
+    if not allowzero and area == 0:raise ValueError
     return -area/2.0
 
 # return a vector normal to the boundary polygon b
@@ -793,44 +821,79 @@ def blimithmin(b,minhmin,maxhmin):
 
 # remove additional loops created by intersections 
 # in an improper boundary polygon
-def pinchb(b,epsilon = 0.1):
-    bcom = vec3(0,0,0).com(b)
-    ips,ipxs = [],[]
-    for x in range(len(b)):
-        e1,e2 = b[x-1],b[x]
-        for y in range(len(b)):
-            if x == y:continue
-            e3,e4 = b[y-1],b[y]
-            ip = sintsxyp(e1,e2,e3,e4,ie = False,col = False)
-            if not ip is None:ips.append(ip);ipxs.append(x)
-    if len(ips) == 0:
-        if not bccw(b):b.reverse()
-        return b
-    ips.reverse();ipxs.reverse()
-    for x,ip in zip(ipxs,ips):b.insert(x,ip)
-    g = sstopg([(b[x-1],b[x]) for x in range(len(b))],epsilon)
+def pinchb(b,epsilon = 5):
+    pde = lambda p,e1,e2 : abs()
+    new = lambda s1,s2 : not ((s1,s2) in unfin or (s1,s2) in unfin)
+    unfin = [(b[x-1],b[x]) for x in range(len(b))]
+    fin = []
+    while unfin:
+        u1,u2 = unfin.pop(0)
+        clear = True
+        for e1,e2 in unfin:
+            e1u12d = e1.dexy(u1,u2,0)
+            e2u12d = e2.dexy(u1,u2,0)
+            if False and e1u12d > -1 and e1u12d < epsilon:
 
-    '''#
-    if not bvalidxy(b) > 0: 
-        print('balls',epsilon)
-        uls = g.uloops('cw')
+                ax = dtl.plot_axes_xy(200)
+                ax = dtl.plot_polygon_xy(b,ax,lw = 2,ls = '--',col = 'k')
+                ax = dtl.plot_edges_xy((u1,u2),ax,lw = 3,col = 'b')
+                ax = dtl.plot_edges_xy((e1,e2),ax,lw = 3,col = 'g')
+                plt.show()
 
-        ax = g.plotxy(l = 500)
-        ols = [[g.vs[j][1]['p'].cp() for j in ul] for ul in uls]
-        for ol in ols:ax = dtl.plot_polygon_xy(ol,ax,lw = 2)
-        plt.show()
+                pdb.set_trace()
+            elif False and e2u12d > -1 and e2u12d < epsilon:
 
-        print('amen2')
-    '''#
+                ax = dtl.plot_axes_xy(200)
+                ax = dtl.plot_polygon_xy(b,ax,lw = 2,ls = '--',col = 'k')
+                ax = dtl.plot_edges_xy((u1,u2),ax,lw = 3,col = 'b')
+                ax = dtl.plot_edges_xy((e1,e2),ax,lw = 3,col = 'g')
+                plt.show()
 
-    uls = g.uloops('ccw')
-    ols = [[g.vs[j][1]['p'].cp() for j in ul] for ul in uls]
-    if len(ols) == 1:ol = ols[0]
-    else:
-        las = [abs(bareaxy(ol)) if not len(ol) == len(b) else 0 for ol in ols]
-        ol = ols[las.index(max(las))]
-    if not bccw(ol):ol.reverse()
-    return ol
+                pdb.set_trace()
+            elif e1.onsxy(u1,u2,0):
+                if new(u1,e1):unfin.append((u1,e1))
+                if new(e1,u2):unfin.append((e1,u2))
+                clear = False
+                break
+            elif e2.onsxy(u1,u2,0):
+                if new(u1,e2):unfin.append((u1,e2))
+                if new(e2,u2):unfin.append((e2,u2))
+                clear = False
+                break
+            elif sintsxy(u1,u2,e1,e2,ie = False,ieb = False):
+                '''#
+                ax = dtl.plot_axes_xy(200)
+                for u in unfin:
+                    ax = dtl.plot_edges_xy(u,ax,col = 'r',lw = 8)
+                for f in fin:
+                    ax = dtl.plot_edges_xy(f,ax,col = 'g',lw = 7)
+                ax = dtl.plot_edges_xy((u1,u2),ax,col = 'c',lw = 5)
+                ax = dtl.plot_edges_xy((e1,e2),ax,col = 'b',lw = 2)
+                plt.show()
+                '''#
+                if sintsxy(u1,u2,e1,e2,ie = False,ieb = False,col = False):
+                    ip = sintsxyp(u1,u2,e1,e2)
+                    if new(u1,ip):unfin.append((u1,ip))
+                    if new(ip,u2):unfin.append((ip,u2))
+                    clear = False
+                    break
+                else:
+                    if new(u1,u2):unfin.append((u1,u2))
+                    clear = False
+        if clear:
+            fin.append((u1,u2))
+
+    uloops = sloops(fin,epsilon)
+    if len(uloops) > 1:
+        #las = [bareaxy(ol) for ol in uloops]
+        las = [bareaxy(ol,True) for ol in uloops]
+        ulas = [(u,a) for u,a in zip(uloops,las) if a > 10]
+        if ulas:
+            uloops,las = zip(*ulas)
+            uloops,las = list(uloops),list(las)
+            uloops.insert(0,uloops.pop(las.index(max(las))))
+    print('PINCHB ACCOMPLISHED')
+    return uloops
 
 # evenly contract a boundary polygon
 def contract(b,ds,epsilon = 0.1):
@@ -892,16 +955,27 @@ def contract(b,ds,epsilon = 0.1):
     return fbnd
 
 # return an xy plane laplacian smoothed version of a boundary polygon
-def smoothxy(b,w = 0.1,epsilon = 0.1):
+def smoothxy(b,w = 0.1,epsilon = 0.1,constraint = 0):
     db = []
     for x in range(len(b)):
         b0,b1,b2 = b[x-2],b[x-1],b[x]
         ecom = vec3(0,0,0).com((b0,b2))
-        db.append(b1.tov(ecom).uscl(w))
+        if constraint:
+            closer = b1.cp().trn(ecom.cp().uscl(2*epsilon)).inbxy(b)
+            if constraint == -1 and closer:db.append(vec3(0,0,0))
+            elif constraint == 1 and not closer:db.append(vec3(0,0,0))
+            else:db.append(b1.tov(ecom).uscl(w))
+        else:db.append(b1.tov(ecom).uscl(w))
     db.append(db.pop(0))
     sb = [p.cp().trn(ds) for p,ds in zip(b,db)]
-    if len(sb) > 3:sb = pinchb(sb,epsilon)
+    if len(sb) > 3:sb = pinchb(sb,epsilon)[0]
     return sb
+
+def smoothxyi(b,w = 0.1,epsilon = 0.1,i = 10,constraint = 0):
+    for j in range(i):
+        b = smoothxy(b,w,epsilon,constraint)
+        print('smoothxyi',i)
+    return b
 
 # return a version of a boundary polygon where 
 # points within ds of one another are merged
@@ -937,8 +1011,9 @@ def sstopg(segs,epsilon = 0.1,plot = False):
     g = pgr.planargraph()
     for e1,e2 in segs:
         v1,v2 = g.fp(e1,epsilon),g.fp(e2,epsilon)
-        if v1 == v2:print('seg is smaller than epsilon')
+        if v1 == v2:pass#print('seg is smaller than epsilon')
         elif not v2 in g.rings[v1]:g.fe(v1,v2)
+        elif not v1 in g.rings[v2]:g.fe(v2,v1)
     if plot:
         ax = g.plotxy(l = 500)
         plt.show()
@@ -946,19 +1021,13 @@ def sstopg(segs,epsilon = 0.1,plot = False):
 
 # generate a full polygon from a planar graph
 ##### why is it sometimes useful to flip z???
-def pgtopy(pg,r,epsilon = 0.1,z = vec3(0,0,1)):
+def pgtopy(pg,r,epsilon = 0.1,z = vec3(0,0,1),findeseam = False):
     loops,seams,eseam = pg.uloops('ccw'),[],None
     for lp in loops:
         seam = []
         seams.append(seam)
 
         # IF PG IS NONPLANAR, PY SHOULD BE NONPLANAR
-        # NONPLANAR PG CAUSES ISSUES IN THIS COMPUTATION CURRENTLY
-        # MODIFY TO USE XY PROJECTION OF PG INSTEAD!!!
-        # NONPLANAR PG CAUSES ISSUES IN THIS COMPUTATION CURRENTLY
-        # MODIFY TO USE XY PROJECTION OF PG INSTEAD!!!
-        # NONPLANAR PG CAUSES ISSUES IN THIS COMPUTATION CURRENTLY
-        # MODIFY TO USE XY PROJECTION OF PG INSTEAD!!!
         # NONPLANAR PG CAUSES ISSUES IN THIS COMPUTATION CURRENTLY
         # MODIFY TO USE XY PROJECTION OF PG INSTEAD!!!
 
@@ -982,36 +1051,14 @@ def pgtopy(pg,r,epsilon = 0.1,z = vec3(0,0,1)):
                     s4 = lpp2.cp().trn(lpnm2).trn(lptn2.cp().uscl( 1000))
                     ip = sintsxyp(s1,s2,s3,s4,col = 0)
                     cnm = lpp1.tov(ip)
-
-                    '''#
-                    ax = dtl.plot_axes_xy(200)
-                    ax = dtl.plot_vector_xy(lpp0,lpnm1,ax)
-                    ax = dtl.plot_vector_xy(lpp1,lpnm1,ax)
-                    ax = dtl.plot_vector_xy(lpp1,lpnm2,ax)
-                    ax = dtl.plot_vector_xy(lpp2,lpnm2,ax)
-                    ax = dtl.plot_vector_xy(lpp0,lpnm12,ax)
-                    ax = dtl.plot_vector_xy(lpp1,lpnm12,ax)
-                    ax = dtl.plot_vector_xy(lpp1,lpnm22,ax)
-                    ax = dtl.plot_vector_xy(lpp2,lpnm22,ax)
-                    ax = dtl.plot_edges_xy((s1,s2),ax,lw = 2,col = 'b')
-                    ax = dtl.plot_edges_xy((s3,s4),ax,lw = 2,col = 'g')
-                    ax = dtl.plot_edges_xy((lpp0,lpp1,lpp2),ax,col = 'k')
-                    if seam:ax = dtl.plot_edges_xy(seam,ax,col = 'k',lw = 4)
-                    ax = dtl.plot_points_xy((ip,),ax,number = True)
-                    plt.show()
-                    '''#
-
                 seam.append(lpp1.cp().trn(cnm))
-
+        if not bccw(seam):seam.reverse()
         if eseam is None:eseam = 0
         else:
             if binbxy(seams[eseam],seam):
                 eseam = len(seams)-1
-
-    for sx in range(len(seams)):
-        if not bccw(seams[sx]):seams[sx].reverse()
-
     if eseam is None:return None
+    if findeseam:return eseam,seams,loops
     py = [seams.pop(eseam),seams]
     return py
 

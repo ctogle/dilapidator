@@ -10,10 +10,10 @@ FBXHeaderExtension:   {
 		Version: 1000
 		Year: 2017
 		Month: 05
-		Day: 28
-		Hour: 9
-		Minute: 18
-		Second: 11
+		Day: 29
+		Hour: 11
+		Minute: 8
+		Second: 1
 		Millisecond: 0
 	}
 	Creator: "dilapidator"
@@ -21,7 +21,7 @@ FBXHeaderExtension:   {
 		FlagPLE: 0
 	}
 }
-CreationTime: "2017-05-28 09:18:11:000"
+CreationTime: "2017-05-29 11:08:01:000"
 Creator: "dilapidator"
 
 ; Object definitions

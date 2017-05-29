@@ -538,8 +538,6 @@ def split_nondelauney_edges(eb,ibs):
 
     neb = handle_loop(eb)
     nibs = [handle_loop(ib) for ib in ibs]
-    #neb = split_loop(list(eb))
-    #nibs = [split_loop(list(ib)) for ib in ibs]
     return tuple(neb),tuple(tuple(nib) for nib in nibs)
 
 def split_nondelauney_edges_chew1(eb,ibs):
@@ -560,13 +558,8 @@ def split_nondelauney_edges_chew1(eb,ibs):
                 for dvp in divpts:
                     oloop.append(dvp)
             if not x == 0:oloop.append(p2)
-
         return oloop
 
     neb = split_loop(list(eb))
     nibs = [split_loop(list(ib)) for ib in ibs]
     return hmin,tuple(neb),tuple(tuple(nib) for nib in nibs)
-
-
-
-

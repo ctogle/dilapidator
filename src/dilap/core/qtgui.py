@@ -225,7 +225,7 @@ class mwindow(QtGui.QMainWindow):
             x,y = convert_pixel_space(300,300)
             x_size,y_size = convert_pixel_space(512,512)
             geo = (x,y,x_size,y_size)
-        gearicon = QtGui.QIcon(mb.resource_path('gear.png'))
+        gearicon = QtGui.QIcon(mb.resource_path('gear.png')[0])
         self.setWindowIcon(gearicon)
         self.setWindowTitle(wt)
         self.setGeometry(*geo)

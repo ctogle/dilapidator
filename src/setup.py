@@ -11,9 +11,13 @@ import os
 
 userdata = os.path.join(appdirs.user_data_dir(),'dilap_resources')
 rsrcdata = os.path.join(os.getcwd(),'resources')
-#rsrcs = [os.path.join(r,f) for r,ds,fs in os.walk(rsrcdata) for f in fs]
 shutil.rmtree(userdata)
 shutil.copytree(rsrcdata,userdata)
+
+
+scripts = [
+    'bin/dilap-gen',
+    'bin/dilap-serve', ]
 
 
 pkgs = [
@@ -50,13 +54,12 @@ def install(*ags):
         url='http://github.com/ctogle/dilapidator.git',
         license='MIT License',
         long_description='procedural mesh generation for export to other applications (.obj, .fbx)',
-        scripts=['bin/dilap'],
+        scripts=scripts,
         packages=pkgs, 
         ext_modules=exts,
         cmdclass={'build_ext': build_ext},
         include_dirs=[numpy.get_include()],
         data_files=[], )
-        #data_files=[(userdata,rsrcs)], )
 
 
 if __name__ == '__main__':

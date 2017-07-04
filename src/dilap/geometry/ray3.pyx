@@ -66,10 +66,10 @@ cdef class ray3:
         cdef vec3 T  = t1.tov_c(self.o)
         cdef vec3 P  = self.d.crs_c(e2)
         cdef vec3 Q  = T.crs_c(e1)
-        cdef float d = dpr.near_c(P.dot_c(e1),0)
-        cdef float t = dpr.near_c(Q.dot_c(e2),0)
-        cdef float u = dpr.near_c(P.dot_c(T),0)
-        cdef float v = dpr.near_c(Q.dot_c(self.d),0)
+        cdef float d = dpr.near_c(P.dot_c(e1),0,dpr.epsilon_c)
+        cdef float t = dpr.near_c(Q.dot_c(e2),0,dpr.epsilon_c)
+        cdef float u = dpr.near_c(P.dot_c(T),0,dpr.epsilon_c)
+        cdef float v = dpr.near_c(Q.dot_c(self.d),0,dpr.epsilon_c)
         if d*d < dpr.epsilonsq_c:return 0
         else:d = 1/d
         t *= d;u *= d;v *= d
@@ -117,7 +117,7 @@ cdef class ray3:
         cdef vec3 p1 = self.o.cp_c().trn_c(self.d)
         cdef float den = n.dot_c(p0.tov_c(p1))
         cdef float num = n.dot_c(p0.tov_c(r))
-        if dpr.isnear_c(den,0):return 0
+        if dpr.isnear_c(den,0,dpr.epsilon_c):return 0
         else:t = num/den
         if t < 0:
             self.c.x = -1;self.c.y = 0;self.c.z = 0

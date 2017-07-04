@@ -30,18 +30,18 @@ cdef float maxfloat_c = maxfloat
 
 # if a is within c of b, return True
 # else return False
-cdef bint isnear_c(float a,float b):
+cdef bint isnear_c(float a,float b,float c):
     cdef float d = a-b
     d *= d
-    if d < epsilon_c:return 1
+    if d < c:return 1
     else:return 0
 
 # if a is within c of b, return b
 # else return a
-cdef float near_c(float a,float b):
+cdef float near_c(float a,float b,float c):
     cdef d = a-b
     d *= d
-    if d < epsilon_c:return b
+    if d < c:return b
     else:return a
 
 # convert an angle from degrees to radians
@@ -64,8 +64,8 @@ cdef float wrap_c(float v,float f,float c):
     else:return v                                  
 
 # is a on the interior of (a,b) given an error of d
-cdef bint inrng_c(float a,float b,float c):
-    cdef float r = near_c(near_c(a,b),c)
+cdef bint inrng_c(float a,float b,float c,float d):
+    cdef float r = near_c(near_c(a,b,d),c,d)
     #cdef bint inr = r >= b and r <= c
     cdef bint inr = r > b and r < c
     return inr
@@ -100,7 +100,7 @@ cdef float orient2d_c(vec3 a,vec3 b,vec3 c):
     cdef float m21 = b.x-c.x
     cdef float m22 = b.y-c.y
     cdef float det = m11*m22-m12*m21
-    return near_c(det,0)
+    return near_c(det,0,epsilon_c)
 
 # determine if d is inside the circumcircle of the triangle a,b,c
 cdef float incircle_c(vec3 a,vec3 b,vec3 c,vec3 d):
@@ -116,7 +116,7 @@ cdef float incircle_c(vec3 a,vec3 b,vec3 c,vec3 d):
     cdef float det1 = m11*(m22*m33-m23*m32)
     cdef float det2 = m12*(m21*m33-m23*m31)
     cdef float det3 = m13*(m21*m32-m22*m31)
-    cdef float inc = near_c(det1 - det2 + det3,0)
+    cdef float inc = near_c(det1 - det2 + det3,0,epsilon_c)
     return inc
 
 # rotate a polygon: (extbnd,(holes...)) by a quaternion q
@@ -166,22 +166,21 @@ cdef vec3 tng_c(vec3 c1,vec3 c2,vec3 c3):
 
 
 
-'''
 ###############################################################################
 ### python space
 ###############################################################################
 
 # if a is within c of b, return True
 # else return False
-cpdef bint isnear(float a,float b):
+cpdef bint isnear(float a,float b,float c):
     #'''determine if a is within a neighborhood c of b'''
-    return isnear_c(a,b)
+    return isnear_c(a,b,c)
 
 # if a is within c of b, return b
 # else return a
-cpdef float near(float a,float b):
+cpdef float near(float a,float b,float c):
     #'''effectively round a to b if within a neighborhood c'''
-    return near_c(a,b)
+    return near_c(a,b,c)
 
 # convert an angle from degrees to radians
 cpdef float rad(float deg):
@@ -204,9 +203,9 @@ cpdef float wrap(float v,float f,float c):
     return wrap_c(v,f,c)
 
 # is a on the interior of (a,b) given an error of d
-cpdef bint inrng(float a,float b,float c):
+cpdef bint inrng(float a,float b,float c,float d):
     #'''determine if a value is on an open interval'''
-    return inrng_c(a,b,c)
+    return inrng_c(a,b,c,d)
 
 # return the shortest angular distance between two angles
 cpdef float adist(float a1,float a2):
@@ -272,7 +271,6 @@ def lexicographic(unops):
                 ymin = u.y
         ops.append(ufn.pop(ux))
     return ops
-'''
     
 
 

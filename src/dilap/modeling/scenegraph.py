@@ -27,10 +27,13 @@ class scenevert(dvt.vert):
         for mod in self.models:mod.trn(t)
         return self
 
-    def graph(self,io,wtform,**kws):
+    #def graph(self,io,wtform,**kws):
+    def graph(self,wtform):
         s,r,t = wtform.scl,wtform.rot,wtform.pos
         self.scl(s).rot(r).trn(t)
-        for mod in self.models:io.build_model2(mod,**kws)
+        for mod in self.models:
+            yield mod
+            #io.build_model(mod,**kws)
         t = wtform.pos.cpf()
         r = wtform.rot.cpf()
         s = wtform.scl.cpr()
@@ -49,29 +52,12 @@ class scenegraph(dtr.tree):
         vrt = dtr.tree.avert(self,parent,ntf,*args,**kwargs)
         return vrt
 
-    def graphvert(self,vrt,ptf,io,**kws):
+    def graphvert(self,vrt,ptf):
         wtform = vrt.tform.true(ptf)
         print('vrt!\n',vrt.ix,wtform,'\nfrom\n',vrt.tform,'\nfrom\n',ptf)
-        vrt.graph(io,wtform,**kws)
-        for x in self.below(vrt):self.graphvert(x,wtform,io,**kws)
+        yield from vrt.graph(wtform)
+        for x in self.below(vrt):
+            yield from self.graphvert(x,wtform)
 
-    def graph(self,io,**kws):
-        if hasattr(io,'new'):
-            tree = io.new(self)
-            if not io.worlddir:
-                io.worlddir = os.path.join(os.getcwd(),'fbxworld')
-            if not os.path.exists(io.worlddir):
-                os.mkdir(io.worlddir)
-            tree.write(os.path.join(io.worlddir,'world.fbx'))
-        else:
-            self.graphvert(self.root,None,io,**kws)
-      
-
-
-
-
-
-
-
-
-
+    def graph(self):
+        yield from self.graphvert(self.root,None)

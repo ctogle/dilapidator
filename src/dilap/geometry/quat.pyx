@@ -173,8 +173,8 @@ cdef class quat:
     # a rotation by self and then q (q * self)
     cdef quat mul_c(self,quat o):
         cdef float nw,nx,ny,nz
-        if gtl.isnear_c(self.w,0):nw,nx,ny,nz = o.__iter__()
-        elif gtl.isnear_c(o.w,0):nw,nx,ny,nz = self.__iter__()
+        if gtl.isnear_c(self.w,0,gtl.epsilon_c):nw,nx,ny,nz = o.__iter__()
+        elif gtl.isnear_c(o.w,0,gtl.epsilon_c):nw,nx,ny,nz = self.__iter__()
         else:
             nw = o.w*self.w - o.x*self.x - o.y*self.y - o.z*self.z
             nx = o.w*self.x + o.x*self.w + o.y*self.z - o.z*self.y
@@ -209,11 +209,11 @@ cdef class quat:
     cdef quat slerp_c(self,quat o,float ds):
         cdef float hcosth = self.dot_c(o)
         # will need to flip result direction if hcosth < 0????
-        if gtl.isnear_c(abs(hcosth),1.0):return self.cp_c()
+        if gtl.isnear_c(abs(hcosth),1.0,gtl.epsilon_c):return self.cp_c()
         cdef float hth    = acos(hcosth)
         cdef float hsinth = sqrt(1.0 - hcosth*hcosth)
         cdef float nw,nx,ny,nz,a,b
-        if gtl.isnear_c(hsinth,0): 
+        if gtl.isnear_c(hsinth,0,gtl.epsilon_c): 
             nw = (self.w*0.5 + o.w*0.5)
             nx = (self.x*0.5 + o.x*0.5)
             ny = (self.y*0.5 + o.y*0.5)

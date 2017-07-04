@@ -45,14 +45,14 @@ def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,e = 0.01
         # else disjoint
         s1l = s1tn.mag()
         s1dots2 = s1tn.dot(s2tn)
-        apara = gtl.near(s1dots2,0) < 0
+        apara = gtl.near(s1dots2,0,e) < 0
         t0 = ds.dot(s1tn)/s1l**2
         t1 = t0+s1dots2/s1l**2
-        t0 = gtl.near(gtl.near(t0,0),1)
-        t1 = gtl.near(gtl.near(t1,0),1)
+        t0 = gtl.near(gtl.near(t0,0,e),1,e)
+        t1 = gtl.near(gtl.near(t1,0,e),1,e)
         if apara:t0,t1 = t1,t0
-        if gtl.inrng(t0,0,1) or gtl.inrng(t1,0,1):return 1
-        elif gtl.inrng(0,t0,t1) and gtl.inrng(1,t0,t1):return 1
+        if gtl.inrng(t0,0,1,e) or gtl.inrng(t1,0,1,e):return 1
+        elif gtl.inrng(0,t0,t1,e) and gtl.inrng(1,t0,t1,e):return 1
         elif (t0 == 0 and t1 == 1) or (t0 == 1 and t1 == 0):return 1 if ieb else 0
         elif (t0 == 0 and t1 > t0) or (t1 == 0 and t0 > t1):return 1
         elif (t0 < t1 and t1 == 1) or (t1 < t0 and t0 == 1):return 1
@@ -66,8 +66,8 @@ def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,e = 0.01
         # elif no proper intersection at neither segments endpoints
         # else must have intersected by one of three possible cases
         dscrss2 = ds.crs(s2tn)
-        u = gtl.near(gtl.near(dscrss1.z/s1crss2.z,0),1)
-        t = gtl.near(gtl.near(dscrss2.z/s1crss2.z,0),1)
+        u = gtl.near(gtl.near(dscrss1.z/s1crss2.z,0,e),1,e)
+        t = gtl.near(gtl.near(dscrss2.z/s1crss2.z,0,e),1,e)
         if not ieb and ((u == 0 or u == 1) and (t == 0 or t == 1)):return 0
         elif not ie and ((u == 0 or t == 0) or (u == 1 or t == 1)):return 0
         elif not (0 <= u and u <= 1) or not (0 <= t and t <= 1):return 0
@@ -122,15 +122,15 @@ def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,e = 0.0
         # else disjoint
         s1l,s2l = s1tn.mag(),s2tn.mag()
         s1dots2 = s1tn.dot(s2tn)
-        apara = gtl.near(s1dots2,0) < 0
+        apara = gtl.near(s1dots2,0,e) < 0
         t0 = ds.dot(s1tn)/s1l**2
         t1 = t0+s1dots2/s1l**2
-        t0 = gtl.near(gtl.near(t0,0),1)
-        t1 = gtl.near(gtl.near(t1,0),1)
+        t0 = gtl.near(gtl.near(t0,0,e),1,e)
+        t1 = gtl.near(gtl.near(t1,0,e),1,e)
         if apara:t0,t1 = t1,t0
-        if gtl.inrng(t0,0,1) or gtl.inrng(t1,0,1):
+        if gtl.inrng(t0,0,1,e) or gtl.inrng(t1,0,1,e):
             return prjmed(s11,s12,s21,s22,s1tn)
-        elif gtl.inrng(0,t0,t1) and gtl.inrng(1,t0,t1):
+        elif gtl.inrng(0,t0,t1,e) and gtl.inrng(1,t0,t1,e):
             return prjmed(s11,s12,s21,s22,s1tn)
         elif (t0 == 0 and t1 == 1) or (t0 == 1 and t1 == 0):
             return None if not ieb else (s11.cp(),s12.cp())
@@ -683,7 +683,7 @@ def bnrm(b):
             #plt.show()
             raise ValueError
         cang = c1c2.ang(c2c3)
-        if not gtl.isnear(cang,0) and not gtl.isnear(cang,gtl.PI):
+        if not gtl.isnear(cang,0,gtl.epsilon) and not gtl.isnear(cang,gtl.PI,gtl.epsilon):
             if cang > -numpy.pi+0.001 and cang < numpy.pi-0.001:
                 pn.trn(c1c2.crs(c2c3).nrm())
     return pn.nrm()
@@ -917,7 +917,7 @@ def contract(b,ds,epsilon = 0.1):
         ip = sintsxyp(s11,s12,s21,s22,ie = False,col = False)
 
         #if ip is None:
-        if ip is None or gtl.isnear(abs(w1t.dot(w2t)),1):
+        if ip is None or gtl.isnear(abs(w1t.dot(w2t)),1,gtl.epsilon):
             pn = p2.cp().trn(w1n)
 
         else:pn = ip.cp()

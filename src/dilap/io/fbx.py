@@ -2,8 +2,24 @@ import dilap.topology.tree as dtr
 import dilap.topology.vert as dvt
 import dilap.geometry.tools as gtl
 import dilap.core.base as db
-import collections,re,os,pdb
 from io import StringIO as sio
+import collections
+import re
+import os
+import pdb
+
+
+class interface(object):
+
+    @staticmethod
+    def build_context(cx,path):
+        for ch in cx.children:
+            interface.build_context(ch,path)
+        tree = fbxtree.new(cx.sgraph)
+        if not os.path.exists(path):
+            os.mkdir(path)
+        tree.write(os.path.join(path,'world.fbx'))
+
 
 class fbxvert(dvt.vert):
 
@@ -22,6 +38,7 @@ class fbxvert(dvt.vert):
             self.attributes.append((None,None))
             self.newlinecount += 1
 
+
     def identify(self,l):
         if l.endswith('{'):l = l[:-1].strip()
         if l.endswith(':'):
@@ -32,18 +49,22 @@ class fbxvert(dvt.vert):
             self.name = l[:s].strip()
             self.properties = l[s+1:].strip()
 
+
     def findeach(self,name):
         for j,a in enumerate(self.attributes):
             if a[0] == name:
                 yield j,a
 
+
     def find(self,name):
         each = [e for e in self.findeach(name)]
         return each
 
+
     def __str__(self):
         s = ':'.join([self.name,self.properties])
         return s
+
 
     def __init__(self,ix,tag):
         dvt.vert.__init__(self,ix)
@@ -51,6 +72,7 @@ class fbxvert(dvt.vert):
         self.attributes = []
         self.commentcount = 0
         self.newlinecount = 0
+
 
 class fbxtree(dtr.tree):
 
@@ -64,6 +86,7 @@ class fbxtree(dtr.tree):
         for c in self.below(v):
             print(' '*6*depth+'|'+('='*(len(strv)-5))+'> ',end = '')
             self.print(c,depth)
+
 
     def ascii(self,v = None,depth = -1):
         if v is None:v = self.root
@@ -84,13 +107,16 @@ class fbxtree(dtr.tree):
             else:
                 yield '%s%s: %s' % ('\t'*depth,ak,av)
 
+
     def __repr__(self):
         s = '\n'.join([l for l in self.ascii()])
         return s
 
+
     def __init__(self):
         self.vertclass = fbxvert
         dtr.tree.__init__(self,'ROOT:')
+
 
     def findeach(self,name,v = None):
         if v is None:v = self.root
@@ -101,19 +127,23 @@ class fbxtree(dtr.tree):
         if v.name == name:
             yield v
 
+
     def find(self,name,v = None):
         each = [e for e in self.findeach(name,v)]
         return each
+
 
     attribute = re.compile('^(.+:.*[^{]?|;.*)$')
     continued = re.compile('^[^:{;]+$')
     nodepush = re.compile('^.+:.*{$')
     nodepop = re.compile('^}$')
 
+
     def write(self,path):
         with open(path,'w') as f:
             for l in self.ascii():
                 f.write(l+os.linesep)
+
 
     @classmethod
     def readlines(cls,lineiter):
@@ -138,6 +168,7 @@ class fbxtree(dtr.tree):
             else:cursor.attribute(s)
         return tree
 
+
     @classmethod
     def read(cls,path):
         if os.path.exists(path):
@@ -146,6 +177,7 @@ class fbxtree(dtr.tree):
         elif os.linesep in path:
             tree = cls.readlines((l.strip() for l in path.split(os.linesep)))
         return tree
+
 
     @classmethod
     def new(cls,sg,**kws):
@@ -188,10 +220,12 @@ class fbxtree(dtr.tree):
         tree = cls.read(template % targs)
         return tree
 
+
 def read(path,*ags,**kws):return fbxtree.read(path,*ags,**kws)
 def new(*ags,**kws):return fbxtree.new(*ags,**kws)
 
-worlddir = None
+
+#worlddir = None
 modellookup = {}
 def uniquefilename(m,gm):
     name = '%s.%d.%d'
@@ -201,6 +235,7 @@ def uniquefilename(m,gm):
     n = modellookup[m.filename]
     name = name % (m.filename,n,m.gfxmeshes.index(gm))
     return name
+
 
 def mstringargs(mname,m,gm,s,r,t):
     # i expect issues if vertices are missing (any were deleted)
@@ -246,6 +281,7 @@ def mstringargs(mname,m,gm,s,r,t):
         vertices.getvalue(),polygonvertexindex.getvalue(),
         normals.getvalue(),uvs.getvalue(),uvindex.getvalue())
     return a
+
 
 template = '''\
 ; FBX 6.1.0 project file
@@ -339,6 +375,7 @@ Version5 :  {
   }
 }'''
 
+
 definitions = '''\
   Version : 100
   Count : 3
@@ -358,11 +395,13 @@ definitions = '''\
     Count : 1
   }'''
   
+
 def objectproperties(modstrings,posestring): 
     matstrings = [material]
     posestring = [pose % (len(modstrings),'\n'.join(posestring))]
     settstring = [globalsettings]
     return '\n'.join(modstrings+matstrings+posestring+settstring)
+
 
 objectrelationmesh = '''\
   Model : "Model::%s", "Mesh" {
@@ -391,9 +430,11 @@ def objectrelations(modelrelationstring):
   }''' % modelrelationstring
     return relations
 
+
 objectconnectionstring = '''\
     Connect : "OO", "Model::%s", "Model::Scene"
     Connect : "OO", "Material::Material", "Model::%s"'''
+
 
 material = '''\
   Material: "Material::Material", "" {
@@ -427,6 +468,7 @@ material = '''\
     }
   }'''
 
+
 pose = '''\
   Pose: "Pose::BIND_POSES", "BindPose" {
     Type: "BindPose"
@@ -437,11 +479,13 @@ pose = '''\
     %s
   }'''
 
+
 posenode = '''\
     PoseNode:  {
       Node: "Model::%s"
       Matrix: 0.000000075497901,0.000000000000000,-1.000000000000000,0.000000000000000,-1.000000000000000,0.000000000000000,-0.000000075497901,0.000000000000000,0.000000000000000,1.000000000000000,0.000000000000000,0.000000000000000,0.000000000000000,0.000000000000000,0.000000000000000,1.000000000000000
     }'''
+
 
 globalsettings = '''\
   GlobalSettings:  {
@@ -456,6 +500,7 @@ globalsettings = '''\
       Property: "UnitScaleFactor", "double", "",1
     }
   }'''
+
 
 mstring = '''\
   Model : "Model::%s", "Mesh" {

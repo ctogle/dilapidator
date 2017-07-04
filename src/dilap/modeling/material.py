@@ -42,7 +42,7 @@ class material(db.base):
         msio.write('Ks 0.000 0.000 0.000\n')
         msio.write('d 1.0\n')
         msio.write('illum 2\n')
-        dtexture = db.resource_path(self.dtexture)
+        dtexture = db.resource_path(self.dtexture)[0]
         msio.write('map_Kd '+dtexture+'\n')
         msio.write('\n')
 

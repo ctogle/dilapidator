@@ -36,8 +36,8 @@ class planargraph(dwg.wiregraph):
         e2 = vp.tov(wp)
         etn1 = e1.cp().nrm()
         etn2 = e2.cp().nrm()
-        para  = gtl.isnear(etn1.dot(etn2), 1)
-        apara = gtl.isnear(etn1.dot(etn2),-1)
+        para  = gtl.isnear(etn1.dot(etn2), 1, gtl.epsilon)
+        apara = gtl.isnear(etn1.dot(etn2),-1, gtl.epsilon)
         if apara:sa = numpy.pi
         elif para:sa = 0
         else:sa = e1.sang(e2,vec3(0,0,1))

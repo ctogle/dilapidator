@@ -100,7 +100,7 @@ cdef class vec3:
         cdef float pe2 = e2.dot(tn)
         cdef float eleft = pe1 if pe1 < pe2 else pe2
         cdef float eright = pe1 if pe1 > pe2 else pe2
-        cdef float pself = gtl.near(gtl.near(self.dot(tn),eleft),eright)
+        cdef float pself = gtl.near(gtl.near(self.dot(tn),eleft,gtl.epsilon_c),eright,gtl.epsilon_c)
         cdef float ds
         if ie and (pself == eleft or pself == eright):
             ds = self.dot(nm)-e1.dot(nm)
@@ -118,8 +118,8 @@ cdef class vec3:
             return 0.0
         cdef float sod = (self.x*o.x + self.y*o.y + self.z*o.z)/(sm*om)
         cdef float a
-        if   gtl.isnear_c(sod, 1.0):a = 0.0
-        elif gtl.isnear_c(sod,-1.0):a = numpy.pi
+        if   gtl.isnear_c(sod, 1.0,gtl.epsilon_c):a = 0.0
+        elif gtl.isnear_c(sod,-1.0,gtl.epsilon_c):a = numpy.pi
         else:a = numpy.arccos(sod)
         return a
 
@@ -131,8 +131,8 @@ cdef class vec3:
         cdef float vd = vn.x*n.x + vn.y*n.y + vn.z*n.z
         cdef float sod = n1.x*n2.x + n1.y*n2.y + n1.z*n2.z
         cdef float a = 0.0
-        if   gtl.isnear_c(sod, 1.0):pass
-        elif gtl.isnear_c(sod,-1.0):a = numpy.pi
+        if   gtl.isnear_c(sod, 1.0,gtl.epsilon_c):pass
+        elif gtl.isnear_c(sod,-1.0,gtl.epsilon_c):a = numpy.pi
         else:a = numpy.arccos(sod)
         if vd < 0.0:a *= -1.0
         return a                    
@@ -281,7 +281,7 @@ cdef class vec3:
             if ie:return 1
             else:return 0
         #if (s1.x != s2.x): # S is not  vertical
-        if not gtl.isnear_c(s1.x,s2.x): # S is not  vertical
+        if not gtl.isnear_c(s1.x,s2.x,gtl.epsilon_c): # S is not  vertical
             if (s1.x <= self.x and self.x <= s2.x):return 1
             if (s1.x >= self.x and self.x >= s2.x):return 1
         else: # S is vertical, so test y  coordinate

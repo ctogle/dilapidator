@@ -12,8 +12,8 @@ stuff = 'hi'
 
 
 
-cdef bint isnear_c(float a,float b)
-cdef float near_c(float a,float b)
+cdef bint isnear_c(float a,float b,float c)
+cdef float near_c(float a,float b,float c)
 cdef float rad_c(float deg)
 cdef float deg_c(float rad)
 cdef float clamp_c(float v,float f,float c)

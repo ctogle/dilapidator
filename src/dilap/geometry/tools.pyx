@@ -26,13 +26,7 @@ cdef float epsilonsq_c = epsilon*epsilon
 maxfloat = sys.float_info.max
 cdef float maxfloat_c = maxfloat
 
-stuff = 'hi'
-
-__doc__ = '''General purpose tool functions...'''
-
-###############################################################################
-### c space
-###############################################################################
+#stuff = 'hi'
 
 # if a is within c of b, return True
 # else return False
@@ -167,6 +161,12 @@ cdef vec3 tng_c(vec3 c1,vec3 c2,vec3 c3):
     cdef vec3 tn = c1.tov_c(c2).nrm_c()
     return tn
 
+
+
+
+
+
+'''
 ###############################################################################
 ### python space
 ###############################################################################
@@ -174,50 +174,50 @@ cdef vec3 tng_c(vec3 c1,vec3 c2,vec3 c3):
 # if a is within c of b, return True
 # else return False
 cpdef bint isnear(float a,float b):
-    '''determine if a is within a neighborhood c of b'''
+    #'''determine if a is within a neighborhood c of b'''
     return isnear_c(a,b)
 
 # if a is within c of b, return b
 # else return a
 cpdef float near(float a,float b):
-    '''effectively round a to b if within a neighborhood c'''
+    #'''effectively round a to b if within a neighborhood c'''
     return near_c(a,b)
 
 # convert an angle from degrees to radians
 cpdef float rad(float deg):
-    '''convert an angle from degrees to radians'''
+    #'''convert an angle from degrees to radians'''
     return rad_c(deg)
 
 # convert an angle from radians to degrees
 cpdef float deg(float rad):
-    '''convert an angle from radians to degrees'''
+    #'''convert an angle from radians to degrees'''
     return deg_c(rad)
 
 # keep the value val bounded by f and c by flooring
 cpdef float clamp(float v,float f,float c):
-    '''clamp a float between two floats using closed boundaries'''
+    #'''clamp a float between two floats using closed boundaries'''
     return clamp_c(v,f,c)
 
 # keep the value val bounded by f and c by wrapping around
 cpdef float wrap(float v,float f,float c):
-    '''clamp a float between two floats using periodic boundaries'''
+    #'''clamp a float between two floats using periodic boundaries'''
     return wrap_c(v,f,c)
 
 # is a on the interior of (a,b) given an error of d
 cpdef bint inrng(float a,float b,float c):
-    '''determine if a value is on an open interval'''
+    #'''determine if a value is on an open interval'''
     return inrng_c(a,b,c)
 
 # return the shortest angular distance between two angles
 cpdef float adist(float a1,float a2):
-    '''find the angular distance between two angles'''
+    #'''find the angular distance between two angles'''
     return adist_c(a1,a2)
 
 # given 3 points and a plane, determine the center and radius
 # of the circumcenter found in the plane plane by projecting p1,p2,p3
 # in the plane
 cpdef tuple circumscribe_tri(vec3 p1,vec3 p2,vec3 p3):
-    '''return the circumcenter and circumradius of a triangle'''
+    #'''return the circumcenter and circumradius of a triangle'''
     return circumscribe_tri_c(p1,p2,p3)
 
 # return the signed area of the triangle created 
@@ -225,33 +225,33 @@ cpdef tuple circumscribe_tri(vec3 p1,vec3 p2,vec3 p3):
 # return 0 if a,b,c are colinear
 # this assumes theyre in the xy plane!!!
 cpdef float orient2d(vec3 a,vec3 b,vec3 c):
-    '''determine whether a,b,c form a positively oriented triangle'''
+    #'''determine whether a,b,c form a positively oriented triangle'''
     return orient2d_c(a,b,c)
 
 # determine if d is inside the circumcircle of the triangle a,b,c
 cpdef float incircle(vec3 a,vec3 b,vec3 c,vec3 d):
-    '''determine if d is inside the circumcircle of the triangle a,b,c'''
+    #'''determine if d is inside the circumcircle of the triangle a,b,c'''
     return incircle_c(a,b,c,d)
 
 # rotate a polygon: (extbnd,(holes...)) by a quaternion q
 cpdef tuple rot_poly(tuple polygon,quat q):
-    '''rotate a concave polygon and its holes by a quaternion'''
+    #'''rotate a concave polygon and its holes by a quaternion'''
     return rot_poly_c(polygon,q)
 
 # given a vector, return a quaternion that rotates it to coincide with zhat
 cpdef quat q_to_xy(vec3 v):
-    '''provide a quaternion which rotates a vector onto zhat'''
+    #'''provide a quaternion which rotates a vector onto zhat'''
     return q_to_xy_c(v)
 
 # return a vector normal to the plane containing c1,c2,c3
 # returns 0 if c1,c2,c3 are colinear
 cpdef vec3 nrm(vec3 c1,vec3 c2,vec3 c3):
-    '''find a vector normal to the plane containing c1,c2,c3'''
+    #'''find a vector normal to the plane containing c1,c2,c3'''
     return nrm_c(c1,c2,c3)
 
 # return a vector tanget to the plane containing c1,c2,c3
 cpdef vec3 tng(vec3 c1,vec3 c2,vec3 c3):
-    '''find a vector tangent to the plane containing c1,c2,c3'''
+    #'''find a vector tangent to the plane containing c1,c2,c3'''
     return tng_c(c1,c2,c3)
 
 def lexicographic(unops):
@@ -272,6 +272,7 @@ def lexicographic(unops):
                 ymin = u.y
         ops.append(ufn.pop(ux))
     return ops
+'''
     
 
 

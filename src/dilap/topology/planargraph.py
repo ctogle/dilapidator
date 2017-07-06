@@ -1,19 +1,15 @@
-from dilap.geometry.vec3 import vec3
 import dilap.geometry.tools as gtl
-
-import dilap.topology.wiregraph as dwg
-
+from dilap.geometry import vec3
+from dilap.topology import wiregraph
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
+import numpy
+import pdb
 
-import numpy,pdb
-
-
-
-###############################################################################
 
 # planar wire graph class (topological + xy-projected geometry)
-class planargraph(dwg.wiregraph):
+class planargraph(wiregraph):
+
 
     # split an edge into two edges
     # make the third vertex by lerping between the other two
@@ -25,7 +21,6 @@ class planargraph(dwg.wiregraph):
         nr1,nr2 = self.se(u,v,nv)
         return nv,nr1,nr2
 
-    ###################################
 
     # compute the counterclockwise angle between two edges
     def ea(self,u,v,w):
@@ -43,6 +38,7 @@ class planargraph(dwg.wiregraph):
         else:sa = e1.sang(e2,vec3(0,0,1))
         if sa < 0:sa = 2*numpy.pi+sa
         return sa
+
 
     # compute the edge ordering of a vertex v relative to an edge u,v
     def eo(self,u,v):
@@ -69,6 +65,7 @@ class planargraph(dwg.wiregraph):
         ror = avor[uori+1:]+avor[:uori]
         return ror
 
+
     # given an edge, find the next edge taking the first
     # clockwise turn available
     def cw(self,u,v):
@@ -80,6 +77,7 @@ class planargraph(dwg.wiregraph):
         else:tip = u
         return tip
 
+
     # given an edge, find the next edge taking the first
     # counterclockwise turn available
     def ccw(self,u,v):
@@ -90,6 +88,7 @@ class planargraph(dwg.wiregraph):
         if ror:tip = ror[-1]
         else:tip = u
         return tip
+
 
     # find a vertex within epsilon of p or create one
     # ie : 0 - split edges if sufficiently close to an edge
@@ -107,13 +106,13 @@ class planargraph(dwg.wiregraph):
                     break
         return nv
 
+
     # find an edge between two vertices or create one 
     def fe(self,u,v,**ekws):
         if   (u,v) in self.elook:return self.elook[(u,v)]
         elif (v,u) in self.elook:return self.elook[(v,u)]
         return self.ae(u,v,**ekws)
 
-    ###################################
 
     def smooth(self,i = 1,w = 1.0):
         for s in range(i):
@@ -128,6 +127,7 @@ class planargraph(dwg.wiregraph):
                 if v is None:continue
                 v[1]['p'].trn(dels[j])
         return self
+
 
     def smooth_sticks(self,i = 1,w = 1.0,d = 5.0):
         for s in range(i):
@@ -147,7 +147,6 @@ class planargraph(dwg.wiregraph):
                 v[1]['p'].trn(dels[j])
         return self
 
-    ###################################
 
     # plot the vertices and edges of the graph
     def plotxy(self,ax = None,l = 10,s = 1.0,number = True,**kws):
@@ -173,7 +172,6 @@ class planargraph(dwg.wiregraph):
                 ax = dtl.plot_edges_xy(re,ax,lw = 2,col = 'g')
         return ax
 
-    ###################################
 
     # plot the vertices and edges of the graph
     def plot(self,ax = None,l = 10,**kws):
@@ -192,10 +190,3 @@ class planargraph(dwg.wiregraph):
                 re = (re[0].trn(rn),re[1].trn(rn))
                 ax = dtl.plot_edges(re,ax,lw = 2,col = 'g')
         return ax
-
-    ###################################
-
-
-
-
- 

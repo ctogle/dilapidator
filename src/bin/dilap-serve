@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+import argparse
+import contextlib
+import http.server
+import socketserver
+import os
+import pdb
+
+
+@contextlib.contextmanager
+def chdir(path):
+    cwd = os.getcwd()
+    os.chdir(path)
+    yield 
+    os.chdir(cwd)
+
+
+def main(args):
+    with chdir(args.world):
+        Handler = http.server.SimpleHTTPRequestHandler
+        httpd = socketserver.TCPServer((args.host, args.port), Handler)
+        try:
+            print('Serving dilapidator world at port %d' % args.port)
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print('Stopped serving dilapidator world at port %d' % args.port)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-w',
+        '--world',
+        default=os.getcwd(),
+        type=str,
+        help='Path to javascript world to serve', )
+    parser.add_argument(
+        '-p',
+        '--port',
+        default=8082,
+        type=int,
+        help='Port at which to serve the javascript world', )
+    parser.add_argument(
+        '-i',
+        '--host',
+        default='localhost',
+        type=str,
+        help='Host on which to serve the javascript world', )
+    args = parser.parse_args()
+    main(args)

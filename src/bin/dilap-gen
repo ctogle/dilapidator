@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+from dilap.geometry import *
+from dilap.core import *
+from dilap.core.model import model
+from dilap.io import exporters as io
+import dilap.worldly.continent as dco
+import dilap.core.plotting as dtl
+import matplotlib.pyplot as plt
+import argparse
+import random
+import os
+import pdb
+
+
+def cube(p=None, q=None, s=None):
+    m = model()
+    sg = scenegraph()
+    sgv = sg.avert(p, q, s, models=[m], parent=sg.root)
+    gm = m.atricube()
+    m.normals(gm)
+    return sg
+
+
+def world(seed=0):
+    random.seed(seed)
+    sg = dco.continent(
+        b=vec3(0,0,0).pring(250,8),
+        landmasses=vec3(0,0,0).pring(100,8), )
+    return sg
+
+
+def main(args):
+    print('args\n',args)
+    scenegraph = world(args.seed)
+    if not os.path.isdir(args.output):
+        os.mkdir(args.output)
+    io[args.exporter].build_scenegraph(scenegraph,args.output)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-o',
+        '--output',
+        default=os.path.join(os.getcwd(), 'world'),
+        type=str,
+        help='Path in which to store resulting data', )
+    parser.add_argument(
+        '-e',
+        '--exporter',
+        default='fbx',
+        type=str,
+        help='Mode used for targeting specific formats (e.g. fbx, obj, js)', )
+    parser.add_argument(
+        '-s',
+        '--seed',
+        default=0,
+        type=int,
+        help='Random seed used in procedural decision making', )
+    args = parser.parse_args()
+    main(args)

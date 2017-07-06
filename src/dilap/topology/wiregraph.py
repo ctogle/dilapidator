@@ -1,10 +1,4 @@
-import dilap.core.base as db
-
-import dilap.core.plotting as dtl
-import matplotlib.pyplot as plt
-
 import pdb
-
 
 
 ###############################################################################
@@ -15,7 +9,7 @@ import pdb
 #     for vertices and edges connecting them
 #   it also provides a means for ordering edges
 #
-class wiregraph(db.base):
+class wiregraph(object):
 
     ###################################
     ### fundamental topological methods

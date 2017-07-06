@@ -1,12 +1,5 @@
-import dilap.topology.vert as dvt
-import dilap.topology.edge as deg
-import dilap.topology.loop as dlp
-import dilap.topology.face as dfc
-
-from dilap.geometry.vec3 import vec3
-from dilap.geometry.quat import quat
-
 import pdb
+
 
 # dilapidators implementation of a topological edge
 class halfedge:
@@ -19,6 +12,7 @@ class halfedge:
         self.lst = self # next counter-clockwise edge 
         self.ops = self # opposite halfedge
 
+
 # remove each item in one that is not in two
 def isect(one,two):
     extras = 0
@@ -30,9 +24,11 @@ def isect(one,two):
         one.remove(None)
         extras -= 1
 
+
 # add any item in two to one if its not already present
 def union(one,two):
     raise NotImplemented
+
 
 __doc__ = '''
 dilapidator\'s implementation of a polygonal mesh

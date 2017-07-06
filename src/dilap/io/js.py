@@ -1,15 +1,16 @@
-import dilap.core.base as db
 from .obj import interface as obj
 from io import StringIO as sio
 import shutil
 import os
 import pdb
 
+
 class interface(obj):
 
+
     @staticmethod
-    def build_context(cx,path):
-        site = db.resource_path('site')[0]
+    def build_scenegraph(sg,path):
+        site = obj.resource_path('site')[0]
         sitepath = os.path.join(path,'site')
         if os.path.isdir(sitepath):
             shutil.rmtree(sitepath)
@@ -18,7 +19,7 @@ class interface(obj):
         if os.path.isdir(worldpath):
             shutil.rmtree(worldpath)
         os.makedirs(worldpath)
-        obj.build_context(cx,worldpath)
+        obj.build_scenegraph(sg,worldpath)
         write_world_script(sitepath)
 
 
@@ -61,9 +62,9 @@ def write_world_script(world_dir):
     s('angle: -90,')
     s('nodes: [');d += 1
     textures = {}
-    for dfm in obj.def_mats:
-        if dfm.name in obj.tobj_filenames:
-            textures[dfm.name] = (dfm.dtexture,obj.tobj_filenames[dfm.name])
+    for name,texture in obj.def_mats:
+        if name in obj.tobj_filenames:
+            textures[name] = (texture,obj.tobj_filenames[name])
     modline = lambda t : ',\n'.join([modnode_line % (f,) for f in textures[t][1]])
     matline = ',\n'.join([matnode_line % (textures[t][0],modline(t)) for t in textures])
     s(matline)

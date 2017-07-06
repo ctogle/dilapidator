@@ -1,1 +1,1 @@
-from dilap import core, geometry, io, modeling, topology, worldly
+from dilap import core, geometry, topology, worldly, io

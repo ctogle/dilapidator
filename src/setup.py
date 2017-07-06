@@ -21,20 +21,18 @@ scripts = [
 
 
 pkgs = [
+    'dilap',
     'dilap.geometry',
     'dilap.topology',
-    'dilap.modeling',
-    'dilap.worldly',
-    'dilap',
     'dilap.io',
-    'dilap.core', ]
+    'dilap.core', 
+    'dilap.worldly', ]
 
 
 extnames = [
     'dilap.geometry.vec3',
     'dilap.geometry.quat',
     'dilap.geometry.ray3',
-    'dilap.geometry.curve',
     'dilap.geometry.tform',
     'dilap.geometry.pointset',
     'dilap.geometry.tools',

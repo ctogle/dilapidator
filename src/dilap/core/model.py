@@ -1,23 +1,26 @@
-import dilap.core.base as db
+#import dilap.core.base as db
+#from .base import roundrobin
+from dilap.geometry import *
+import dilap.geometry.triangulate as dtg
 import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
-
-from dilap.geometry.vec3 import vec3
-from dilap.geometry.quat import quat
-from dilap.geometry.pointset import pointset
-import dilap.geometry.triangulate as dtg
-
 from dilap.topology.trimesh import trimesh
 from dilap.topology.polygonmesh import polygonmesh
-
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
+import functools
+import pdb
 
-import functools,pdb
 
+# a generator for endlessly looping through a sequence
+def roundrobin(seq):
+    j,l = 0,len(seq)
+    while True:
+        yield seq[j]
+        j += 1
+        if not j < l:
+            j = 0
 
-
-__doc__ = '''dilapidator\'s implementation of an all purpose model'''
 
 # dilapidators implementation of an all purpose model
 # a model contains geometric information and 
@@ -59,7 +62,7 @@ class model:
     # uv vectors based on geometry
     def uvs(self,mesh,uvstacked = None):
         if uvstacked is None:
-            uvstacked = db.roundrobin((vec3(0,0,0),vec3(1,0,0),vec3(1,1,0)))
+            uvstacked = roundrobin((vec3(0,0,0),vec3(1,0,0),vec3(1,1,0)))
         for f in mesh.faces:
             if f is None:continue
             vs = [mesh.verts[x] for x in f]
@@ -393,7 +396,7 @@ class model:
             ref = False,smo = False,hmin = 1,zfunc = None,minhmin = 0.1,
             uvstacked = None,autoconnect = False):
         if tm is None:tm = self.agfxmesh()
-        if uvstacked is None:uvstacked = db.roundrobin((None,))
+        if uvstacked is None:uvstacked = roundrobin((None,))
         eb,ibs = poly
 
         ngvs = []
@@ -482,12 +485,3 @@ class model:
     def scl(self,s):
         self.pset.scl(s)
         return self
-
-
-
-
- 
-
-
-
-

@@ -1,24 +1,7 @@
-import dilap.topology.vert as dvt
-import dilap.topology.edge as deg
-import dilap.topology.loop as dlp
-import dilap.topology.face as dfc
-
-import dilap.geometry.tools as gtl
-from dilap.geometry.vec3 import vec3
-from dilap.geometry.quat import quat
-
-#import dilap.topology.tools.triangulate as dtg
-import dilap.geometry.triangulate as dtg
-
 import numpy
 import pdb
 
 
-
-__doc__ = '''dilapidator\'s implementation of a triangle mesh'''
-# dilapidators implementation of a triangle mesh
-# analogous to a single manifold surface
-# NOTE: no explicit v,e,f classes are used
 class trimesh:
 
     def __str__(self):return 'trimesh:'
@@ -143,7 +126,7 @@ class trimesh:
     # for smoothing of a vertex with valence n, 
     # compute the appropriate smoothing coefficient alpha_n
     def alphan(self,n):
-        alpha = (4.0-2.0*numpy.cos(gtl.twoPI/n))/9.0
+        alpha = (4.0-2.0*numpy.cos(numpy.pi*2/n))/9.0
         #alpha = 0
         return alpha
 
@@ -320,14 +303,3 @@ class trimesh:
             if e is None:continue
             if not self.ef_rings[e]:
                 self.redge(e,True)
-
-    # add triangles which cover a polygon using delauney triangulation
-    def tripoly(self,ebnd,ibnds,hmin,refine,smooth):
-        tris,bnds = dtg.triangulate(ebnd,ibnds,hmin,refine,smooth)
-
-        pdb.set_trace()
-
- 
-
-
-

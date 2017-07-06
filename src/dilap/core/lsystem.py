@@ -1,23 +1,22 @@
-import dilap.core.base as db
-from dilap.geometry.vec3 import vec3
-from dilap.geometry.quat import quat
 import dilap.geometry.tools as dpr
-import dilap.topology.tree as dtr
-
+from dilap.geometry import *
+from dilap.topology import *
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from io import StringIO as sio
-
-import numpy,random
-
+import numpy
+import random
 import pdb
 
-def lgen(p,d,axiom,rules,i,**kws):
-    ls = lstate(i,p,d,axiom,rules,**kws)
-    for piece in ls:yield piece
 
-class lstate(dtr.tree):
+def lgen(p,d,axiom,rules,i,**kws):
+    yield from lstate(i,p,d,axiom,rules,**kws)
+
+
+class lstate(tree):
+
+
     drho = 1
     dpolar     = numpy.pi/2
     dazimuthal = numpy.pi/2
@@ -25,14 +24,16 @@ class lstate(dtr.tree):
     dyaw       = numpy.pi/2
     droll      = numpy.pi/2
 
+
     def avert(self):
         if not hasattr(self,'tip'):self.tip = self.root
         oldtip = self.tip.p.cp(),self.tip.d.cp()
-        self.tip = dtr.tree.avert(self,self.tip)
+        self.tip = tree.avert(self,self.tip)
         self.tip.p,self.tip.d = oldtip
 
+
     def __init__(self,i,p,d,axiom,rules,**kws):
-        dtr.tree.__init__(self)
+        tree.__init__(self)
         for k in kws:self.__setattr__(k,kws[k])
         self.tip = self.root
         self.tip.p,self.tip.d = p,d
@@ -40,23 +41,30 @@ class lstate(dtr.tree):
         self.axiom = axiom
         self.rules = rules
 
+
     def __call__(self,**kws):
-        for s in self.__iter__(**kws):pass
+        for s in self.__iter__(**kws):
+            pass
         return self
 
+
     def __iter__(self,**kws):
-        for k in kws:self.__setattr__(k,kws[k])
-        for s in lstring(self.axiom,self.rules,self.i):
+        for k in kws:
+            self.__setattr__(k,kws[k])
+        for s in lstring(self.axiom,self.rules,self.i).produce():
             if s in lgrammer.dic:
                 piece = lgrammer.dic[s](self)
                 if piece:yield piece
 
+
 class lstring:
+
 
     def __init__(self,axiom,rules,i = 3):
         self.axiom = axiom
         self.rules = rules
         self.i = i
+        
 
     def produce(self):
         state = self.axiom[:]
@@ -69,9 +77,10 @@ class lstring:
             state = out.getvalue()
         return state
 
-    def __iter__(self):
-        for c in self.produce():
-            yield c
+
+    #def __iter__(self):
+    #    yield from self.produce()
+
 
 x ,y ,z  = vec3( 1,0,0),vec3(0, 1,0),vec3(0,0, 1)
 nx,ny,nz = vec3(-1,0,0),vec3(0,-1,0),vec3(0,0,-1)

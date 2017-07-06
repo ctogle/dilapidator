@@ -1,43 +1,30 @@
-import dilap.core.base as db
-import dilap.core.context as cx
+from dilap.core import *
+from dilap.geometry import *
 import dilap.geometry.tools as gtl
-from dilap.geometry.vec3 import vec3
-from dilap.geometry.quat import quat
-from dilap.geometry.pointset import pointset
 import dilap.geometry.triangulate as dtg
 import dilap.geometry.polymath as pym
-
-import dilap.modeling.model as dmo
-import dilap.modeling.factory as dfa
-
 import dilap.topology.trimesh as dtm
-
 import dilap.worldly.blgsequencing as bseq
 import dilap.worldly.polygen as pyg
-
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
-
-import numpy,math,random
+import numpy
+import math
+import random
 import pdb
 
 
-
-###############################################################################
-### context representing any building
-###############################################################################
-
 dkw = lambda kws,k,d : kws[k] if k in kws else d
 
-class building(cx.context):
+class building(scenegraph):
 
-    def __init__(self,p,q,s,*ags,**kws):
-        self._def('name','buildingcontext',**kws)
-        self._def('bgraph',None,**kws)
+    def __init__(self,p,q,s,**kws):
+        self.name = kws.get('name','building')
+        self.bgraph = kws.get('bgraph',None)
         self.p = p
         self.q = q
         self.s = s
-        cx.context.__init__(self,*ags,**kws)
+        scenegraph.__init__(self)
 
     def windowholes(self,r,w,wp1,wp2,**wopts):
         wt = dkw(wopts,'type','e')
@@ -201,8 +188,8 @@ class building(cx.context):
             genwrap(shb,shx)
 
         for sh in self.bgraph.shafts:
-            m = dmo.model()
-            sgv = self.amodel(self.p,self.q,self.s,m,self.sgraph.root)
+            sg,m = self.sgraph,model()
+            sgv = sg.avert(None,None,None,models = [m],parent = sg.root)
             tm = m.agfxmesh()
 
             shcnt = len(sh)
@@ -230,8 +217,8 @@ class building(cx.context):
             if vkw['shaft']:continue
 
             # add a new trimesh to the model
-            m = dmo.model()
-            sgv = self.amodel(self.p,self.q,self.s,m,self.sgraph.root)
+            sg,m = self.sgraph,model()
+            sgv = sg.avert(None,None,None,models = [m],parent = sg.root)
             tm = m.agfxmesh()
 
             # create the floor and ceiling surfaces
@@ -267,8 +254,8 @@ class building(cx.context):
                     for wpy in wpys:m.asurf(wpy,tm)
 
     def genshell(self):
-        m = dmo.model()
-        sgv = self.amodel(self.p,self.q,self.s,m,self.sgraph.root)
+        sg,m = self.sgraph,model()
+        sgv = sg.avert(None,None,None,models = [m],parent = sg.root)
         tm = m.agfxmesh()
         z,eww,ech,fh = 0,0.2,0.5,self.bgraph.floorheight
 
@@ -326,8 +313,8 @@ class building(cx.context):
 
     # generate a cover of the top of the top of the building
     def genroof(self):
-        m = dmo.model()
-        sgv = self.amodel(self.p,self.q,self.s,m,self.sgraph.root)
+        sg,m = self.sgraph,model()
+        sgv = sg.avert(None,None,None,models = [m],parent = sg.root)
         tm = m.agfxmesh()
         m.asurf((tuple(self.rims[-1]),()),tm)
 
@@ -352,7 +339,7 @@ class building(cx.context):
 ### graph structure to create building contexts from
 ###############################################################################
 
-class blggraph(db.base):
+class blggraph:
 
     def av(self,os,kws,null = False):
         vx = self.vcnt
@@ -557,10 +544,10 @@ class blggraph(db.base):
         self.vcnt = 0
         self.fl_look = {}
 
-        self._def('sequence',None,**kws)
-        self._def('footprint',None,**kws)
-        self._def('floorheight',8,**kws)
-        self._def('shafts',[],**kws)
+        self.sequence = kws.get('sequence', None)
+        self.footprint = kws.get('footprint', None)
+        self.floorheight = kws.get('floorheight', 8)
+        self.shafts = kws.get('shafts', [])
 
     ###########################################################################
 
@@ -684,35 +671,12 @@ class blggraph(db.base):
         for vx in range(self.vcnt):self.verifyedges(vx)
         return rooms       
 
-###############################################################################
-###############################################################################
 
-
-
-###############################################################################
-### building factory to generate full building contexts from a footprint
-###############################################################################
-
-class blgfactory(dfa.factory):
-
-    def __str__(self):return 'building factory:'
-    def __init__(self,*ags,**kws):
-        self._def('bclass',building,**kws)
-        dfa.factory.__init__(self,*ags,**kws)
-    def new(self,*ags,**kws):
-        blgg = blggraph(**kws)
-        blgg.graph()
-        #blgg.plotxy()
-        #plt.show()
-        kws['bgraph'] = blgg
-        n = self.bclass(*ags,**kws)
-        return n
-
-###############################################################################
-###############################################################################
-###############################################################################
-
-
-
-
-
+def new(*ags,**kws):
+    blgg = blggraph(**kws)
+    blgg.graph()
+    #blgg.plotxy()
+    #plt.show()
+    kws['bgraph'] = blgg
+    n = building(*ags,**kws)
+    return n

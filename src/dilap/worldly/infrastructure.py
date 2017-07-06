@@ -1,23 +1,20 @@
-import dilap.core.base as db
 import dilap.core.lsystem as lsy
+from dilap.geometry import *
 import dilap.geometry.tools as gtl
-from dilap.geometry.vec3 import vec3
-from dilap.geometry.quat import quat
 import dilap.geometry.polymath as pym
-
 import dilap.topology.tree as dtr
 import dilap.topology.planargraph as pgr
-
 import dilap.worldly.polygen as pyg
-
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
+import math
+import numpy
+import random
+import pdb
 
-import math,numpy,random,pdb
 
+class roadmap:
 
-
-class roadmap(db.base):
 
     @staticmethod
     def layroads(t,e):
@@ -55,10 +52,10 @@ class roadmap(db.base):
         #com = vec3(0,0,0).com(tip.loop).tov(vec3(0,0,0).com(py)).uscl(-1)
         #for p in py:p.scl(vec3(scale,scale,0)).trn(com)
 
-        print('ROADS')
-        ax = dtl.plot_axes_xy(200)
-        ax = pg.plotxy(ax)
-        plt.show()
+        #print('ROADS')
+        #ax = dtl.plot_axes_xy(200)
+        #ax = pg.plotxy(ax)
+        #plt.show()
         #pdb.set_trace()
         return pg
 
@@ -102,11 +99,11 @@ class roadmap(db.base):
         fps = ([easement],[[] for l in range(len(loops)-1)])
         # generate a set of footprints connected to road
         # footprint must not overlap interiors with ebnd
-        ax = dtl.plot_axes_xy(300)
-        ax = dtl.plot_polygon_xy(ebnd,ax,lw = 3,col = 'b')
-        for fp in fps[0]:
-            ax = dtl.plot_polygon_full_xy(fp,ax,lw = 3,col = 'g')
-        plt.show()
+        #ax = dtl.plot_axes_xy(300)
+        #ax = dtl.plot_polygon_xy(ebnd,ax,lw = 3,col = 'b')
+        #for fp in fps[0]:
+        #    ax = dtl.plot_polygon_full_xy(fp,ax,lw = 3,col = 'g')
+        #plt.show()
 
         return fps
 

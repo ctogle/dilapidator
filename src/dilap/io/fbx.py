@@ -1,9 +1,9 @@
-import dilap.topology.tree as dtr
-import dilap.topology.vert as dvt
+from dilap.topology import *
 import dilap.geometry.tools as gtl
 import dilap.core.base as db
 from io import StringIO as sio
 import collections
+import datetime
 import re
 import os
 import pdb
@@ -11,17 +11,17 @@ import pdb
 
 class interface(object):
 
+
     @staticmethod
-    def build_context(cx,path):
-        for ch in cx.children:
-            interface.build_context(ch,path)
-        tree = fbxtree.new(cx.sgraph)
+    def build_scenegraph(sg,path):
+        tree = fbxtree.new(sg)
         if not os.path.exists(path):
             os.mkdir(path)
         tree.write(os.path.join(path,'world.fbx'))
 
 
-class fbxvert(dvt.vert):
+class fbxvert(vert):
+
 
     def attribute(self,l):
         if l.startswith(';'):
@@ -67,14 +67,15 @@ class fbxvert(dvt.vert):
 
 
     def __init__(self,ix,tag):
-        dvt.vert.__init__(self,ix)
+        vert.__init__(self,ix)
         self.identify(tag)
         self.attributes = []
         self.commentcount = 0
         self.newlinecount = 0
 
 
-class fbxtree(dtr.tree):
+class fbxtree(tree):
+
 
     def print(self,v = None,depth = 0):
         if v is None:
@@ -115,7 +116,7 @@ class fbxtree(dtr.tree):
 
     def __init__(self):
         self.vertclass = fbxvert
-        dtr.tree.__init__(self,'ROOT:')
+        tree.__init__(self,'ROOT:')
 
 
     def findeach(self,name,v = None):
@@ -206,12 +207,12 @@ class fbxtree(dtr.tree):
                 graphvert(x,wtform,**kws)
         graphvert(sg.root,None,**kws)
 
-        dt = db.nowdt()
+        dt = datetime.datetime.now()
         nmodels = len(modstrings)
         targs = (
             dt.year,dt.month,dt.day,
             dt.hour,dt.minute,dt.second,
-            db.timestamp(dt = dt),
+            dt.strftime('%Y-%m-%d %H:%M:%S:000'),
             definitions % (nmodels,nmodels,nmodels),
             objectproperties(modstrings,posestring),
             objectrelations(modelrelationstring),
@@ -221,11 +222,14 @@ class fbxtree(dtr.tree):
         return tree
 
 
-def read(path,*ags,**kws):return fbxtree.read(path,*ags,**kws)
-def new(*ags,**kws):return fbxtree.new(*ags,**kws)
+def read(path,*ags,**kws):
+    return fbxtree.read(path,*ags,**kws)
 
 
-#worlddir = None
+def new(*ags,**kws):
+    return fbxtree.new(*ags,**kws)
+
+
 modellookup = {}
 def uniquefilename(m,gm):
     name = '%s.%d.%d'

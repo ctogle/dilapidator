@@ -4,11 +4,9 @@ import dilap.core.lsystem as lsy
 import dilap.modeling.model as dmo
 import dilap.modeling.factory as dfa
 
-#from dilap.geometry.vec3 import vec3
-#from dilap.geometry.quat import quat
-#import dilap.geometry.tools as gtl
-import dilap.geometry.polymath as pym
 from dilap.geometry import *
+import dilap.geometry.tools as gtl
+import dilap.geometry.polymath as pym
 
 import dilap.topology.planargraph as pgr
 #import dilap.topology.partitiongraph as ptg
@@ -22,7 +20,6 @@ import dilap.worldly.building as blg
 
 import dilap.worldly.blgsequencing as bseq
 
-#import dilap.worldly.partitiongraph as ptg
 #import dilap.worldly.roadgraph as rdg
 
 import dilap.worldly.blockletters as dbl
@@ -131,10 +128,10 @@ class continent(ptg.partition):
         blgfps = roads.footprints
         rpy = pym.pgtopy(roads.roads,5)
 
-        ax = dtl.plot_axes(200)
-        ax = dtl.plot_polygon(rpy[0],ax,lw = 3,col = 'b')
-        ax = dtl.plot_points(rpy[0],ax)
-        plt.show()
+        #ax = dtl.plot_axes(200)
+        #ax = dtl.plot_polygon(rpy[0],ax,lw = 3,col = 'b')
+        #ax = dtl.plot_points(rpy[0],ax)
+        #plt.show()
 
         rpy = None
         for lmtv in terr.natural.below(terr.natural.root):
@@ -162,8 +159,8 @@ class continent(ptg.partition):
                         terr.natural.locloop(dpy,1)[0],loop = dpy)
 
         print('... the continent ...')
-        self.plot()
-        plt.show()
+        #self.plot()
+        #plt.show()
         # return the vertices without children whose loops 
         #   should have null intersections and whom should cover the boundary
         #pdb.set_trace()
@@ -240,11 +237,11 @@ class worldfactory(dfa.factory):
         #py = pym.aggregate(py,2)
         #py = pym.pinchb(py,5)
 
-        print('ROOOOADDDS')
-        ax = dtl.plot_axes_xy(200)
-        ax = pg.plotxy(ax)
+        #print('ROOOOADDDS')
+        #ax = dtl.plot_axes_xy(200)
+        #ax = pg.plotxy(ax)
         #ax = dtl.plot_polygon_xy(py,ax,lw = 3)
-        plt.show()
+        #plt.show()
 
         pdb.set_trace()
 
@@ -318,8 +315,8 @@ class worldfactory(dfa.factory):
             rgp = rgv[1]['p']
             rgp.ztrn(t(rgp.x,rgp.y))
 
-        ax = rg.plot(l = 220)
-        plt.show()
+        #ax = rg.plot(l = 220)
+        #plt.show()
 
         return rg
 
@@ -328,12 +325,12 @@ class worldfactory(dfa.factory):
         pg = ptg.partitiongraph()
         rpy = pym.pgtopy(r,3)
 
-        ax = dtl.plot_axes(200)
+        #ax = dtl.plot_axes(200)
         #ax = pg.plotxy(ax)
         #for j in range(len(loops)):
         #    ax = dtl.plot_polygon_xy(loops[j],ax)
-        if rpy:ax = dtl.plot_polygon_full(rpy,ax)
-        plt.show()
+        #if rpy:ax = dtl.plot_polygon_full(rpy,ax)
+        #plt.show()
 
         #rtl = t.al(rpy[0],t.locloop(rpy[0],1)[0])
 
@@ -551,8 +548,8 @@ class worldfactory(dfa.factory):
         a = continent(t,r,epsilon,**kws)
         #pg = self.genregions(t,r)
 
-        ax = t.natural.plot(l = 200)
-        plt.show()
+        #ax = t.natural.plot(l = 200)
+        #plt.show()
 
         ### create a world context from the partition graph
         w = self.bclass(*ags,**kws)

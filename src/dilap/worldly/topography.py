@@ -1,23 +1,20 @@
-import dilap.core.base as db
 import dilap.core.lsystem as lsy
+from dilap.geometry import *
 import dilap.geometry.tools as gtl
-from dilap.geometry.vec3 import vec3
-from dilap.geometry.quat import quat
 import dilap.geometry.polymath as pym
-
-import dilap.topology.tree as dtr
+from dilap.topology import *
 import dilap.topology.planargraph as pgr
-
 import dilap.worldly.polygen as pyg
-
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
-
-import math,numpy,random,pdb
+import random
+import numpy
+import math
+import pdb
 
 # tmesh represents a tree of nested loops of which have 
 #   equal z position in the terrain
-class topography(dtr.tree):
+class topography(tree):
     '''
     a topography is a tree of loops with the ability 
     of locating an x,y location within the loop hierarchy
@@ -127,10 +124,10 @@ class topography(dtr.tree):
             nv = self.grow(v,z,rad,epsilon,el)
             lvs.append(nv)
 
-        ax = self.plot()
-        for el in loops:
-            ax = dtl.plot_polygon(el,ax,lw = 2,col = 'r')
-        plt.show()
+        #ax = self.plot()
+        #for el in loops:
+        #    ax = dtl.plot_polygon(el,ax,lw = 2,col = 'r')
+        #plt.show()
 
         return lvs
 

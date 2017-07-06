@@ -1,8 +1,7 @@
-import dilap.core.base as db
 import dilap.core.lsystem as lsy
+from dilap.core.model import model
+from dilap.geometry import *
 import dilap.geometry.tools as gtl
-from dilap.geometry.vec3 import vec3
-from dilap.geometry.quat import quat
 import dilap.geometry.polymath as pym
 
 import dilap.topology.tree as dtr
@@ -16,7 +15,7 @@ import matplotlib.pyplot as plt
 
 import math,numpy,random,pdb
 
-class terrain(db.base):
+class terrain(object):
 
     @staticmethod
     def sow_earth(b,e):
@@ -120,11 +119,11 @@ class terrain(db.base):
 
         newtips = [topo.avert(tip,loop = py)]
 
-        print('mountains')
-        ax = dtl.plot_axes_xy(400)
-        ax = dtl.plot_polygon_xy(tip.loop,ax,lw = 3,col = 'b')
-        ax = dtl.plot_polygon_xy(py,ax,lw = 3,col = 'g')
-        plt.show()
+        #print('mountains')
+        #ax = dtl.plot_axes_xy(400)
+        #ax = dtl.plot_polygon_xy(tip.loop,ax,lw = 3,col = 'b')
+        #ax = dtl.plot_polygon_xy(py,ax,lw = 3,col = 'g')
+        #plt.show()
 
         return newtips
 
@@ -186,12 +185,12 @@ def pepper(t,tip,e = 2):
         for p in sb:p.ztrn(2)
         newtips.append(t.al(sb,tip))
 
-    ax = dtl.plot_axes(200)
-    ax = dtl.plot_polygon(t.root.loop,ax,ls = '--',lw = 2,col = 'k')
-    ax = dtl.plot_polygon(tip.loop,ax,lw = 3,col = 'r')
-    for b in bs:
-        ax = dtl.plot_polygon(b,ax,lw = 3,col = 'g')
-    plt.show()
+    #ax = dtl.plot_axes(200)
+    #ax = dtl.plot_polygon(t.root.loop,ax,ls = '--',lw = 2,col = 'k')
+    #ax = dtl.plot_polygon(tip.loop,ax,lw = 3,col = 'r')
+    #for b in bs:
+    #    ax = dtl.plot_polygon(b,ax,lw = 3,col = 'g')
+    #plt.show()
 
     return newtips
 

@@ -1,13 +1,9 @@
-from dilap.geometry.vec3 import vec3
-from dilap.geometry.quat import quat
+from dilap.geometry import *
 import dilap.geometry.polymath as pym
-
-import dilap.topology.planargraph as pgr
-
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
-
 import pdb
+
 
 def C(sq,g):
     i1 = g.av(p = sq[1],l = 0)
@@ -48,7 +44,8 @@ def I(sq,g):
 def letter(l,w,sx,sy):
     if w > sx or w > sy:raise ValueError
     sq = vec3(0,0,0).sq(sx-w,sy-w)
-    g = pgr.planargraph()
+    #g = pgr.planargraph()
+    g = planargraph()
     if   l == 'C':C(sq,g)
     elif l == 'H':H(sq,g)
     elif l == 'I':I(sq,g)

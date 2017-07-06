@@ -1,28 +1,18 @@
-import dilap.geometry.tools as dpr
 from dilap.geometry import *
 from dilap.topology import *
-import dilap.core.plotting as dtl
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from io import StringIO as sio
-import numpy
-import random
-import pdb
-
-
-def lgen(p,d,axiom,rules,i,**kws):
-    yield from lstate(i,p,d,axiom,rules,**kws)
+from numpy import pi
 
 
 class lstate(tree):
 
 
     drho = 1
-    dpolar     = numpy.pi/2
-    dazimuthal = numpy.pi/2
-    dpitch     = numpy.pi/2
-    dyaw       = numpy.pi/2
-    droll      = numpy.pi/2
+    dpolar     = pi/2
+    dazimuthal = pi/2
+    dpitch     = pi/2
+    dyaw       = pi/2
+    droll      = pi/2
 
 
     def avert(self):
@@ -54,7 +44,8 @@ class lstate(tree):
         for s in lstring(self.axiom,self.rules,self.i).produce():
             if s in lgrammer.dic:
                 piece = lgrammer.dic[s](self)
-                if piece:yield piece
+                if piece:
+                    yield piece
 
 
 class lstring:
@@ -78,10 +69,6 @@ class lstring:
         return state
 
 
-    #def __iter__(self):
-    #    yield from self.produce()
-
-
 x ,y ,z  = vec3( 1,0,0),vec3(0, 1,0),vec3(0,0, 1)
 nx,ny,nz = vec3(-1,0,0),vec3(0,-1,0),vec3(0,0,-1)
 class lgrammer:
@@ -102,7 +89,7 @@ class lgrammer:
         ls.tip.d.rot(quat(0,0,0,0).av(f*ls.dazimuthal,lgrammer.getqv(ls.tip.d)))
     azimuthal_u = lambda ls : lgrammer.azimuthal(ls, 1)
     azimuthal_d = lambda ls : lgrammer.azimuthal(ls,-1)
-    azimuthal_f = lambda ls : lgrammer.azimuthal(ls,numpy.pi/ls.dazimuthal)
+    azimuthal_f = lambda ls : lgrammer.azimuthal(ls,pi/ls.dazimuthal)
     
     pitch_u = lambda ls : d.rot(quat(0,0,0,0).av( ls.dpitch,vec3(1,0,0)))
     pitch_d = lambda ls : d.rot(quat(0,0,0,0).av(-ls.dpitch,vec3(1,0,0)))
@@ -120,49 +107,3 @@ class lgrammer:
         #'&':self.randrot,'~':self.randdirrot,
         #'^':self.wobblerot,
         #'O':self.orient,
-
-    '''#
-    self._def('truncate',5000,**kwargs)
-    self.grammer = {
-        '(':self.polar_up,')':self.polar_down,
-        '{':self.azimuthal_up,'}':self.azimuthal_down,
-
-        '+':self.pitch_up,'-':self.pitch_down,
-        '/':self.yaw_up,'\\':self.yaw_down,
-        '<':self.roll_up,'>':self.roll_down,
-
-        '[':None,']':None,'&':self.randrot,'~':self.randdirrot,
-        '^':self.wobblerot,'$':self.azimuthal_flip,
-
-        '!':self.rho_up,'@':self.rho_down,
-        '#':self.fatter,'%':self.thinner,
-
-        'F':self.edge,'Q':self.term,'O':self.orient,
-            }
-                                                                
-def randdirrot(self,p,d):
-    which = random.choice(['-','<','/','+','>','\\'])
-    self.grammer[which](p,d)
-def randrot(self,p,d):
-    if random.random() < 0.5:newangle = 0.5*self.angle
-    else:newangle = 2.0*self.angle
-    self.angle = dpr.clamp(newangle,self.minangle,self.maxangle)
-# wobble d such that it stays with tolerance of a radial xy projection
-def wobblerot(self,p,d):
-    polar = numpy.arcsin(d.crs(vec3(0,0,1)).mag())
-    print('need wobblerot work')
-    raise NotImplemented
-    azimuthal = dpv.angle_from_xaxis(d)
-    if random.random() < 0.1:self.azimuthal_flip(p,d)
-    elif random.random() < 0.5:self.azimuthal_up(p,d)
-    else:self.azimuthal_down(p,d)
-    if abs(polar) < numpy.pi/12.0:self.polar_down(p,d)
-    elif polar < -numpy.pi/2.0:self.polar_down(p,d)
-    elif polar > numpy.pi/2.0:self.polar_up(p,d)
-def orient(self,p,d):
-    # oient direction so that it points cylindrically away from p
-    d.rot(quat(0,0,0,0).uu(d,p)).nrm()
-    self.wobblerot(p,d)
-    '''#
-        
-

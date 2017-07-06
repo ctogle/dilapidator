@@ -1,21 +1,19 @@
-import dilap.core.lsystem as lsy
-from dilap.core.model import model
+from dilap.core import *
 from dilap.geometry import *
 import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
-
-import dilap.topology.tree as dtr
-import dilap.topology.planargraph as pgr
-
 import dilap.worldly.polygen as pyg
 import dilap.worldly.topography as dtp
+#import dilap.core.plotting as dtl
+#import matplotlib.pyplot as plt
+import math
+import numpy
+import random
+import pdb
 
-import dilap.core.plotting as dtl
-import matplotlib.pyplot as plt
-
-import math,numpy,random,pdb
 
 class terrain(object):
+
 
     @staticmethod
     def sow_earth(b,e):
@@ -85,8 +83,9 @@ class terrain(object):
             'X',dict([('X','{[[X}{]X}F]X'),('F','FA'),('A','F')])))
         params = dict(dazimuthal = gtl.rad(25.7),drho = 20)
 
-        pg = pgr.planargraph()
-        for piece in lsy.lgen(p,d,axiom,rules,i,**params):
+        #pg = pgr.planargraph()
+        pg = planargraph()
+        for piece in lsystem(i,p,d,axiom,rules,**params):
             if isinstance(piece,tuple):
                 p1,p2 = piece
                 v1,v2 = pg.fp(p1,10),pg.fp(p2,10)
@@ -193,5 +192,3 @@ def pepper(t,tip,e = 2):
     #plt.show()
 
     return newtips
-
-

@@ -1,9 +1,8 @@
-import dilap.core.lsystem as lsy
+from dilap.core import *
 from dilap.geometry import *
 import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
 import dilap.topology.tree as dtr
-import dilap.topology.planargraph as pgr
 import dilap.worldly.polygen as pyg
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
@@ -30,8 +29,9 @@ class roadmap:
         axiom = 'X'
         rules = dict([('X','F]{{X}[X}[F{[FX}]X'),('F','FF')])
         params = dict(dazimuthal = gtl.rad(90),drho = drho)
-        pg = pgr.planargraph()
-        for piece in lsy.lgen(p,d,axiom,rules,i,**params):
+        #pg = pgr.planargraph()
+        pg = planargraph()
+        for piece in lsystem(i,p,d,axiom,rules,**params):
             if isinstance(piece,tuple):
                 p1,p2 = piece
                 v1,v2 = pg.fp(p1,drho/2),pg.fp(p2,drho/2)

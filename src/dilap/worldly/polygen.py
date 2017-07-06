@@ -1,20 +1,13 @@
-from dilap.geometry.vec3 import vec3
-from dilap.geometry.quat import quat
+from dilap.geometry import *
 import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
-import dilap.topology.planargraph as dpg
-import dilap.core.lsystem as lsy
-
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
+import math
+import numpy
+import random
+import pdb
 
-import math,numpy,random,pdb
-
-
-
-###############################################################################
-### functions which create geometry in the form of polygons
-###############################################################################
 
 # return geometry describing a wall from p1 to p2 of height wh with holes hs
 #   return polygons constituting a trimesh for the wall
@@ -56,6 +49,7 @@ def awall(p1,p2,wh,hs,hp1 = None,hp2 = None):
         polys.append(wpy)
     return polys,portals
 
+
 # return polygons constituting a trimesh of a portal 
 def aportal(oloop,p1,p2,ww):
     polys = []
@@ -64,6 +58,7 @@ def aportal(oloop,p1,p2,ww):
     for lx in range(len(oloop)):
         polys.append(((iloop[lx-1],oloop[lx-1],oloop[lx],iloop[lx]),()))
     return polys
+
 
 # produce a highly irregular boundary polygon using 
 #   pym.ebdxy (e.g. for landmasses)
@@ -99,6 +94,7 @@ def ajagged(b,epsilon):
     
     return b
 
+
 def chunk(b,epsilon,lscl = 1.0,j1 = None,j2 = None,edge = False):
     if j1 is None:j1 = random.randint(0,len(b)-1)
     if j2 is None:j2 = j1-1
@@ -131,6 +127,7 @@ def chunk(b,epsilon,lscl = 1.0,j1 = None,j2 = None,edge = False):
         ax = dtl.plot_polygon_xy(stamp,ax,col = 'b',lw = 2)
         plt.show()
         raise ValueError
+
 
 def splotch(vb,easement = 10):
     # WIP
@@ -177,43 +174,3 @@ def splotch(vb,easement = 10):
         q.cpf().rotps(blgfp)
 
     return zip(ps,qs,ss,blgfps)
-
-def ___lsystemboundary(b):
-    p,d,i,axiom,rules = ((vec3(0,0,0),vec3(0,1,0),5,
-        'X',dict([('X','{[[X}{]X}F]X'),('F','FA'),('A','F')])))
-    params = dict(dazimuthal = gtl.rad(25.7),drho = 20)
-
-    pg = dpg.planargraph()
-    for piece in lsy.lgen(p,d,axiom,rules,i,**params):
-        if isinstance(piece,tuple):
-            p1,p2 = piece
-            v1,v2 = pg.fp(p1,10),pg.fp(p2,10)
-            e12 = pg.fe(v1,v2)
-        elif isinstance(piece,vec3):pass
-    py = pym.pgtopy(pg,5)[0]
-    py = pym.smoothxy(py,0.5,2)
-    #py = pym.aggregate(py,2)
-    py = pym.pinchb(py,5)
-
-    #ax = dtl.plot_axes_xy(400)
-    #ax = pg.plotxy(ax,l = 300)
-    #ax = dtl.plot_polygon_xy(b,ax,lw = 3,col = 'b')
-    #ax = dtl.plot_polygon_xy(py,ax,lw = 3,col = 'g')
-    #plt.show()
-
-    pyscale = vec3(0,1,0).prjps(py)
-    tipscale = vec3(0,1,0).prjps(b)
-    pyscale = pyscale[1]-pyscale[0]
-    tipscale = tipscale[1]-tipscale[0]
-    scale = tipscale/pyscale
-    com = vec3(0,0,0).com(b).tov(vec3(0,0,0).com(py)).uscl(-1)
-    for p in py:p.scl(vec3(scale,scale,0)).trn(com)
-
-    ax = dtl.plot_axes_xy(400)
-    ax = dtl.plot_polygon_xy(b,ax,lw = 3,col = 'b')
-    ax = dtl.plot_polygon_xy(py,ax,lw = 3,col = 'g')
-    plt.show()
-
-    return py
-
-###############################################################################

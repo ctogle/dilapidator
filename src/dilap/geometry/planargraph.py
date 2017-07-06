@@ -1,8 +1,6 @@
-import dilap.geometry.tools as gtl
-from dilap.geometry import vec3
+from .tools import isnear, epsilon
+from .vec3 import vec3
 from dilap.topology import wiregraph
-import dilap.core.plotting as dtl
-import matplotlib.pyplot as plt
 import numpy
 import pdb
 
@@ -31,8 +29,10 @@ class planargraph(wiregraph):
         e2 = vp.tov(wp)
         etn1 = e1.cp().nrm()
         etn2 = e2.cp().nrm()
-        para  = gtl.isnear(etn1.dot(etn2), 1, gtl.epsilon)
-        apara = gtl.isnear(etn1.dot(etn2),-1, gtl.epsilon)
+        #para  = gtl.isnear(etn1.dot(etn2), 1, gtl.epsilon)
+        #apara = gtl.isnear(etn1.dot(etn2),-1, gtl.epsilon)
+        para  = isnear(etn1.dot(etn2), 1, epsilon)
+        apara = isnear(etn1.dot(etn2),-1, epsilon)
         if apara:sa = numpy.pi
         elif para:sa = 0
         else:sa = e1.sang(e2,vec3(0,0,1))
@@ -150,6 +150,7 @@ class planargraph(wiregraph):
 
     # plot the vertices and edges of the graph
     def plotxy(self,ax = None,l = 10,s = 1.0,number = True,**kws):
+        import dilap.core.plotting as dtl
         if ax is None:ax = dtl.plot_axes_xy(l,**kws)
         for j in range(self.vcnt):
             i = self.vs[j]
@@ -175,6 +176,7 @@ class planargraph(wiregraph):
 
     # plot the vertices and edges of the graph
     def plot(self,ax = None,l = 10,**kws):
+        import dilap.core.plotting as dtl
         if ax is None:ax = dtl.plot_axes(l)
         for j in range(self.vcnt):
             i = self.vs[j]

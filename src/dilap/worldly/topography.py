@@ -1,9 +1,7 @@
 import dilap.core.lsystem as lsy
 from dilap.geometry import *
-import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
 from dilap.topology import *
-import dilap.topology.planargraph as pgr
 import dilap.worldly.polygen as pyg
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
@@ -11,6 +9,7 @@ import random
 import numpy
 import math
 import pdb
+
 
 # tmesh represents a tree of nested loops of which have 
 #   equal z position in the terrain

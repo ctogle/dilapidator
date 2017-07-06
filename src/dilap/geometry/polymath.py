@@ -1,18 +1,12 @@
-from dilap.geometry.vec3 import vec3
+from dilap.geometry import *
 import dilap.geometry.tools as gtl
-
-import dilap.topology.planargraph as pgr
-
-import dilap.core.plotting as dtl
-import matplotlib.pyplot as plt
-
-import numpy,math,random
-
+#import dilap.core.plotting as dtl
+#import matplotlib.pyplot as plt
+import numpy
+import math
+import random
 import pdb
 
-
-
-###############################################################################
 
 # does one segment intersect another
 # ie  : do endpoint intersections count (end of one segment only)
@@ -1008,7 +1002,8 @@ def aggregate(b,ds,da = numpy.pi/4):
 
 # generate a planar graph from a set of line segments
 def sstopg(segs,epsilon = 0.1,plot = False):
-    g = pgr.planargraph()
+    #g = pgr.planargraph()
+    g = planargraph()
     for e1,e2 in segs:
         v1,v2 = g.fp(e1,epsilon),g.fp(e2,epsilon)
         if v1 == v2:pass#print('seg is smaller than epsilon')

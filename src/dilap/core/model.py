@@ -1,13 +1,8 @@
-#import dilap.core.base as db
-#from .base import roundrobin
+from dilap.topology import *
 from dilap.geometry import *
 import dilap.geometry.triangulate as dtg
-import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
-from dilap.topology.trimesh import trimesh
-from dilap.topology.polygonmesh import polygonmesh
-import dilap.core.plotting as dtl
-import matplotlib.pyplot as plt
+import dilap.geometry.tools as gtl
 import functools
 import pdb
 
@@ -32,6 +27,7 @@ def roundrobin(seq):
 # it contains other objects which can operate on its trimeshes
 class model:
 
+
     def face_dict(self):
         mats = {}
         for gm in self.gfxmeshes:
@@ -42,7 +38,6 @@ class model:
                 else:mats[gmat] = gmats[gmat]
         return mats
 
-    def __str__(self):return 'model:'
 
     def __init__(self,*args,**kwargs):
         self.gfxmeshes = []
@@ -53,10 +48,8 @@ class model:
         self.nset = pointset()
         self.uset = pointset()
         self.reps = {}
-
-        #self._def('reps',{},**kwargs)
-        #self._def('filename','model.mesh',**kwargs)
         self.filename = 'model.mesh'
+
 
     # iterate over the faces of a mesh and fix its
     # uv vectors based on geometry
@@ -78,6 +71,7 @@ class model:
                 #u.x,u.y,u.z = next(uvstacked)
         return self
 
+
     # iterate over the faces of a mesh and fix its
     # normal vectors based on geometry
     def normals(self,mesh,skipuv = True):
@@ -96,11 +90,13 @@ class model:
                     u.x,u.y,u.z = self.defuv(p,n)
         return self
 
+
     def smoothnormal(self,mesh,v):
         fring = (v for v in mesh.mask(2,mesh.verts[v],None,None))
         fnorms = [self.flatnormal(mesh,f) for f in fring]
         n = functools.reduce(lambda x,y : x+y,fnorms).nrm()
         return n
+
 
     def flatnormal(self,mesh,f):
         if self.isneedle(mesh,f):
@@ -109,6 +105,7 @@ class model:
         ps = [self.pset.ps[v[0]] for v in vs]
         n = pym.bnrm(ps)
         return n
+
 
     def facenormals(self,mesh,f,smooth = True):
         if smooth:
@@ -119,9 +116,11 @@ class model:
             for v in f:
                 yield n
 
+
     def isneedle(self,mesh,f):
         vs = mesh.mask(0,None,None,f)
         return not len(set(vs)) == 3
+
 
     # generate a gfx trimesh for a nice cube
     def atricube(self,fm = None):
@@ -166,6 +165,7 @@ class model:
         f24 = gmesh.aface(v8,v4,v11)
         return gmesh
 
+
     # generate a gfx trimesh for a nice dome
     def atridome(self):
         gmesh = self.agfxmesh()
@@ -209,11 +209,13 @@ class model:
         f24 = gmesh.aface(v8,v4,v11)
         return gmesh
 
+
     # create new gfx trimesh
     def agfxmesh(self,ngm = None,defmat = None):
         if ngm is None:ngm = trimesh(defmat = defmat)
         self.gfxmeshes.append(ngm)
         return ngm
+
 
     # create new col trimesh
     def acolmesh(self):
@@ -221,11 +223,13 @@ class model:
         self.colmeshes.append(ncm)
         return ncm
 
+
     # create new lod trimesh
     def alodmesh(self):
         nlm = trimesh()
         self.lodmeshes.append(nlm)
         return nlm
+
 
     # create new polygonmesh
     def apolymesh(self):
@@ -233,16 +237,15 @@ class model:
         self.polymeshes.append(npm)
         return npm
 
+
     # given a polygonmesh, add a gfx trimesh to the 
     # model representing the polygonmesh
     def gfx(self,pmesh):
         ngm = self.agfxmesh()
-
-        print('GEN TRIMESH FROM POLYGONMESH PLEASE!!!')
-        print('GEN TRIMESH FROM POLYGONMESH PLEASE!!!')
-        print('GEN TRIMESH FROM POLYGONMESH PLEASE!!!')
-
+        raise NotImplementedError(
+            'GEN TRIMESH FROM POLYGONMESH PLEASE!!!')
         return ngm
+
 
     # create new vertex tuple not present in any 
     # current mesh of the model (new p,n, and/or u)
@@ -257,12 +260,14 @@ class model:
         ux = self.uset.ap(u)
         return px,nx,ux
 
+
     # given the indices of some vertices, 
     # return their position vectors
     def gvps(self,mesh,vxs):
         pxs = (mesh.verts[vx][0] for vx in vxs)
         ps = self.pset.gps(pxs)
         return ps
+
 
     # given the indices of some vertices, 
     # yield their position,normal,uv vectors
@@ -275,6 +280,7 @@ class model:
         for j in range(len(vxs)):
             yield ps[j],ns[j],us[j]
 
+
     # given the indices of some vertices, 
     # yield their position vectors
     def gvps_i(self,mesh,vxs = None):
@@ -286,6 +292,7 @@ class model:
             if p is None:continue
             yield p
 
+
     # given the indices of some vertices, 
     # yield their normal vectors
     def gvns_i(self,mesh,vxs = None):
@@ -296,6 +303,7 @@ class model:
             n = self.nset.ps[v[1]]
             if n is None:continue
             yield n
+
 
     # given the indices of some vertices, 
     # yield their uv vectors
@@ -309,6 +317,7 @@ class model:
             #if u is None:continue
             if u is None:raise ValueError
             yield u
+
 
     # subdivide the boundary of the mesh
     def subdivbnd(self,mesh,smooth = True,lockf = None):
@@ -345,6 +354,7 @@ class model:
             for sd in dels:
                 if not lockf(sd[0]):
                     sd[0].trn(sd[1])
+
 
     #
     # i really want two fundamental concepts abstractly added
@@ -383,6 +393,7 @@ class model:
         if subdivbnd:self.subdivbnd(mesh,smooth,lockf)
         return newvs
 
+
     def defuv(self,p,n):
         if   n.isnear(vec3(1,0,0)) or n.isnear(vec3(-1,0,0)):u = vec3(p.y,p.z,0)
         elif n.isnear(vec3(0,1,0)) or n.isnear(vec3(0,-1,0)):u = vec3(p.x,p.z,0)
@@ -390,6 +401,7 @@ class model:
         elif gtl.isnear(n.z,0):u = vec3(p.x,p.z,0)
         else:u = vec3(p.x,p.y,0)
         return u
+
 
     # add a triangulated surface to a trimesh
     def asurf(self,poly,tm = None,fm = 'generic',rv = False,
@@ -443,9 +455,6 @@ class model:
                 if newhmin < hmin:
                     hmin = newhmin
                     print('newhmin < hmin ...',newhmin)
-                    #ax = dtl.plot_axes_xy(100)
-                    #ax = dtl.plot_polygon_xy(eb,ax,lw = 2)
-                    #plt.show()
                 if newhmin < minhmin:
                     print('hmin is below threshold of surface->foregoing triangulation')
                     return []
@@ -462,24 +471,25 @@ class model:
         # need to somehow require all loops are placed before doing this
         # need to somehow require all loops are placed before doing this
         # need to somehow require all loops are placed before doing this
-        # need to somehow require all loops are placed before doing this
-        # need to somehow require all loops are placed before doing this
         if not zfunc is None:
             for ngv in ngvs:
                 p = self.pset.ps[tm.verts[ngv][0]]
                 p.ztrn(zfunc(p.x,p.y))
         return ngvs
 
+
     # translate the position pointset of the model
     def trn(self,v):
         self.pset.trn(v)
         return self
+
 
     # rotate the position and normal pointsets of the model
     def rot(self,q):
         self.pset.rot(q)
         self.nset.rot(q)
         return self
+
 
     # scale the position pointset of the model
     def scl(self,s):

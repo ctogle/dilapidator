@@ -1,5 +1,4 @@
 from dilap.core import *
-from dilap.core.model import model
 import dilap.worldly.terrain as ter
 import dilap.worldly.infrastructure as inf
 import dilap.worldly.partitiongraph as ptg

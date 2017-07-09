@@ -2,13 +2,6 @@ from dilap.core import *
 from dilap.geometry import *
 import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
-import dilap.topology.tree as dtr
-import dilap.worldly.polygen as pyg
-import dilap.core.plotting as dtl
-import matplotlib.pyplot as plt
-import math
-import numpy
-import random
 import pdb
 
 
@@ -53,11 +46,12 @@ class roadmap:
         #for p in py:p.scl(vec3(scale,scale,0)).trn(com)
 
         #print('ROADS')
-        #ax = dtl.plot_axes_xy(200)
+        #ax = plot_axes_xy(200)
         #ax = pg.plotxy(ax)
         #plt.show()
         #pdb.set_trace()
         return pg
+
 
     @staticmethod
     def layfootprints(r,t,e):
@@ -86,26 +80,27 @@ class roadmap:
 
             if False and j > 85:
                 print('walk',j,len(eloop),len(ebnd))
-                ax = dtl.plot_axes_xy(300)
-                ax = dtl.plot_polygon_xy(ebnd,ax,lw = 3,col = 'b')
-                ax = dtl.plot_points_xy(ebnd,ax,number = True)
-                ax = dtl.plot_edges_xy(edge,ax,lw = 7,col = 'r')
-                ax = dtl.plot_polygon_full_xy(easement,ax,lw = 5,col = 'g')
+                ax = plot_axes_xy(300)
+                ax = plot_polygon_xy(ebnd,ax,lw = 3,col = 'b')
+                ax = plot_points_xy(ebnd,ax,number = True)
+                ax = plot_edges_xy(edge,ax,lw = 7,col = 'r')
+                ax = plot_polygon_full_xy(easement,ax,lw = 5,col = 'g')
                 if preasement:
-                    ax = dtl.plot_polygon_full_xy(preasement,ax,lw = 3,col = 'm')
+                    ax = plot_polygon_full_xy(preasement,ax,lw = 3,col = 'm')
                 plt.show()
 
         #easement = pym.bsuxy(easement,e)
         fps = ([easement],[[] for l in range(len(loops)-1)])
         # generate a set of footprints connected to road
         # footprint must not overlap interiors with ebnd
-        #ax = dtl.plot_axes_xy(300)
-        #ax = dtl.plot_polygon_xy(ebnd,ax,lw = 3,col = 'b')
+        #ax = plot_axes_xy(300)
+        #ax = plot_polygon_xy(ebnd,ax,lw = 3,col = 'b')
         #for fp in fps[0]:
-        #    ax = dtl.plot_polygon_full_xy(fp,ax,lw = 3,col = 'g')
+        #    ax = plot_polygon_full_xy(fp,ax,lw = 3,col = 'g')
         #plt.show()
 
         return fps
+
 
     def __init__(self,t,e,**kws):
         self.terrain = t
@@ -118,8 +113,7 @@ class roadmap:
             'footprints':self.footprints,
                 }
 
+
     def __call__(self,x,y):
         '''identify the height of terrain if x,y overlap any infrastructure layers'''
         pdb.set_trace()
-
-

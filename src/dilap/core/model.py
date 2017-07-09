@@ -1,3 +1,4 @@
+from dilap.core.plotting import *
 from dilap.topology import *
 from dilap.geometry import *
 import dilap.geometry.triangulate as dtg
@@ -405,8 +406,8 @@ class model:
 
     # add a triangulated surface to a trimesh
     def asurf(self,poly,tm = None,fm = 'generic',rv = False,
-            ref = False,smo = False,hmin = 1,zfunc = None,minhmin = 0.1,
-            uvstacked = None,autoconnect = False):
+            ref = False,smo = False,hmin = 1,hmax = 16,minhmin = 0.1,
+            zfunc = None,uvstacked = None,autoconnect = False,e = gtl.epsilon):
         if tm is None:tm = self.agfxmesh()
         if uvstacked is None:uvstacked = roundrobin((None,))
         eb,ibs = poly
@@ -451,7 +452,7 @@ class model:
         else:
             eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
             if ref:
-                newhmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs)
+                newhmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs,hmax)
                 if newhmin < hmin:
                     hmin = newhmin
                     print('newhmin < hmin ...',newhmin)
@@ -459,7 +460,7 @@ class model:
                     print('hmin is below threshold of surface->foregoing triangulation')
                     return []
 
-            tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo)
+            tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo,e)
             if not tris:print('asurf: empty surface')
             for tri in tris:
                 p1,p2,p3 = tri

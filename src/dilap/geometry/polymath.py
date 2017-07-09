@@ -1,22 +1,19 @@
-from dilap.geometry import *
-import dilap.geometry.tools as gtl
-#import dilap.core.plotting as dtl
-#import matplotlib.pyplot as plt
+from .vec3 import vec3
+from .planargraph import planargraph
+from .tools import isnear, near, inrng, orient2d, epsilon
 import numpy
 import math
-import random
 import pdb
 
 
-# does one segment intersect another
-# ie  : do endpoint intersections count (end of one segment only)
-# ieb : do endpoint intersections count (end of both segments)
-# col : do colinear intersections counts
 def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,e = 0.01):
-    # if segments are colinear and overlapping
-    # elif segments are colinear and nonoverlapping
-    # elif segments are skew and possibly overlapping
-    #s11,s12,s21,s22 = s11.cpxy(),s12.cpxy(),s21.cpxy(),s22.cpxy()
+    '''Determine if two line segments intersect in the xy-plane
+    ie  : do endpoint intersections count (end of one segment only)
+    ieb : do endpoint intersections count (end of both segments)
+    col : do colinear intersections counts
+    if segments are colinear and overlapping
+    elif segments are colinear and nonoverlapping
+    elif segments are skew and possibly overlapping'''
     s1tn,s2tn = s11.tov(s12),s21.tov(s22)
     ds = s11.tov(s21)
     s1crss2 = s1tn.crs(s2tn)
@@ -39,14 +36,14 @@ def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,e = 0.01
         # else disjoint
         s1l = s1tn.mag()
         s1dots2 = s1tn.dot(s2tn)
-        apara = gtl.near(s1dots2,0,e) < 0
+        apara = near(s1dots2,0,e) < 0
         t0 = ds.dot(s1tn)/s1l**2
         t1 = t0+s1dots2/s1l**2
-        t0 = gtl.near(gtl.near(t0,0,e),1,e)
-        t1 = gtl.near(gtl.near(t1,0,e),1,e)
+        t0 = near(near(t0,0,e),1,e)
+        t1 = near(near(t1,0,e),1,e)
         if apara:t0,t1 = t1,t0
-        if gtl.inrng(t0,0,1,e) or gtl.inrng(t1,0,1,e):return 1
-        elif gtl.inrng(0,t0,t1,e) and gtl.inrng(1,t0,t1,e):return 1
+        if inrng(t0,0,1,e) or inrng(t1,0,1,e):return 1
+        elif inrng(0,t0,t1,e) and inrng(1,t0,t1,e):return 1
         elif (t0 == 0 and t1 == 1) or (t0 == 1 and t1 == 0):return 1 if ieb else 0
         elif (t0 == 0 and t1 > t0) or (t1 == 0 and t0 > t1):return 1
         elif (t0 < t1 and t1 == 1) or (t1 < t0 and t0 == 1):return 1
@@ -60,12 +57,13 @@ def sintsxy(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,e = 0.01
         # elif no proper intersection at neither segments endpoints
         # else must have intersected by one of three possible cases
         dscrss2 = ds.crs(s2tn)
-        u = gtl.near(gtl.near(dscrss1.z/s1crss2.z,0,e),1,e)
-        t = gtl.near(gtl.near(dscrss2.z/s1crss2.z,0,e),1,e)
+        u = near(near(dscrss1.z/s1crss2.z,0,e),1,e)
+        t = near(near(dscrss2.z/s1crss2.z,0,e),1,e)
         if not ieb and ((u == 0 or u == 1) and (t == 0 or t == 1)):return 0
         elif not ie and ((u == 0 or t == 0) or (u == 1 or t == 1)):return 0
         elif not (0 <= u and u <= 1) or not (0 <= t and t <= 1):return 0
         else:return 1
+
 
 # given 4 points and a tangent vector, 
 # extract the two whose projections are in between the extreme projections
@@ -82,6 +80,7 @@ def prjmed(p1,p2,p3,p4,tn):
             ssn.remove(j)
             maxfnd = True
     return ps[ssn[0]],ps[ssn[1]]
+
 
 # does one segment intersect another
 # ie  : do endpoint intersections count (end of one segment only)
@@ -116,15 +115,15 @@ def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,e = 0.0
         # else disjoint
         s1l,s2l = s1tn.mag(),s2tn.mag()
         s1dots2 = s1tn.dot(s2tn)
-        apara = gtl.near(s1dots2,0,e) < 0
+        apara = near(s1dots2,0,e) < 0
         t0 = ds.dot(s1tn)/s1l**2
         t1 = t0+s1dots2/s1l**2
-        t0 = gtl.near(gtl.near(t0,0,e),1,e)
-        t1 = gtl.near(gtl.near(t1,0,e),1,e)
+        t0 = near(near(t0,0,e),1,e)
+        t1 = near(near(t1,0,e),1,e)
         if apara:t0,t1 = t1,t0
-        if gtl.inrng(t0,0,1,e) or gtl.inrng(t1,0,1,e):
+        if inrng(t0,0,1,e) or inrng(t1,0,1,e):
             return prjmed(s11,s12,s21,s22,s1tn)
-        elif gtl.inrng(0,t0,t1,e) and gtl.inrng(1,t0,t1,e):
+        elif inrng(0,t0,t1,e) and inrng(1,t0,t1,e):
             return prjmed(s11,s12,s21,s22,s1tn)
         elif (t0 == 0 and t1 == 1) or (t0 == 1 and t1 == 0):
             return None if not ieb else (s11.cp(),s12.cp())
@@ -158,6 +157,7 @@ def sintsxyp(s11,s12,s21,s22,ie = True,ieb = True,col = True,skew = True,e = 0.0
         # NOTE: THE ERROR HERE GETS TOO LARGE WHEN THE GEOMETRIC PROBLEM SCALES UP...
         # NOTE: THE ERROR HERE GETS TOO LARGE WHEN THE GEOMETRIC PROBLEM SCALES UP...
         else:return s11.cp().trn(s1tn.cp().uscl(t))
+
 
 # return acceptable endpoints wrt s1,s2 and s3,s4
 def ssegsxy(s1,s2,s3,s4):
@@ -212,15 +212,17 @@ def ssegsxy(s1,s2,s3,s4):
         #return [(s1.cp(),s2.cp()),(s3.cp(),s4.cp())]
         return [(s1.cp(),s2.cp())]
 
+
 # produce some number of closed loops from a set of edges
 def sloops(es,epsilon = 0.1):
-    g = sstopg(es,epsilon)
+    g = planargraph.segstopg(es,epsilon)
     uls = g.uloops('ccw')
     ols = [[g.vs[j][1]['p'].cp() for j in ul] for ul in uls]
     #for ol in ols:
     #    if bnrm(ol).z < 0:
     #        ol.reverse()
     return ols
+
 
 # does a segment intersect a boundary polygon
 # ie : if the intersection is strictly along the boundary, does it count
@@ -230,6 +232,7 @@ def sintbxy(s1,s2,b,ie = True,ieb = True,col = True):
         if sintsxy(s1,s2,b1,b2,ie = ie,ieb = ieb,col = col):
             return 1
     return 0
+
 
 # where does a segment intersect a boundary polygon
 # ie : if the intersection is strictly along the boundary, does it count
@@ -251,6 +254,7 @@ def sintbxyp(s1,s2,b,ie = True,ieb = True,col = True):
             else:isnew(ip)
     return ips
 
+
 # segment a boundary polygon based on intersections with a line segment
 # return some number of new boundary polygons
 def bsegsxy(b,s1,s2,epsilon = 0.1):
@@ -258,8 +262,8 @@ def bsegsxy(b,s1,s2,epsilon = 0.1):
     left,right = [],[]
     while bes:
         u1,u2 = bes.pop(0)
-        u1o = gtl.orient2d(s1,s2,u1)
-        u2o = gtl.orient2d(s1,s2,u2)
+        u1o = orient2d(s1,s2,u1)
+        u2o = orient2d(s1,s2,u2)
         if u1o == 0 and u2o == 0:pass
         elif u1o > 0 or u2o > 0:left.insert(0,(u2,u1))
         elif u1o < 0 or u2o < 0:right.append((u1,u2))
@@ -289,7 +293,6 @@ def bsegsxy(b,s1,s2,epsilon = 0.1):
 
     return bs
 
-###############################################################################
 
 # determine if a boundary polygon intersects itself
 def bintselfxy(b):
@@ -302,6 +305,7 @@ def bintselfxy(b):
                 return 1
     return 0
 
+
 # is a boundary polygon contained within another polygon
 # ie : do edge intersections mean no containment
 # NOTE: WILL NOT WORK FOR ALL CONCAVE BOUNDARIES AS IS...
@@ -310,6 +314,7 @@ def binbxy(b1,b2,ie = True):
         if ie and p.onbxy(b2):return 0
         elif not p.inbxy(b2):return 0
     return 1
+
 
 # is a boundary polygon intersecting another boundary polygon
 # ie : do edge intersections count
@@ -322,6 +327,7 @@ def bintbxy(b1,b2,ie = True,ieb = True,col = True):
             if sintsxy(b1p1,b1p2,b2p1,b2p2,ie = ie,ieb = ieb,col = col):
                 return 1
     return 0
+
 
 # segment a boundary polygon based on intersections with another
 def bsegbxy(b1,b2):
@@ -361,11 +367,30 @@ def badjbxy(b1,b2,minovlp = 1):
                     adjs.append((b1x,b2x))
     return adjs
 
-###############################################################################
 
-###############################################################################
-### csg type functions for boundary polygons
-###############################################################################
+# translate and scale (in place) b1 to be roughly inscribed by b2
+def bfitbxy(b1,b2):
+    def prj(b):
+        prjx = vec3(1,0,0).prjps(b)
+        prjy = vec3(0,1,0).prjps(b)
+        return prjx,prjy
+    # scale the polygon to the b
+    b1prjx,b1prjy = prj(b1)
+    b2prjx,b2prjy = prj(b2)
+    cx = sum(b1prjx)-sum(b2prjx)
+    cy = sum(b1prjy)-sum(b2prjy)
+    recenter = vec3(cx,cy,0).uscl(-0.5)
+    for p in b1:
+        p.trn(recenter)
+    b1prjx,b1prjy = prj(b1)
+    #b2prjx,b2prjy = prj(b2)
+    d1x = (b1prjx[1]-b1prjx[0])+(b1prjy[1]-b1prjy[0])
+    d2x = (b2prjx[1]-b2prjx[0])+(b2prjy[1]-b2prjy[0])
+    scale = 1. * d2x / d1x
+    for p in b1:
+        p.scl(vec3(scale,scale,0))
+    return b1
+
 
 # compute the union of many adjacent boundary polygons
 # similar to ebuxy except using a planar graph
@@ -445,6 +470,7 @@ def ebuxy_special(bs,epsilon = 5,cellperimlength = 2):
     '''#
     return uloops
 
+
 # compute the union of two full polygons
 # return a list of full polygons
 def epuxy(py1,py2,epsilon = 0.1,debug = False):
@@ -458,6 +484,7 @@ def epuxy(py1,py2,epsilon = 0.1,debug = False):
     #    ax = dtl.plot_polygon_full_xy(py,ax,lw = 2,col = 'b')
     #plt.show()
     return pys
+
 
 # compute the union of two boundary polygons
 def ebuxy(b1,b2,epsilon = 0.1,debug = False,holes = False):
@@ -514,6 +541,7 @@ def ebuxy(b1,b2,epsilon = 0.1,debug = False,holes = False):
     if holes:return [(dfs[0],[])]
     else:return dfs
 
+
 # compute difference of boundary polygons
 def ebdxy(b1,b2,epsilon = 0.1):
     b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
@@ -534,6 +562,7 @@ def ebdxy(b1,b2,epsilon = 0.1):
     '''#
     return dfs
 
+
 # compute the intersection of two boundary polygons
 def ebixy(b1,b2,epsilon = 0.1):
     b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
@@ -544,6 +573,7 @@ def ebixy(b1,b2,epsilon = 0.1):
     b2inb1 = [p for p in b2segs if bo(p[0],p[1],b1)]
     dfs = sloops(b1inb2+b2inb1,epsilon)
     return dfs
+
 
 # consolidate a list of boundary polygons using ebuxy
 def bsuxy(bs,epsilon = 0.1):
@@ -587,7 +617,6 @@ def bsuxy(bs,epsilon = 0.1):
 
     return nbs
 
-###############################################################################
 
 # like vec3.inbxy except uses a ray intersection.. seeems to work better?
 def pinb(b,p):
@@ -595,6 +624,7 @@ def pinb(b,p):
     ips = sintbxyp(p,s2,b,col = False)
     ins = len(ips) % 2 == 1
     return ins
+
 
 # transform a point based on the xy projection of a boundary polygon
 def ptob(b,p):
@@ -605,6 +635,7 @@ def ptob(b,p):
         bpy[0]+p.y*(bpy[1]-bpy[0]),
         bpz[0]+p.z*(bpz[1]-bpz[0]))
     return bp
+
 
 # determine the properness of a boundary polygon
 def bvalidxy(b,epsilon = 0.1):
@@ -640,6 +671,7 @@ def bvalidxy(b,epsilon = 0.1):
                 return -3
     return 1
 
+
 # fix an invalid polygon such that it bvalidxy(b) returns True
 def cleanbxy(b,epsilon = 0.1):
     r = bvalidxy(b)
@@ -651,6 +683,7 @@ def cleanbxy(b,epsilon = 0.1):
         r = bvalidxy(b)
     return b
 
+
 # compute the area of a boundary polygon in the xy plane
 def bareaxy(b,allowzero = False):
     area = 0.0
@@ -659,6 +692,7 @@ def bareaxy(b,allowzero = False):
         area += (b1.x+b2.x)*(b1.y-b2.y)
     if not allowzero and area == 0:raise ValueError
     return -area/2.0
+
 
 # return a vector normal to the boundary polygon b
 def bnrm(b):
@@ -677,10 +711,11 @@ def bnrm(b):
             #plt.show()
             raise ValueError
         cang = c1c2.ang(c2c3)
-        if not gtl.isnear(cang,0,gtl.epsilon) and not gtl.isnear(cang,gtl.PI,gtl.epsilon):
+        if not isnear(cang,0,epsilon) and not isnear(cang,numpy.pi,epsilon):
             if cang > -numpy.pi+0.001 and cang < numpy.pi-0.001:
                 pn.trn(c1c2.crs(c2c3).nrm())
     return pn.nrm()
+
 
 # determine if a polygon is ordered counterclockwise in the xy plane
 def bccw(b):
@@ -690,6 +725,7 @@ def bccw(b):
         s += (b2.x-b1.x)*(b2.y+b1.y)
     return s < 0
 
+
 # return outward normals for each edge of a boundary polygon
 def bnrmsxy(b):
     nms = []
@@ -697,6 +733,7 @@ def bnrmsxy(b):
         b1,b2 = b[x-1],b[x]
         nms.append(b1.tov(b2).crs(vec3(0,0,1)).nrm())
     return nms
+
 
 # compute the distance of a point to the line containing 
 # each edge of a boundary polygon
@@ -707,6 +744,7 @@ def bdistpxy(b,p):
         bpp,bpn = b[x-1],bnms[x]
         bds.append(abs(p.dot(bpn)-bpp.dot(bpn)))
     return bds
+
 
 # find the nearest edge of a boundary polygon to a point
 # return the index of the edge and the associated distance
@@ -731,6 +769,7 @@ def bnearpxy(b,p):
                 minx = x
     return minx,mind
 
+
 # make a new boundary polygon including the midpoints of every edge
 def bisectb(b):
     nb = []
@@ -740,6 +779,7 @@ def bisectb(b):
     nb.append(nb.pop(0))
     nb.append(nb.pop(0))
     return nb
+
 
 # make a new boundary polygon including the midpoints of every edge
 def splitb(b,l):
@@ -764,6 +804,7 @@ def splitb(b,l):
 
     return nb
 
+
 # return a copy of a boundary polygon with some points removed
 # possibly replace dissolved points with points in rps
 def bdissolvep(b,xs,rps):
@@ -776,6 +817,7 @@ def bdissolvep(b,xs,rps):
         else:nb.append(b[y])
         #nb.append(b[y])
     return nb
+
 
 # modify a boundary polygon such that its hmin will be above minhmin
 # NOTE: the resulting polygon should be contained by the input polygon
@@ -812,6 +854,7 @@ def blimithmin(b,minhmin,maxhmin):
     '''#
 
     return b
+
 
 # remove additional loops created by intersections 
 # in an improper boundary polygon
@@ -886,8 +929,9 @@ def pinchb(b,epsilon = 5):
             uloops,las = zip(*ulas)
             uloops,las = list(uloops),list(las)
             uloops.insert(0,uloops.pop(las.index(max(las))))
-    print('PINCHB ACCOMPLISHED')
+    #print('PINCHB ACCOMPLISHED')
     return uloops
+
 
 # evenly contract a boundary polygon
 def contract(b,ds,epsilon = 0.1):
@@ -911,7 +955,7 @@ def contract(b,ds,epsilon = 0.1):
         ip = sintsxyp(s11,s12,s21,s22,ie = False,col = False)
 
         #if ip is None:
-        if ip is None or gtl.isnear(abs(w1t.dot(w2t)),1,gtl.epsilon):
+        if ip is None or isnear(abs(w1t.dot(w2t)),1,epsilon):
             pn = p2.cp().trn(w1n)
 
         else:pn = ip.cp()
@@ -948,6 +992,7 @@ def contract(b,ds,epsilon = 0.1):
     #if len(fbnd) > 3:fbnd = pinchb(fbnd,epsilon)
     return fbnd
 
+
 # return an xy plane laplacian smoothed version of a boundary polygon
 def smoothxy(b,w = 0.1,epsilon = 0.1,constraint = 0):
     db = []
@@ -965,18 +1010,21 @@ def smoothxy(b,w = 0.1,epsilon = 0.1,constraint = 0):
     if len(sb) > 3:sb = pinchb(sb,epsilon)[0]
     return sb
 
+
 def smoothxyi(b,w = 0.1,epsilon = 0.1,i = 10,constraint = 0):
     for j in range(i):
         b = smoothxy(b,w,epsilon,constraint)
         print('smoothxyi',i)
     return b
 
+
 # return a version of a boundary polygon where 
 # points within ds of one another are merged
 def aggregate(b,ds,da = numpy.pi/4):
     if len(b) <= 3:
-        print('polygon could not be further aggregated')
-        return b[:]
+        #print('polygon could not be further aggregated')
+        return 
+        #return b[:]
 
     edists = [b[x-1].d(b[x]) for x in range(len(b))]
     edas = [b[x-1].tov(b[x-2]).angxy(b[x-1].tov(b[x])) for x in range(len(b))]
@@ -1000,19 +1048,6 @@ def aggregate(b,ds,da = numpy.pi/4):
         else:nb.append(b[x])
     return nb
 
-# generate a planar graph from a set of line segments
-def sstopg(segs,epsilon = 0.1,plot = False):
-    #g = pgr.planargraph()
-    g = planargraph()
-    for e1,e2 in segs:
-        v1,v2 = g.fp(e1,epsilon),g.fp(e2,epsilon)
-        if v1 == v2:pass#print('seg is smaller than epsilon')
-        elif not v2 in g.rings[v1]:g.fe(v1,v2)
-        elif not v1 in g.rings[v2]:g.fe(v2,v1)
-    if plot:
-        ax = g.plotxy(l = 500)
-        plt.show()
-    return g
 
 # generate a full polygon from a planar graph
 ##### why is it sometimes useful to flip z???
@@ -1057,6 +1092,7 @@ def pgtopy(pg,r,epsilon = 0.1,z = vec3(0,0,1),findeseam = False):
     py = [seams.pop(eseam),seams]
     return py
 
+
 # generate a full polygon from a planar graph (different from pgtopy)
 def pgbleed(pg,r,epsilon = 0.1):
 
@@ -1085,11 +1121,4 @@ def pgbleed(pg,r,epsilon = 0.1):
     plt.show()
 
     return py
-
-###############################################################################
-###############################################################################
-
-
-
-
 

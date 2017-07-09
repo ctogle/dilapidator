@@ -1,7 +1,6 @@
-from dilap.geometry import *
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-import pdb
+from dilap.geometry import *
 
 
 # create a mpl 2d axes object

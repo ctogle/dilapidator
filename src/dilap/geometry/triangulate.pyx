@@ -203,7 +203,7 @@ cdef void initialize(triangulation data,list bnd):
 # insert the vertex y into the triangulation data structure
 # return a list of indices pointing to newly created triangles 
 #cdef list point_location(triangulation data,vector y):
-cdef list point_location(triangulation data,vec3 y):
+cdef list point_location(triangulation data,vec3 y,float e):
     cdef int pretricnt,nv,onb,tdx,gdx,u,v,w,x,tu
     cdef vec3 vu,vv,vw
     pretricnt = data.tricnt
@@ -226,7 +226,7 @@ cdef list point_location(triangulation data,vec3 y):
         if tri is None:continue
         else:u,v,w = tri
         vu,vv,vw = data.points.gps_c((u,v,w))
-        if y.intrixy_c(vu,vv,vw):
+        if y.intrixy_c(vu,vv,vw,e):
             data.insert_vertex(nv,u,v,w)
             return [x for x in range(pretricnt,data.tricnt)]
 
@@ -257,7 +257,7 @@ cdef list point_location(triangulation data,vec3 y):
 
 # given a loop of points, add them to a triangulation 
 # and return the line segments which bound the loop
-cdef list loop_location(triangulation data,tuple loop):
+cdef list loop_location(triangulation data,tuple loop,float e):
     cdef list bnd = []
     cdef int lcnt = len(loop)
     cdef int x
@@ -271,20 +271,20 @@ cdef list loop_location(triangulation data,tuple loop):
 
     while ptstack:
         p1 = ptstack.pop(0)
-        point_location(data,p1)
+        point_location(data,p1,e)
 
         #prog(len(ptstack)/lcnt)
 
     return bnd
 
 # locate each loop associated with polygon
-cdef list polygon_location(triangulation data,tuple ebnd,tuple ibnds):
+cdef list polygon_location(triangulation data,tuple ebnd,tuple ibnds,float e):
     cdef list bnd = []
     cdef int icnt = len(ibnds)
     cdef int ix
-    bnd.extend(loop_location(data,ebnd))
+    bnd.extend(loop_location(data,ebnd,e))
     for ix in range(icnt):
-        bnd.extend(loop_location(data,ibnds[ix]))
+        bnd.extend(loop_location(data,ibnds[ix],e))
     return bnd
 
 # is a triangle basically inside a boundary polygon
@@ -341,7 +341,7 @@ cdef void constrain_delaunay(triangulation data):
             unfinished.extend(nedges)
 
 # perform chews first refinement algorithm on a triangulation
-cdef void refine_chews_first(triangulation data,float h):
+cdef void refine_chews_first(triangulation data,float h,float e):
     cdef list unfinished = [t for t in data.triangles]
     cdef int ucnt = len(unfinished)
     cdef int ufx1,ufx2,ufx3
@@ -357,7 +357,7 @@ cdef void refine_chews_first(triangulation data,float h):
         v1,v2,v3 = data.points.gps_c((ufx1,ufx2,ufx3))
         tcp,tcr = gtl.circumscribe_tri_c(v1,v2,v3)
         if tcr/h > 1.0:
-            ntxs = point_location(data,tcp)
+            ntxs = point_location(data,tcp,e)
             for ntx in ntxs:
                 unfinished.append(data.triangles[ntx])
                 ucnt += 1
@@ -410,7 +410,8 @@ cdef void plot_triangulation(triangulation data,ax = None):
 # poly contains an exterior bound and da tuple of interior bounds
 # bounds are ordered loops of points with no duplicates
 # bounds are possibly concave; interior bounds represent holes
-cdef triangulation tridata_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
+cdef triangulation tridata_c(tuple ebnd,tuple ibnds,
+        float hmin,bint refine,bint smooth,float e):
     cdef vec3 p0,pn
     cdef quat prot
     p0 = ebnd[0].cp()
@@ -427,7 +428,7 @@ cdef triangulation tridata_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint 
     initialize(data,list(ebnd))
     #print('initialized')
     #print('locating polygon')
-    plcedges = polygon_location(data,ebnd,ibnds)
+    plcedges = polygon_location(data,ebnd,ibnds,e)
     #print('located polygon')
     #print('covering polygon')
     cover_polygon(data,ebnd,ibnds)
@@ -439,7 +440,8 @@ cdef triangulation tridata_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint 
     constrain_delaunay(data)
     #print('constrained delaunay')
     #print('refining chew')
-    if refine:refine_chews_first(data,hmin)
+    if refine:
+        refine_chews_first(data,hmin,e)
 
     if False:
         ax = dtl.plot_axes_xy(500)
@@ -461,21 +463,23 @@ cdef triangulation tridata_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint 
     gtl.rot_poly_c((ebnd,ibnds),prot)
     return data
 
-cpdef triangulation tridata(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
-    return tridata_c(ebnd,ibnds,hmin,refine,smooth)
+cpdef triangulation tridata(tuple ebnd,tuple ibnds,
+        float hmin,bint refine,bint smooth,float e):
+    return tridata_c(ebnd,ibnds,hmin,refine,smooth,e)
 
 # given poly, a tuple containing vectors representing a polygon
 # provide a list of simplices which triangulates the polygon
 # poly contains an exterior bound and da tuple of interior bounds
 # bounds are ordered loops of points with no duplicates
 # bounds are possibly concave; interior bounds represent holes
-cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
+cdef tuple triangulate_c(tuple ebnd,tuple ibnds,
+        float hmin,bint refine,bint smooth,float e):
     smps,gsts = [],[]
     if hmin < 0.01:
         print('HMIN IS TOO LOW:',hmin,' ->SKIPPING TRIANGULATION...')
         return smps,gsts
     #print('generating tridata')
-    data = tridata_c(ebnd,ibnds,hmin,refine,smooth)
+    data = tridata_c(ebnd,ibnds,hmin,refine,smooth,e)
     #print('generated tridata')
     for tx in range(data.tricnt):
         tri = data.triangles[tx]
@@ -499,12 +503,13 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smoo
 # poly contains an exterior bound and da tuple of interior bounds
 # bounds are ordered loops of points with no duplicates
 # bounds are possibly concave; interior bounds represent holes
-cpdef tuple triangulate(tuple ebnd,tuple ibnds,float hmin,bint refine,bint smooth):
+cpdef tuple triangulate(tuple ebnd,tuple ibnds,
+        float hmin,bint refine,bint smooth,float e):
     xprjmin,xprjmax = vec3(1,0,0).prjps(ebnd)
     if hmin/(xprjmax-xprjmin) < 0.001:
         print('TRIANGULATION HMIN IS DANGEROUSLY LOW... SKIPPING TRIANGULATION')
         return ([],[])
-    return triangulate_c(ebnd,ibnds,hmin,refine,smooth)
+    return triangulate_c(ebnd,ibnds,hmin,refine,smooth,e)
 
 def split_nondelauney_edges(eb,ibs):
     aps = list(eb)
@@ -540,10 +545,11 @@ def split_nondelauney_edges(eb,ibs):
     nibs = [handle_loop(ib) for ib in ibs]
     return tuple(neb),tuple(tuple(nib) for nib in nibs)
 
-def split_nondelauney_edges_chew1(eb,ibs):
+def split_nondelauney_edges_chew1(eb,ibs,hmax = 16):
     els = [eb[x-1].d(eb[x]) for x in range(len(eb))]
     for ib in ibs:els.extend([ib[x-1].d(ib[x]) for x in range(len(ib))])
     hmin = min(els)*math.sqrt(3)
+    hmin = min(hmax,hmin)
 
     def split_loop(loop):
         oloop = [loop[0]]

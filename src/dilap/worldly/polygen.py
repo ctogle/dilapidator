@@ -1,8 +1,7 @@
+from dilap.core import *
 from dilap.geometry import *
 import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
-import dilap.core.plotting as dtl
-import matplotlib.pyplot as plt
 import math
 import numpy
 import random
@@ -84,10 +83,10 @@ def ajagged(b,epsilon):
     bval = pym.bvalidxy(b)
     if bval == -1:b.reverse()
     if not pym.bvalidxy(b) > 0:
-        ax = dtl.plot_axes_xy(700)
-        ax = dtl.plot_polygon_xy(b,ax,lw = 4,col = 'b')
-        ax = dtl.plot_points_xy(b,ax,number = True)
-        ax = dtl.plot_polygon_xy(stamp,ax,lw = 2,col = 'r')
+        ax = plot_axes_xy(700)
+        ax = plot_polygon_xy(b,ax,lw = 4,col = 'b')
+        ax = plot_points_xy(b,ax,number = True)
+        ax = plot_polygon_xy(stamp,ax,lw = 2,col = 'r')
         plt.show()
         #pdb.set_trace()
         raise ValueError
@@ -122,9 +121,9 @@ def chunk(b,epsilon,lscl = 1.0,j1 = None,j2 = None,edge = False):
         if pym.bvalidxy(nb) > 0:
             return nb
     else:
-        ax = dtl.plot_axes_xy(200)
-        ax = dtl.plot_polygon_xy(b,ax,col = 'r',lw = 2)
-        ax = dtl.plot_polygon_xy(stamp,ax,col = 'b',lw = 2)
+        ax = plot_axes_xy(200)
+        ax = plot_polygon_xy(b,ax,col = 'r',lw = 2)
+        ax = plot_polygon_xy(stamp,ax,col = 'b',lw = 2)
         plt.show()
         raise ValueError
 
@@ -174,3 +173,25 @@ def splotch(vb,easement = 10):
         q.cpf().rotps(blgfp)
 
     return zip(ps,qs,ss,blgfps)
+
+
+def lsystopy(b,lsys,e = 2):
+    '''Return an outline of a fractal scaled to boundary polygon'''
+    # lsystem -> planargraph
+    pg = planargraph()
+    for piece in lsys:
+        if isinstance(piece,tuple):
+            p1,p2 = piece
+            v1,v2 = pg.fp(p1,10),pg.fp(p2,10)
+            e12 = pg.fe(v1,v2)
+        elif isinstance(piece,vec3):
+            pass
+    # planargraph -> polygon -> smooth -> pinch -> fit
+    py = pym.pgtopy(pg,5)[0]
+    py = pym.smoothxy(py,0.5,2,0)
+    py = pym.pinchb(py,5)[0]
+    py = pym.bfitbxy(py,b)
+    # return the intersection of the outline and the b
+    #py = pym.ebixy(b,py)[0]
+    #py = pym.pinchb(py,5)[0]
+    return py

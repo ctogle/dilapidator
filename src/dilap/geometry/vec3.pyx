@@ -18,6 +18,8 @@ cimport numpy
 import numpy
  
 import copyreg
+import traceback
+import sys
 
 stuff = 'hi'
 
@@ -187,7 +189,10 @@ cdef class vec3:
         dot12 = v1x*v2x + v1y*v2y
         denom = (dot00 * dot11 - dot01 * dot01)
         if denom == 0:
-            print('colinear triangle?',a,b,c,self,denom)
+            print('colinear triangle?',a,b,c,self,denom,gtl.orient2d_c(a,b,c))
+            print("-"*60)
+            traceback.print_exc(file=sys.stdout)
+            print("-"*60)
             #import dilap.core.plotting as dtl
             #import matplotlib.pyplot as plt
             #ax = dtl.plot_axes_xy(100)
@@ -250,8 +255,9 @@ cdef class vec3:
 
     # determine if the point pt is inside the triangle abc
     # assume all points are in the xy plane 
-    cdef bint intrixy_c(self,vec3 a,vec3 b,vec3 c):
+    cdef bint intrixy_c(self,vec3 a,vec3 b,vec3 c,float e):
         cdef float u,v
+        #if gtl.near_c(gtl.orient2d_c(a,b,c),0,e) == 0:
         if gtl.orient2d_c(a,b,c) == 0:
             return 0
             '''#
@@ -705,12 +711,12 @@ cdef class vec3:
 
     # determine if the point pt is inside the triangle abc
     # assume all points are in the xy plane 
-    cpdef bint intrixy(self,vec3 a,vec3 b,vec3 c):
+    cpdef bint intrixy(self,vec3 a,vec3 b,vec3 c,float e):
         '''
         determine if the point pt is inside the triangle abc
         assume all points are in the xy plane
         '''
-        return self.intrixy_c(a,b,c)
+        return self.intrixy_c(a,b,c,e)
 
     # is self on an edge between any two points
     cpdef bint onsxy(self,vec3 s1,vec3 s2,bint ie = 0):

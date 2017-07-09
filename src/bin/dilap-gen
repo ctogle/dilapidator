@@ -3,7 +3,7 @@ from dilap.geometry import *
 from dilap.core import *
 from dilap.core.model import model
 from dilap.io import exporters as io
-import dilap.worldly.continent as dco
+from dilap.worldly import *
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 import argparse
@@ -12,7 +12,7 @@ import os
 import pdb
 
 
-def cube(p=None, q=None, s=None):
+def makecube(p=None, q=None, s=None):
     m = model()
     sg = scenegraph()
     sgv = sg.avert(p, q, s, models=[m], parent=sg.root)
@@ -21,17 +21,35 @@ def cube(p=None, q=None, s=None):
     return sg
 
 
-def world(seed=0):
+def makecontinent(seed=0):
     random.seed(seed)
-    sg = dco.continent(
-        b=vec3(0,0,0).pring(250,8),
-        landmasses=vec3(0,0,0).pring(100,8), )
+    b = vec3(0,0,0).pring(250,8)
+    xpj = vec3(1,0,0).prjps(b)
+    e = (xpj[1]-xpj[0])/1000.0
+    print('determined e: %f' % e)
+    sg = continent(b,e)
+    return sg
+
+
+def makedemo(args):
+    b = vec3(0,0,0).pring(250,8)
+    xpj = vec3(1,0,0).prjps(b)
+    e = (xpj[1]-xpj[0])/1000.0
+    print('e',e)
+    t = terrain(b,e)
+    r = roadmap(t,e)
+    a = world(t,r,e)
+    sg = scenegraph()
+    print('moment of truth')
+    pdb.set_trace()
     return sg
 
 
 def main(args):
     print('args\n',args)
-    scenegraph = world(args.seed)
+    #scenegraph = makecube()
+    scenegraph = makecontinent(args.seed)
+    #scenegraph = makedemo(args.seed)
     if not os.path.isdir(args.output):
         os.mkdir(args.output)
     io[args.exporter].build_scenegraph(scenegraph,args.output)

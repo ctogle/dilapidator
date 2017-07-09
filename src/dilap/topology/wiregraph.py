@@ -156,7 +156,7 @@ class wiregraph(object):
 
             c += 1
             if c > self.vcnt*5:
-                print('LOOPWARNING',d,u,v,len(lp))
+                #print('LOOPWARNING',d,u,v,len(lp))
                 return self.loop(u,v,d,True)
 
             if   d == 'cw': tip = self.cw( lp[-2],lp[-1])
@@ -170,7 +170,7 @@ class wiregraph(object):
             if usematch:
                 lseqmatch = seqmatch(lp)
                 if lseqmatch[0]:
-                    print('LOOPWARNINGRECONCILED')
+                    #print('LOOPWARNINGRECONCILED')
                     if lseqmatch[0]:
                         lp.pop(-1)
                         lp.pop(-1)

@@ -9,6 +9,21 @@ import pdb
 class planargraph(wiregraph):
 
 
+    @classmethod
+    def segstopg(cls,segs,epsilon = 0.1):
+        pg = cls()
+        for e1,e2 in segs:
+            v1,v2 = pg.fp(e1,epsilon),pg.fp(e2,epsilon)
+            if v1 == v2:
+                #print('seg is smaller than epsilon')
+                pass
+            elif not v2 in pg.rings[v1]:
+                pg.fe(v1,v2)
+            elif not v1 in pg.rings[v2]:
+                pg.fe(v2,v1)
+        return pg
+
+
     # split an edge into two edges
     # make the third vertex by lerping between the other two
     def be(self,u,v,f = 0.5,**kws):

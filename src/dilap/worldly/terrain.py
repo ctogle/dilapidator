@@ -11,18 +11,27 @@ class terrain(topography):
     in the z direction can represent a topographical map for terrain'''
 
 
-    def raise_earth(self,tips,e,mingrad = 1.0,mindelz = -5.0,
-                    depth = 0,maxdepth = None):
+    def raise_earth(self,tips,e,increment = 1.0,
+            mingrad = 1.0,mindelz = -5.0,depth = 0,maxdepth = None):
         print('... raising earth ... (depth: %d)' % depth)
         if maxdepth and depth == maxdepth:
             print('... reached max depth (%d)! ...' % maxdepth)
         newtips = []
         for tip in tips:
-            dr = abs(mindelz/mingrad)
+            dr = abs(mindelz/mingrad)/increment
+            #print('dr',dr)
+            #pdb.set_trace()
             newloop = [p.cp().ztrn(mindelz) for p in tip.loop]
+
+
+            # NEED A ROUTINE FOR WHEN TIP HAS A HOLE REPRESENTED
+            # WHEN CREATING LOOPS, CREAT FROM HOLES SO AS TO MEET HALFWAY
+
+
             for j in range(int(dr)):
-                newloop = pym.contract(newloop,1)
+                newloop = pym.contract(newloop,increment)
                 newloop = pym.aggregate(newloop,5)
+                #newloop = pym.aggregate(newloop,3)
                 if newloop is None:
                     break
                 elif len(newloop) <= 3:
@@ -31,18 +40,21 @@ class terrain(topography):
                     break
             if newloop is None:
                 continue
-            uloops = pym.pinchb(newloop,10)
+            uloops = pym.pinchb(newloop,5)
+            #uloops = pym.pinchb(newloop,3)
             uloops = [u for u in uloops if u]
             for u in uloops:
                 if not pym.bccw(u):
                     u.reverse()
             for u in uloops:
                 ua = pym.bareaxy(u,True)
+                #if ua > increment*10:
                 if ua > 100:
                     newtip = self.avert(tip,u)
                     newtips.append(newtip)
         if newtips:
-            newtips.extend(self.raise_earth(newtips,e,mingrad,mindelz,depth+1))
+            newtips.extend(
+                self.raise_earth(newtips,e,increment,mingrad,mindelz,depth+1))
         return newtips
 
 
@@ -58,16 +70,18 @@ class terrain(topography):
         for j,s in enumerate(steps):
             svs = [self.avert(self.root, loop=l) for l in s[0]]
             steps[j] = (svs,)+steps[j][1:]
-        sealevel = 0
         for tips, dz, raises in steps:
+            increment = abs(dz)
             totaldepth = 0
             for grad, depth in raises:
                 totaldepth += 0 if depth is None else depth
-                tips = self.raise_earth(tips, e, 
-                    mingrad=grad, mindelz=dz, maxdepth=depth)
+                tips = self.raise_earth(tips, e, increment=increment,
+                            mingrad=grad, mindelz=dz, maxdepth=depth)
                 if totaldepth >= seald:
                     for l in tips:
                         l.style = 'sealevel'
+        #ax = self.plot()
+        #plt.show()
 
 
     def interpolate(self,x,y):

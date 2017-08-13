@@ -16,11 +16,15 @@ def awall(p1,p2,wh,hs,hp1 = None,hp2 = None):
     if hp2 is None:hp2 = p2
     wn = p1.tov(p2).nrm().crs(vec3(0,0,1))
     hp1.prj(p1,wn);hp2.prj(p2,wn)
-    polys,portals = [],[]
 
+    if isinstance(hp1,vec3) and hp1.isnear(hp2):
+        # the prj is the problem!!
+        pdb.set_trace()
+        raise ValueError('go mow the yard sucka')
+
+    polys,portals = [],[]
     eb = [p1.cp(),p2.cp(),p2.cp().ztrn(wh),p1.cp().ztrn(wh)]
     ibs = []
-
     for hx in range(len(hs)):
         h = hs[hx]
         dx,dp,dw,dh,dz = h
@@ -137,7 +141,8 @@ def splotch(vb,easement = 10):
     bq = quat(0,0,0,1).uu(vec3(1,0,0),vbe_primary_tn)
     if not bq:bq = quat(1,0,0,0)
 
-    vbcon = pym.aggregate(pym.contract(vb[0],easement),5)
+    #vbcon = pym.aggregate(pym.contract(vb[0],easement),5)
+    vbcon = pym.aggregate(pym.contract(vb[0],easement))
 
     vbxpj = vbe_primary_tn.prjps(vb[0])
     vbypj = vbe_primary_tn.cp().zrot(gtl.PI2).prjps(vb[0])
@@ -154,9 +159,9 @@ def splotch(vb,easement = 10):
 
     for b in boxes:
         bcom = vec3(0,0,0).com(b).flp()
-        bcom.trnos(b)
+        bcom.trnps(b)
         bq.rotps(b)
-        bcom.flp().trnos(b)
+        bcom.flp().trnps(b)
     boxes = [b for b in boxes if pym.binbxy(b,vbcon)]
     for ib in vb[1]:
         boxes = [b for b in boxes if not pym.bintbxy(b,ib) 
@@ -169,10 +174,27 @@ def splotch(vb,easement = 10):
     ss = [vec3(1,1,1) for blgfp in blgfps]
 
     for p,q,s,blgfp in zip(ps,qs,ss,blgfps):
-        p.cpxy().flp().trnos(blgfp)
+        p.cpxy().flp().trnps(blgfp)
         q.cpf().rotps(blgfp)
 
     return zip(ps,qs,ss,blgfps)
+
+
+def lsystopg(b,lsys,e = 2):
+    ''''''
+    # lsystem -> planargraph
+    pg = planargraph()
+    leaves = []
+    for piece in lsys:
+        if isinstance(piece,tuple):
+            p1,p2 = piece
+            #v1,v2 = pg.fp(p1,10),pg.fp(p2,10)
+            v1,v2 = pg.fp(p1,e),pg.fp(p2,e)
+            e12 = pg.fe(v1,v2)
+        elif isinstance(piece,vec3):
+            leaves.append(piece)
+            pass
+    return pg, leaves
 
 
 def lsystopy(b,lsys,e = 2):
@@ -195,3 +217,141 @@ def lsystopy(b,lsys,e = 2):
     #py = pym.ebixy(b,py)[0]
     #py = pym.pinchb(py,5)[0]
     return py
+
+
+def blgfpFFFF(b, e, s=4):
+    '''Create a full polygon representing the footprint of a building'''
+    entrance = b[0].mid(b[1])
+    enttn = b[0].tov(b[1])
+    entnm = enttn.crs(vec3(0,0,1)).nrm()
+    entln = enttn.mag()
+    seedlo = entrance.cp().trn(enttn.cp().nrm().uscl( s))
+    seedro = entrance.cp().trn(enttn.cp().nrm().uscl(-s))
+    seedli = seedlo.cp().trn(entnm.cp().uscl(-s))
+    seedri = seedro.cp().trn(entnm.cp().uscl(-s))
+    seed = (seedlo, seedro, seedri, seedli)
+
+    pg = planargraph()
+    fairgame = []
+    for x in range(len(seed)):
+        s1 = pg.fp(seed[x-1],1,1)
+        s2 = pg.fp(seed[x],1,1)
+        e12 = pg.fe(s1,s2)
+        fairgame.append((s1,s2))
+
+    while fairgame:
+        which = random.choice(fairgame)
+        w1,w2 = which
+        p1,p2 = pg.vs[w1][1]['p'],pg.vs[w2][1]['p']
+        whichtn = p1.tov(p2)
+        whichnm = whichtn.crs(vec3(0,0,1)).nrm().uscl(-s)
+        p3,p4 = p2.cp().trn(whichnm),p1.cp().trn(whichnm)
+        
+        btest = pym.bintbxy((p1, p2, p3, p4), b)
+
+        if btest:
+            fairgame.remove(which)
+        else:
+            n1 = pg.fp(p3,1,1)
+            n2 = pg.fp(p4,1,1)
+            e23 = pg.fe(w2,n1)
+            e34 = pg.fe(n1,n2)
+            e41 = pg.fe(n2,w1)
+            fairgame.append((w2,n1))
+            fairgame.append((n1,n2))
+            fairgame.append((n2,w1))
+
+        print('btest',btest)
+
+        #edge = (fpb[which-1],fpb[which])
+
+        # can i operate on which
+        # if not; remove from fairgame
+        # else; which operations can i perform
+        #   is there space to grow the edge?
+        #   modify the edge
+        #     translate, extend, trim
+        #   grow graph from edge
+
+        ax = pg.plotxy(l = 50)
+        ax = plot_polygon_xy(b, ax, col = 'r')
+        ax = plot_polygon_xy((p1, p2, p3, p4), ax, col = 'g')
+        ax = plot_polygon_xy((seedlo, seedro), ax, col = 'b', lw = 4)
+        plt.show()
+
+        pdb.set_trace()
+
+
+
+
+
+    def clean(py):
+        es = ((py[x-1],py[x]) for x in range(len(py)))
+        py = pym.pgtopy(planargraph.segstopg(es,1),0)[0]
+        return py
+
+
+    fpb,fphs = [s.cp() for s in seed],[]
+    fairgame = list(range(1,len(fpb)))
+    while True:
+        which = random.choice(fairgame)
+        edge = (fpb[which-1],fpb[which])
+        edgenm = edge[1].tov(edge[0]).crs(vec3(0,0,1)).nrm()
+        tip = (edge[0].cp().trn(edgenm.cp().uscl(s)),
+               edge[1].cp().trn(edgenm.cp().uscl(s)), )
+        fpb.insert(which,tip[1])
+        fpb.insert(which,tip[0])
+
+        fpb = clean(fpb)
+        if not pym.bnrm(fpb).z > 0:
+            fpb.reverse()
+
+        ax = plot_axes_xy(100)
+        ax = plot_polygon_xy(b, ax, col = 'r')
+        ax = plot_polygon_xy(fpb, ax, col = 'g', lw = 2)
+        for h in fphs:
+            ax = plot_polygon_xy(h, ax, col = 'm', lw = 2)
+        ax = plot_polygon_xy(seed, ax, col = 'b', lw = 4)
+        ax = plot_edges_xy(edge, ax, col = 'c', lw = 4)
+        ax = plot_edges_xy(tip, ax, col = 'y', lw = 4)
+        plt.show()
+
+    
+    return (fpb,fphs)
+
+
+def blgfp(b, e, s=4):
+    '''Create a full polygon representing the footprint of a building'''
+
+    i,p,d = 3,vec3(0,0,0),vec3(0,1,0)
+    #axiom,rules = 'X',dict([('X','{[[X}{]XF}]X'),('F','FA'),('A','F')])
+    axiom,rules = 'X',dict([('X','{[[X}{]F}]X'),('F','FA'),('A','F')])
+    params = dict(dazimuthal = gtl.rad(90),drho = 16)
+    lsys = lsystem(i, p, d, axiom, rules, **params)
+
+
+    stems, leaves = lsystopg(b, lsys, 2)
+    py = pym.pgtopy(stems,7)
+    #py[0] = pym.pinchb(py[0],5)[0]
+
+
+    ax = plot_axes_xy(100)
+    ax = plot_polygon_xy(py[0], ax, col = 'b')
+    ax = plot_points_xy(py[0], ax, number = True)
+    for h in py[1]:
+        ax = plot_polygon_xy(h, ax, col = 'r')
+    ax = stems.plotxy(ax)
+    for leaf in leaves:
+        ax = plot_point_xy(leaf, ax, col = 'b')
+    ax = plot_polygon_xy(b, ax, col = 'r', ls = '--')
+    plt.show()
+
+    eds = pym.bdistpxy(b,p)
+
+    #feat = lsystopy(b, lsys, e)
+    #vec3(1,1,0).sclps(feat)
+
+
+    return (py[0],())
+
+

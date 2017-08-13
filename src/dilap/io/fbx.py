@@ -1,6 +1,5 @@
 from dilap.topology import *
 import dilap.geometry.tools as gtl
-import dilap.core.base as db
 from io import StringIO as sio
 import collections
 import datetime

@@ -386,9 +386,11 @@ def bfitbxy(b1,b2):
     #b2prjx,b2prjy = prj(b2)
     d1x = (b1prjx[1]-b1prjx[0])+(b1prjy[1]-b1prjy[0])
     d2x = (b2prjx[1]-b2prjx[0])+(b2prjy[1]-b2prjy[0])
-    scale = 1. * d2x / d1x
-    for p in b1:
-        p.scl(vec3(scale,scale,0))
+    #scale = 0.5 * d2x / d1x
+    scale = 1.0 * d2x / d1x
+    vec3(scale,scale,0).sclps(b1)
+    #for p in b1:
+    #    p.scl(vec3(scale,scale,0))
     return b1
 
 
@@ -556,7 +558,7 @@ def ebdxy(b1,b2,epsilon = 0.1):
     ax = dtl.plot_polygon(b1,ax,lw = 2,col = 'b')
     ax = dtl.plot_polygon(b2,ax,lw = 2,col = 'g')
     for x in range(len(dfs)):
-        vec3(0,0,10*x+2).trnos(dfs[x])
+        vec3(0,0,10*x+2).trnps(dfs[x])
         ax = dtl.plot_polygon(dfs[x],ax,col = 'r')
     plt.show()
     '''#
@@ -616,6 +618,31 @@ def bsuxy(bs,epsilon = 0.1):
         '''#
 
     return nbs
+
+
+# break a polygon into 1 or 2 pieces based on intersection of a 
+# line segment with the com of b and tangent to v
+def vsplitb(v,b):
+    prj = v.prjps(b)
+    com = vec3(0,0,0).com(b)
+    l,r = bsegsxy(b,
+        com.cp().trn(v.cp().nrm().uscl(prj[1]-prj[0])),
+        com.cp().trn(v.cp().nrm().uscl(prj[0]-prj[1])))
+    return l,r
+
+
+# determine whether 3 points are basically colinear in the xy plane
+def colinear(p1,p2,p3,e = epsilon):
+    cp1 = p1.cpxy()
+    cp2 = p2.cpxy()
+    cp3 = p3.cpxy()
+    e1 = cp3.tovxy(cp1)
+    e2 = cp3.tovxy(cp2)
+    th = e1.angxy(e2)
+    if isnear(numpy.sin(th),0,e):
+        return 1
+    else:
+        return 0
 
 
 # like vec3.inbxy except uses a ray intersection.. seeems to work better?
@@ -711,6 +738,7 @@ def bnrm(b):
             #plt.show()
             raise ValueError
         cang = c1c2.ang(c2c3)
+        #print('CANG',cang)
         if not isnear(cang,0,epsilon) and not isnear(cang,numpy.pi,epsilon):
             if cang > -numpy.pi+0.001 and cang < numpy.pi-0.001:
                 pn.trn(c1c2.crs(c2c3).nrm())
@@ -934,7 +962,7 @@ def pinchb(b,epsilon = 5):
 
 
 # evenly contract a boundary polygon
-def contract(b,ds,epsilon = 0.1):
+def contract(b,ds):
     if not type(ds) is type([]):
         dss = ds
         ds = [1 for x in range(len(b))]
@@ -954,6 +982,7 @@ def contract(b,ds,epsilon = 0.1):
 
         ip = sintsxyp(s11,s12,s21,s22,ie = False,col = False)
 
+        # this has to be an actually small epsilon i bet
         #if ip is None:
         if ip is None or isnear(abs(w1t.dot(w2t)),1,epsilon):
             pn = p2.cp().trn(w1n)

@@ -1,7 +1,8 @@
 from dilap.geometry import *
 from dilap.topology import *
+from .plotting import *
 from io import StringIO as sio
-from numpy import pi
+from numpy import pi, cos, sin, arctan
 
 
 class lstate(tree):
@@ -10,6 +11,7 @@ class lstate(tree):
     drho = 1
     dpolar     = pi/2
     dazimuthal = pi/2
+    dtwist     = pi/2
     dpitch     = pi/2
     dyaw       = pi/2
     droll      = pi/2
@@ -17,16 +19,18 @@ class lstate(tree):
 
     def avert(self):
         if not hasattr(self,'tip'):self.tip = self.root
-        oldtip = self.tip.p.cp(),self.tip.d.cp()
+        oldtip = self.tip.p.cp(),self.tip.d.cp(),self.tip.t,self.tip.ld
         self.tip = tree.avert(self,self.tip)
-        self.tip.p,self.tip.d = oldtip
+        self.tip.p,self.tip.d,self.tip.t,self.tip.ld = oldtip
+        self.tip.term = False
 
 
     def __init__(self,i,p,d,axiom,rules,**kws):
         tree.__init__(self)
         for k in kws:self.__setattr__(k,kws[k])
         self.tip = self.root
-        self.tip.p,self.tip.d = p,d
+        self.tip.p,self.tip.d,self.tip.t,self.tip.ld = p,d,0,d.cp()
+        self.tip.term = False
         self.i = i
         self.axiom = axiom
         self.rules = rules
@@ -46,6 +50,18 @@ class lstate(tree):
                 piece = lgrammer.dic[s](self)
                 if piece:
                     yield piece
+
+
+    def plot(self, v=None, ax=None):
+        if ax is None:
+            ax = plot_axes(50)
+        if v is None:
+            v = self.root
+        a = self.above(v)
+        if a:
+            plot_edges((v.p,a.p), ax)
+        for b in self.below(v):
+            self.plot(b, ax=ax)
 
 
 class lstring:
@@ -75,22 +91,43 @@ class lgrammer:
 
     push = lambda ls : ls.avert()
     def pop(ls):ls.tip = ls.above(ls.tip)
-    edge = lambda ls : (ls.tip.p.cp(),ls.tip.p.trn(ls.tip.d.cp().uscl(ls.drho)))
-    term = lambda ls : ls.tip.p.cp()
+    def edge(ls):
+        st = ls.tip.p.cp()
+        tw = quat(0,0,0,0).av(ls.tip.t, ls.tip.ld)
+        d = ls.tip.d.cp().rot(tw)
+        ls.tip.ld = d.cp()
+        ed = ls.tip.p.trn(d.uscl(ls.drho))
+        return st,ed
+    #edge = lambda ls : (ls.tip.p.cp(),ls.tip.p.trn(ls.tip.d.cp().uscl(ls.drho)))
+    def term(ls):
+        ls.tip.term = True
+        return ls.tip.p.cp()
+    #term = lambda ls : ls.tip.p.cp()
 
-    getqv = lambda d : y if (d.isnear(z) or d.isnear(nz)) else z
+    def twist(ls, f=1.0):
+        ls.tip.t += f*ls.dtwist
+    twist_u = lambda ls : lgrammer.twist(ls, 1.0)
+    twist_d = lambda ls : lgrammer.twist(ls,-1.0)
 
-    def polar(ls,f = 1.0):
-        ls.tip.d.rot(quat(0,0,0,0).av(f*ls.dpolar,lgrammer.getqv(ls.tip.d)))
+    theta = lambda p : arctan(p.y/p.x) if not p.x == 0 else (pi/2 if p.y > 0 else -pi/2)
+    def polar(ls, f=1.0):
+        th = lgrammer.theta(ls.tip.p)
+        if ls.tip.d.isnear(z) or ls.tip.d.isnear(nz):
+            qv = y
+        else:
+            qv = vec3(-sin(th), cos(th), 0)
+        ls.tip.d.rot(quat(0,0,0,0).av(f*ls.dpolar,qv))
     polar_u = lambda ls : lgrammer.polar(ls, 1)
     polar_d = lambda ls : lgrammer.polar(ls,-1)
 
-    def azimuthal(ls,f = 1.0):
+    getqv = lambda d : y if (d.isnear(z) or d.isnear(nz)) else z
+
+    def azimuthal(ls, f=1.0):
         ls.tip.d.rot(quat(0,0,0,0).av(f*ls.dazimuthal,lgrammer.getqv(ls.tip.d)))
     azimuthal_u = lambda ls : lgrammer.azimuthal(ls, 1)
     azimuthal_d = lambda ls : lgrammer.azimuthal(ls,-1)
     azimuthal_f = lambda ls : lgrammer.azimuthal(ls,pi/ls.dazimuthal)
-    
+
     pitch_u = lambda ls : d.rot(quat(0,0,0,0).av( ls.dpitch,vec3(1,0,0)))
     pitch_d = lambda ls : d.rot(quat(0,0,0,0).av(-ls.dpitch,vec3(1,0,0)))
     yaw_u   = lambda ls : d.rot(quat(0,0,0,0).av( ls.dyaw,  vec3(0,0,1)))
@@ -100,9 +137,9 @@ class lgrammer:
 
     dic = {
         '{':push,'}':pop,'F':edge,'Q':term,
-        '(':polar_u,'[':azimuthal_u,'<':pitch_u,'+':yaw_u,'=':roll_u,
-        ')':polar_d,']':azimuthal_d,'>':pitch_d,'-':yaw_d,'|':roll_d,
-                    '$':azimuthal_f,
+        '^':twist_u,'(':polar_u,'[':azimuthal_u,'<':pitch_u,'+':yaw_u,'=':roll_u,
+        '_':twist_d,')':polar_d,']':azimuthal_d,'>':pitch_d,'-':yaw_d,'|':roll_d,
+                               '$':azimuthal_f,
             }
         #'&':self.randrot,'~':self.randdirrot,
         #'^':self.wobblerot,

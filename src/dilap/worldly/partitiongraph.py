@@ -7,7 +7,7 @@ import pdb
 class partition(topography):
 
 
-    def plot(self,ax = None):
+    def plot(self, ax=None, i=2):
         if ax is None:
             ax = plot_axes(300)
         for v,depth in self.enum(False):
@@ -21,7 +21,7 @@ class partition(topography):
             ax = plot_polygon(vloop,ax,lw = 3,col = col)
             ax = plot_edges((vanchor,panchor),ax,col = col,lw = 5)
             for hole in v.holes:
-                hole = [p.ztrn(depth*10) for p in pym.contract(hole,-2)]
+                hole = [p.ztrn(depth*10) for p in pym.contract(hole,-i)]
                 #hole = [p.cp().ztrn(depth*10) for p in hole]
                 ax = plot_polygon(hole,ax,lw = 2,col = 'r')
         return ax

@@ -86,7 +86,9 @@ cdef tuple circumscribe_tri_c(vec3 p1,vec3 p2,vec3 p3):
     cdef vec3 e2 = cp3.tovxy_c(cp2)
     cdef float th = e1.angxy_c(e2)
     if isnear_c(numpy.sin(th),0,epsilon_c):
-        raise ValueError('caught you')
+        print('caught you')
+        #raise ValueError('caught you')
+        return vec3(0,0,0),0
     cdef float cr = cp1.dxy_c(cp2)/(2*numpy.sin(th))
     cdef vec3 cp = e2.cp_c().uscl_c(e1.mag2_c())-e1.cp_c().uscl_c(e2.mag2_c())
     cdef vec3 fp = p3+cp.crs_c(e1.crs_c(e2)).uscl_c(1.0/(2.0*(e1.crs_c(e2).mag2())))

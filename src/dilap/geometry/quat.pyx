@@ -79,7 +79,9 @@ cdef class quat:
     cdef quat uu_c(self,vec3 x,vec3 y):
         cdef float a = x.ang_c(y)
         cdef vec3 v
-        if a == 0.0:self.w = 1;self.x = 0;self.y = 0;self.z = 0
+        if a == 0.0:
+            self.w = 1;self.x = 0;self.y = 0;self.z = 0
+            return self
         else:
             v = x.crs_c(y)
             return self.av_c(a,v)
@@ -191,14 +193,14 @@ cdef class quat:
         return self
 
     # rotate a set of vec3 points by self
-    cdef quat rotps_c(self,ps):
+    cdef list rotps_c(self,ps):
         cdef vec3 p
         cdef int px
         cdef int pcnt = len(ps)
         for px in range(pcnt):
             p = ps[px]
             p.rot_c(self)
-        return self
+        return ps
 
     # return the dot product of self and quat o
     cdef float dot_c(self,quat o):
@@ -324,7 +326,7 @@ cdef class quat:
         return self.rot_c(o)
 
     # rotate a set of vec3 points by self
-    cpdef quat rotps(self,ps):
+    cpdef list rotps(self,ps):
         '''rotate a set of vec3 points this quaternion'''
         return self.rotps_c(ps)
 

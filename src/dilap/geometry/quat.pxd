@@ -43,7 +43,7 @@ cdef class quat:
     cdef quat sub_c(self,quat o)
     cdef quat mul_c(self,quat o)
     cdef quat rot_c(self,quat o)
-    cdef quat rotps_c(self,ps)
+    cdef list rotps_c(self,ps)
     cdef float dot_c(self,quat o)
     cdef quat slerp_c(self,quat o,float ds)
 
@@ -64,7 +64,7 @@ cdef class quat:
     cpdef quat sub(self,quat o)
     cpdef quat mul(self,quat o)
     cpdef quat rot(self,quat o)
-    cpdef quat rotps(self,ps)
+    cpdef list rotps(self,ps)
     cpdef float dot(self,quat o)
     cpdef quat slerp(self,quat o,float ds)
 

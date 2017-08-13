@@ -1,8 +1,5 @@
-#cimport dilap.core.tools as dpr
-
 import dilap.geometry.tools as gtl
 cimport dilap.geometry.tools as gtl
-
 from dilap.geometry.quat cimport quat
 
 stuff = 'hi'
@@ -43,7 +40,6 @@ cdef class vec3:
     cdef float mag_c(self)
     cdef vec3 nrm_c(self)
     cdef vec3 trn_c(self,vec3 o)
-    cdef vec3 trnos_c(self,os)
     cdef vec3 xtrn_c(self,float d)
     cdef vec3 ytrn_c(self,float d)
     cdef vec3 ztrn_c(self,float d)
@@ -71,6 +67,8 @@ cdef class vec3:
     cdef list pring_c(self,float r,int n)
     cdef list sq_c(self,float l,float w)
     cdef vec3 com_c(self,os)
+    cdef list trnps_c(self,list ps)
+    cdef list sclps_c(self,list ps)
 
     cpdef vec3 cp(self)
     cpdef vec3 cpxy(self)
@@ -99,7 +97,6 @@ cdef class vec3:
     cpdef float mag(self)
     cpdef vec3 nrm(self)
     cpdef vec3 trn(self,vec3 o)
-    cpdef vec3 trnos(self,os)
     cpdef vec3 xtrn(self,float d)
     cpdef vec3 ytrn(self,float d)
     cpdef vec3 ztrn(self,float d)
@@ -124,27 +121,9 @@ cdef class vec3:
     cpdef list pring(self,float r,int n)
     cpdef list sq(self,float l,float w)
     cpdef vec3 com(self,os)
+    cpdef list trnps(self,list ps)
+    cpdef list sclps(self,list ps)
     cpdef vec3 wrap(self)
-
-# functions to quickly generate R3 basis vectors and their flips
-cdef vec3 x_c()
-cdef vec3 y_c()
-cdef vec3 z_c()
-cdef vec3 nx_c()
-cdef vec3 ny_c()
-cdef vec3 nz_c()
-
-cpdef vec3 x()
-cpdef vec3 y()
-cpdef vec3 z()
-cpdef vec3 nx()
-cpdef vec3 ny()
-cpdef vec3 nz()
-
-
-
-
-
 
 
 

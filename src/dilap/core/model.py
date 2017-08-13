@@ -399,7 +399,7 @@ class model:
         if   n.isnear(vec3(1,0,0)) or n.isnear(vec3(-1,0,0)):u = vec3(p.y,p.z,0)
         elif n.isnear(vec3(0,1,0)) or n.isnear(vec3(0,-1,0)):u = vec3(p.x,p.z,0)
         elif n.isnear(vec3(0,0,1)) or n.isnear(vec3(0,0,-1)):u = vec3(p.x,p.y,0)
-        elif gtl.isnear(n.z,0):u = vec3(p.x,p.z,0)
+        elif gtl.isnear(n.z,0,gtl.epsilon):u = vec3(p.x,p.z,0)
         else:u = vec3(p.x,p.y,0)
         return u
 
@@ -461,7 +461,8 @@ class model:
                     return []
 
             tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo,e)
-            if not tris:print('asurf: empty surface')
+            if not tris:
+                print('asurf: empty surface')
             for tri in tris:
                 p1,p2,p3 = tri
                 n = gtl.nrm(p1,p2,p3)

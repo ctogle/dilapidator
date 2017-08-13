@@ -1,22 +1,15 @@
-# cython: profile=True
+# cython: profile=False
 #cimport cython
-
-#cimport dilap.core.tools as dpr
-
 import dilap.geometry.tools as gtl
 cimport dilap.geometry.tools as gtl
-
 from dilap.geometry.quat cimport quat
-
 from libc.math cimport sqrt
 from libc.math cimport cos
 from libc.math cimport sin
 from libc.math cimport tan
 from libc.math cimport hypot
-
 cimport numpy
 import numpy
- 
 import copyreg
 import traceback
 import sys
@@ -50,36 +43,47 @@ cdef class vec3:
 
     ###########################################################################
 
-    ###########################################################################
-    ### c methods #############################################################
-    ###########################################################################
-
     def __cinit__(self,float x,float y,float z):
         self.x = x
         self.y = y
         self.z = z
 
-    # return an independent copy of this point
+
+    cpdef vec3 cp(self):
+        '''Return a copy of self'''
+        return self.cp_c()
     cdef vec3 cp_c(self):
         cdef vec3 n = vec3(self.x,self.y,self.z)
         return n
 
-    # return an independent copy of the xy projection of this point
+
+    cpdef vec3 cpxy(self):
+        '''Return a copy of self projected onto the xy plane'''
+        return self.cpxy_c()
     cdef vec3 cpxy_c(self):
         cdef vec3 n = vec3(self.x,self.y,0.0)
         return n
 
-    # return an independent reciprocated copy of this point
+
+    cpdef vec3 cpr(self):
+        '''Return the reciprocal of self'''
+        return self.cpr_c()
     cdef vec3 cpr_c(self):
         cdef vec3 n = vec3(1.0/self.x,1.0/self.y,1.0/self.z)
         return n
 
-    # return an independent flipped copy of this point
+
+    cpdef vec3 cpf(self):
+        '''Return a flipped copy of self'''
+        return self.cpf_c()
     cdef vec3 cpf_c(self):
         cdef vec3 n = vec3(-self.x,-self.y,-self.z)
         return n
 
-    # return the R3 euclidean distance between self and vec3 o
+
+    cpdef float d(self,vec3 o):
+        '''Return the distance between self and o'''
+        return self.d_c(o)
     cdef float d_c(self,vec3 o):
         cdef float dx = self.x - o.x
         cdef float dy = self.y - o.y
@@ -87,14 +91,20 @@ cdef class vec3:
         cdef float ds = sqrt(dx*dx + dy*dy + dz*dz)
         return ds
 
-    # return the R3 euclidean distance between the xy projections of self and vec3 o
+
+    cpdef float dxy(self,vec3 o):
+        '''Return the distance between self and o in the xy plane'''
+        return self.dxy_c(o)
     cdef float dxy_c(self,vec3 o):
         cdef float dx = self.x - o.x
         cdef float dy = self.y - o.y
         cdef float ds = sqrt(dx*dx + dy*dy)
         return ds
 
-    # return the R3 euclidean distance between self and edge segment e1,e2
+
+    cpdef float dexy(self,vec3 e1,vec3 e2,bint ie = 0):
+        '''Return the perpendicular distance between self and segment e1,e2'''
+        return self.dexy_c(e1,e2,ie)
     cdef float dexy_c(self,vec3 e1,vec3 e2,bint ie = 0):
         cdef vec3 tn = e1.tov(e2).nrm()
         cdef vec3 nm = vec3(tn.y,-tn.x,0)
@@ -111,7 +121,10 @@ cdef class vec3:
         else:ds = -1.0
         return ds
 
-    # return the angle between self and vec3 o
+
+    cpdef float ang(self,vec3 o):
+        '''Return the angle between self and o'''
+        return self.ang_c(o)
     cdef float ang_c(self,vec3 o):
         cdef float sm = self.mag_c()
         cdef float om = o.mag_c()
@@ -125,7 +138,10 @@ cdef class vec3:
         else:a = numpy.arccos(sod)
         return a
 
-    # return the signed angle between self and vec3 o given z-up vec3 n
+
+    cpdef float sang(self,vec3 o,vec3 n):
+        '''Return the signed angle between self and o given orientation n'''
+        return self.sang_c(o,n)
     cdef float sang_c(self,vec3 o,vec3 n):
         cdef vec3 n1 = self.cp_c().nrm_c()
         cdef vec3 n2 = o.cp_c().nrm_c()
@@ -139,15 +155,24 @@ cdef class vec3:
         if vd < 0.0:a *= -1.0
         return a                    
 
-    # return the angle between the xy projections of self and vec3 o
+
+    cpdef float angxy(self,vec3 o):
+        '''Return the angle between self and o in the xy plane'''
+        return self.angxy_c(o)
     cdef float angxy_c(self,vec3 o):
         return self.cpxy_c().ang_c(o.cpxy_c())
 
-    # return the dot product of self and vec3 o
+
+    cpdef float dot(self,vec3 o):
+        '''Return the dot product between self and o'''
+        return self.dot_c(o)
     cdef float dot_c(self,vec3 o):
         return self.x*o.x + self.y*o.y + self.z*o.z
 
-    # return the cross product of self and vec3 o
+
+    cpdef vec3 crs(self,vec3 o):
+        '''Return the cross product of self and o'''
+        return self.crs_c(o)
     cdef vec3 crs_c(self,vec3 o):
         cdef float cx = self.y*o.z-self.z*o.y
         cdef float cy = self.z*o.x-self.x*o.z
@@ -155,13 +180,19 @@ cdef class vec3:
         cdef vec3 n = vec3(cx,cy,cz)
         return n
 
-    # project into a plane and return self
+
+    cpdef vec3 prj(self,vec3 r,vec3 n):
+        '''Return the projection of self into plane described by r,n'''
+        return self.prj_c(r,n)
     cdef vec3 prj_c(self,vec3 r,vec3 n):
         cdef float d = (self.x-r.x)*n.x+(self.y-r.y)*n.y+(self.z-r.z)*n.z
         cdef vec3 pj = n.cp_c().uscl_c(-d)
         return self.trn_c(pj)
 
-    # project a set of vectors onto this one, returning the min/max 
+
+    cpdef tuple prjps(self,ps):
+        '''Project a set of vectors onto this one, returning the min/max'''
+        return self.prjps_c(ps)
     cdef tuple prjps_c(self,ps):
         cdef pcnt = len(ps)
         cdef int px
@@ -174,8 +205,10 @@ cdef class vec3:
             if pj > pmax:pmax = pj
         return pmin,pmax
 
-    # return the u,v barycentric coordinates of self given 3 corners of a triangle
-    # everything is assumed to be in the xy plane
+
+    cpdef tuple baryxy(self,vec3 a,vec3 b,vec3 c): 
+        '''Return the barycentric coords (u,v) of this point in a triangle in the xy plane'''
+        return self.baryxy_c(a,b,c)
     cdef tuple baryxy_c(self,vec3 a,vec3 b,vec3 c): 
         cdef float v0x,v0y,v1x,v1y,v2x,v2y
         cdef float dot00,dot01,dot02,dot11,dot12,u,v,invdenom
@@ -207,14 +240,20 @@ cdef class vec3:
             v = (dot00 * dot12 - dot01 * dot02) * invdenom
         return u,v
 
-    # is vec3 o within an open ball of raidus e centered at self
+
+    cpdef bint inneighborhood(self,vec3 o,float e):
+        '''Return if o is in an open ball centered at this point'''
+        return self.inneighborhood_c(o,e)
     cdef bint inneighborhood_c(self,vec3 o,float e):
         cdef float d = self.d_c(o)
-        #if gtl.near(d,e) < e:return 1
         if d < e:return 1
         else:return 0
 
-    # is vec3 o within a very small neighborhood of self
+
+    # NEED TO ADD ARGUMENT E FOR EPSILON
+    cpdef bint isnear(self,vec3 o):
+        '''Return if self is within e of o'''
+        return self.isnear_c(o)
     cdef bint isnear_c(self,vec3 o):
         cdef float dx = (self.x-o.x)
         if dx*dx > gtl.epsilonsq_c:return 0
@@ -224,7 +263,11 @@ cdef class vec3:
         if dz*dz > gtl.epsilonsq_c:return 0
         return 1
 
-    # is vec3 o within a very small neighborhood of self in the xy plane
+
+    # NEED TO ADD ARGUMENT E FOR EPSILON
+    cpdef bint isnearxy(self,vec3 o):
+        '''Return if self is within e of o in the xy plane'''
+        return self.isnearxy_c(o)
     cdef bint isnearxy_c(self,vec3 o):
         cdef float dx = (self.x-o.x)
         if dx*dx > gtl.epsilonsq_c:return 0
@@ -232,6 +275,11 @@ cdef class vec3:
         if dy*dy > gtl.epsilonsq_c:return 0
         return 1
 
+
+    # is self within the edges between any two adjacent points in ps
+    cpdef bint inbxy(self,ps):
+        '''determine if self is within the edges between any two adjacent points in ps'''
+        return self.inbxy_c(ps)
     # is self within the edges between any two adjacent points in ps
     cdef bint inbxy_c(self,ps):
         cdef int wn = 0
@@ -253,6 +301,15 @@ cdef class vec3:
                         wn -= 1
         return wn
 
+
+    # determine if the point pt is inside the triangle abc
+    # assume all points are in the xy plane 
+    cpdef bint intrixy(self,vec3 a,vec3 b,vec3 c,float e):
+        '''
+        determine if the point pt is inside the triangle abc
+        assume all points are in the xy plane
+        '''
+        return self.intrixy_c(a,b,c,e)
     # determine if the point pt is inside the triangle abc
     # assume all points are in the xy plane 
     cdef bint intrixy_c(self,vec3 a,vec3 b,vec3 c,float e):
@@ -280,6 +337,11 @@ cdef class vec3:
                         return 1
             return 0
 
+
+    # is self on an edge between any two points
+    cpdef bint onsxy(self,vec3 s1,vec3 s2,bint ie = 0):
+        '''is self on an edge between any two points'''
+        return self.onsxy_c(s1,s2,ie)
     # is self on an edge between any two points
     cdef bint onsxy_c(self,vec3 s1,vec3 s2,bint ie = 0):
         if not gtl.orient2d_c(self,s1,s2) == 0:return 0
@@ -295,6 +357,11 @@ cdef class vec3:
             if (s1.y >= self.y and self.y >= s2.y):return 1
         return 0
 
+
+    # is self on an edge between any two adjacent points in ps
+    cpdef bint onbxy(self,ps):
+        '''determine if self on an edge between any two adjacent points in ps'''
+        return self.onbxy_c(ps)
     # is self on an edge between any two adjacent points in ps
     cdef bint onbxy_c(self,ps):
         cdef int px
@@ -307,6 +374,11 @@ cdef class vec3:
             #if gtl.inseg_xy_c(self,p1,p2):return 1
         return 0
 
+
+    # is self on the boundary or any holes of a polygon
+    cpdef bint onpxy(self,py):
+        '''determine if self on an edge between any two adjacent points in ps'''
+        return self.onpxy_c(py)
     # is self on the boundary or any holes of a polygon
     cdef bint onpxy_c(self,py):
         eb,ibs = py
@@ -338,16 +410,6 @@ cdef class vec3:
         self.x += o.x
         self.y += o.y
         self.z += o.z
-        return self
-
-    # translate a set of vec3s by self
-    cdef vec3 trnos_c(self,os):
-        cdef int ocnt = len(os)
-        cdef int ox
-        cdef vec3 o
-        for ox in range(ocnt):
-            o = os[ox]
-            o.trn(self)
         return self
 
     # translate self in the x direction by d
@@ -470,7 +532,7 @@ cdef class vec3:
     cdef vec3 flp_c(self):
         return self.uscl_c(-1.0)
 
-    # return a vector point from self to vec3 o
+    # return a vector from self to vec3 o
     cdef vec3 tov_c(self,vec3 o):
         cdef float dx = o.x - self.x
         cdef float dy = o.y - self.y
@@ -596,6 +658,7 @@ cdef class vec3:
             vec3(self.x-hl,self.y+hw,self.z)]
         return sq
 
+
     # translate self to the center of mass of a set of vectors
     cdef vec3 com_c(self,os):
         cdef int pcnt = len(os)
@@ -607,131 +670,32 @@ cdef class vec3:
         return self
         #return n.uscl_c(1.0/pcntf)
 
+
+    cpdef list trnps(self,list ps):
+        return self.trnps_c(ps)
+    cdef list trnps_c(self,list ps):
+        cdef int j = len(ps)
+        cdef int i
+        cdef vec3 p
+        for i in range(j):
+            p = ps[i]
+            p.trn(self)
+        return ps
+
+
+    cpdef list sclps(self,list ps):
+        return self.sclps_c(ps)
+    cdef list sclps_c(self,list ps):
+        cdef int j = len(ps)
+        for i in range(j):
+            ps[i].scl(self)
+        return ps
+
     ###########################################################################
 
     ###########################################################################
     ### python wrappers for c methods #########################################
     ###########################################################################
-
-    # return an independent copy of this point
-    cpdef vec3 cp(self):
-        '''create an independent copy of this point'''
-        return self.cp_c()
-
-    # return an independent copy of the xy projection of this point
-    cpdef vec3 cpxy(self):
-        '''create an independent copy of the xy projection of this point'''
-        return self.cpxy_c()
-
-    # return an independent copy of the reciprocal of this point
-    cpdef vec3 cpr(self):
-        '''return an independent copy of the reciprocal of this point'''
-        return self.cpr_c()
-
-    # return an independent flipped copy of this point
-    cpdef vec3 cpf(self):
-        '''return an independent flipped copy of this point'''
-        return self.cpf_c()
-
-    # return the R3 euclidean distance between self and vec3 o
-    cpdef float d(self,vec3 o):
-        '''determine the R3 euclidean distance between this point and another'''
-        return self.d_c(o)
-
-    # return the R3 euclidean distance between the xy projections of self and vec3 o
-    cpdef float dxy(self,vec3 o):
-        '''determine the R3 euclidean distance between the xy projections of this point and another'''
-        return self.dxy_c(o)
-
-    # return the R3 euclidean distance between self and edge segment e1,e2
-    cpdef float dexy(self,vec3 e1,vec3 e2,bint ie = 0):
-        '''determine the R3 euclidean distance between self and edge segment e1,e2'''
-        return self.dexy_c(e1,e2,ie)
-
-    # return the angle between self and vec3 o
-    cpdef float ang(self,vec3 o):
-        '''determine the angle between this point and another'''
-        return self.ang_c(o)
-
-    # return the signed angle between self and vec3 o given z-up vec3 n
-    cpdef float sang(self,vec3 o,vec3 n):
-        '''determine the signed angle between this point and another'''
-        return self.sang_c(o,n)
-
-    # return the angle between the xy projections of self and vec3 o
-    cpdef float angxy(self,vec3 o):
-        '''determine the angle between the xy projections of this point and another'''
-        return self.angxy_c(o)
-
-    # return the dot product of self and vec3 o
-    cpdef float dot(self,vec3 o):
-        '''compute the dot product of this vector and another'''
-        return self.dot_c(o)
-
-    # return the cross product of self and vec3 o
-    cpdef vec3 crs(self,vec3 o):
-        '''generate the cross product of this vector and another'''
-        return self.crs_c(o)
-
-    # project into a plane and return self
-    cpdef vec3 prj(self,vec3 r,vec3 n):
-        '''project this point into a plane'''
-        return self.prj_c(r,n)
-
-    # project a set of vectors onto this one, returning the min/max 
-    cpdef tuple prjps(self,ps):
-        '''project a set of vectors onto this one, returning the min/max'''
-        return self.prjps_c(ps)
-
-    # return the u,v barycentric coordinates of self given 3 corners of a triangle
-    # everything is assumed to be in the xy plane
-    cpdef tuple baryxy(self,vec3 a,vec3 b,vec3 c): 
-        '''find the barycentric coords of this point in a triangle in the xy plane'''
-        return self.baryxy_c(a,b,c)
-
-    # is vec3 o within an open ball of raidus e centered at self
-    cpdef bint inneighborhood(self,vec3 o,float e):
-        '''determine if a point lies in an open ball centered at this point'''
-        return self.inneighborhood_c(o,e)
-
-    # is vec3 o within a very small neighborhood of self
-    cpdef bint isnear(self,vec3 o):
-        '''determine if a point is numerically close to another'''
-        return self.isnear_c(o)
-
-    # is vec3 o within a very small neighborhood of self in the xy plane
-    cpdef bint isnearxy(self,vec3 o):
-        '''determine if a point is numerically close to another in the xy plane'''
-        return self.isnearxy_c(o)
-
-    # is self within the edges between any two adjacent points in ps
-    cpdef bint inbxy(self,ps):
-        '''determine if self is within the edges between any two adjacent points in ps'''
-        return self.inbxy_c(ps)
-
-    # determine if the point pt is inside the triangle abc
-    # assume all points are in the xy plane 
-    cpdef bint intrixy(self,vec3 a,vec3 b,vec3 c,float e):
-        '''
-        determine if the point pt is inside the triangle abc
-        assume all points are in the xy plane
-        '''
-        return self.intrixy_c(a,b,c,e)
-
-    # is self on an edge between any two points
-    cpdef bint onsxy(self,vec3 s1,vec3 s2,bint ie = 0):
-        '''is self on an edge between any two points'''
-        return self.onsxy_c(s1,s2,ie)
-
-    # is self on an edge between any two adjacent points in ps
-    cpdef bint onbxy(self,ps):
-        '''determine if self on an edge between any two adjacent points in ps'''
-        return self.onbxy_c(ps)
-
-    # is self on the boundary or any holes of a polygon
-    cpdef bint onpxy(self,py):
-        '''determine if self on an edge between any two adjacent points in ps'''
-        return self.onpxy_c(py)
 
     # return the squared magintude of self
     cpdef float mag2(self):
@@ -752,11 +716,6 @@ cdef class vec3:
     cpdef vec3 trn(self,vec3 o):
         '''translate this point by a vector'''
         return self.trn_c(o)
-
-    # translate a set of vec3s by self
-    cpdef vec3 trnos(self,os):
-        '''translate a set of vec3s by self'''
-        return self.trnos_c(os)
 
     # translate self in the x direction by d
     cpdef vec3 xtrn(self,float d):
@@ -895,48 +854,6 @@ cdef class vec3:
         if not self.z == 1:self.z = self.z % 1
         return self
 
-    ###########################################################################
-
-###########################################################################
-
-# functions to quickly generate R3 basis vectors and their flips
-cdef vec3 x_c():return vec3(1,0,0)
-cdef vec3 y_c():return vec3(0,1,0)
-cdef vec3 z_c():return vec3(0,0,1)
-cdef vec3 nx_c():return vec3(-1,0,0)
-cdef vec3 ny_c():return vec3(0,-1,0)
-cdef vec3 nz_c():return vec3(0,0,-1)
-
-# get a copy of xhat
-cpdef vec3 x():
-    '''create an x axis basis vector'''
-    return x_c()
-
-# get a copy of yhat
-cpdef vec3 y():
-    '''create an y axis basis vector'''
-    return y_c()
-
-# get a copy of zhat
-cpdef vec3 z():
-    '''create an z axis basis vector'''
-    return z_c()
-
-# get a copy of negative xhat
-cpdef vec3 nx():
-    '''create an negative x axis basis vector'''
-    return nx_c()
-
-# get a copy of negative yhat
-cpdef vec3 ny():
-    '''create an negative y axis basis vector'''
-    return ny_c()
-
-# get a copy of negative zhat
-cpdef vec3 nz():
-    '''create an negative z axis basis vector'''
-    return nz_c()
-
 ###########################################################################
 
 def pickle_vec3(v):
@@ -944,6 +861,4 @@ def pickle_vec3(v):
     return vec3,(v.x,v.y,v.z)
 
 copyreg.pickle(vec3,pickle_vec3)
-
-###########################################################################
 

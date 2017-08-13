@@ -11,7 +11,6 @@ from dilap.geometry.quat cimport quat
 
 import dilap.geometry.polymath as pym
 
-import dilap.core.base as db
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
@@ -355,6 +354,12 @@ cdef void refine_chews_first(triangulation data,float h,float e):
         if not unfin in data.triangles:continue
         ufx1,ufx2,ufx3 = unfin
         v1,v2,v3 = data.points.gps_c((ufx1,ufx2,ufx3))
+
+        #if pym.colinear(v1,v2,v3):
+        #    data.delete_triangle(ufx1,ufx2,ufx3)
+        #    print('removed colinear triangle from triangulation')
+        #    continue
+
         tcp,tcr = gtl.circumscribe_tri_c(v1,v2,v3)
         if tcr/h > 1.0:
             ntxs = point_location(data,tcp,e)
@@ -423,6 +428,7 @@ cdef triangulation tridata_c(tuple ebnd,tuple ibnds,
         raise ValueError
     prot = quat(0,0,0,0).toxy_c(pn)
     gtl.rot_poly_c((ebnd,ibnds),prot)
+    pn = pym.bnrm(ebnd)
     data = triangulation(p0,pn)
     #print('initializing')
     initialize(data,list(ebnd))
@@ -505,10 +511,12 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,
 # bounds are possibly concave; interior bounds represent holes
 cpdef tuple triangulate(tuple ebnd,tuple ibnds,
         float hmin,bint refine,bint smooth,float e):
-    xprjmin,xprjmax = vec3(1,0,0).prjps(ebnd)
-    if hmin/(xprjmax-xprjmin) < 0.001:
-        print('TRIANGULATION HMIN IS DANGEROUSLY LOW... SKIPPING TRIANGULATION')
-        return ([],[])
+    #xprjmin,xprjmax = vec3(1,0,0).prjps(ebnd)
+    #if gtl.isnear(xprjmax,xprjmin,gtl.epsilon):
+    #    raise ValueError('this check is probably unnecessary')
+    #if hmin/(xprjmax-xprjmin) < 0.001:
+    #    print('TRIANGULATION HMIN IS DANGEROUSLY LOW... SKIPPING TRIANGULATION')
+    #    return ([],[])
     return triangulate_c(ebnd,ibnds,hmin,refine,smooth,e)
 
 def split_nondelauney_edges(eb,ibs):

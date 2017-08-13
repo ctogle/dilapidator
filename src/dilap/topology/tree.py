@@ -6,14 +6,26 @@ import pdb
 class tree:
 
 
-    def enum(self,terminals = True,v = None,depth = 0):
+    def depth(self, v=None, d=0):
+        if v is None:
+            v = self.root
+        d += 1
+        bel = self.below(v)
+        if bel:
+            return max([max(d, self.depth(b, d)) for b in bel])
+        else:
+            return d
+
+
+    def enum(self,terminals = True,v = None,depth = 0,filter = None):
         if v is None:v = self.root
+        if filter is None:
+            filter = lambda v,d : True
         b = self.below(v)
-        if not terminals or not b:
+        if filter(v,depth) and not (terminals and b):
             yield v,depth
         for c in b:
-            for u in self.enum(terminals,c,depth+1):
-                yield u
+            yield from self.enum(terminals,c,depth+1,filter)
 
 
     vertclass = vert

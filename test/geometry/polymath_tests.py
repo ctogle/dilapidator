@@ -215,7 +215,7 @@ class test_polymath(unittest.TestCase):
         perm(s1,s2,b,True)
         #pl(s1,s2,b)
 
-    def test_sintbxyp(self):
+    def atest_sintbxyp(self):
         u1,u2 = (vec3(77.000000,33.001942,0.000000) , vec3(63.000000,33.000004,0.000000))
         b = [
             vec3(75.000000,35.000011,0.000000) ,
@@ -520,7 +520,7 @@ class test_polymath(unittest.TestCase):
         self.assertTrue(len(br) == 1)
         self.assertTrue(len(br[0]) == 10)
 
-    def test_bnrm(self):
+    def atest_bnrm(self):
         def pl():
             ax = dtl.plot_axes_xy(700)
             ax = dtl.plot_polygon_xy(fp,ax,lw = 2,col = 'g')
@@ -657,18 +657,23 @@ class test_polymath(unittest.TestCase):
         o = pym.bccw(fp)
         self.assertTrue(o == True)
 
-    def atest_contract(self):
-        def pl(b):
+    def test_contract(self):
+        def pl(bs):
             ax = dtl.plot_axes_xy(300)
-            ax = dtl.plot_polygon_xy(b,ax)
+            for b in bs:
+                ax = dtl.plot_polygon_xy(b,ax)
             plt.show()
 
-        b = pym.ebuxy(vec3(0,100,0).sq(500,200),vec3(100,0,0).sq(200,500))[0]
-        b = pym.bisectb(b)
-        b = pym.bisectb(b)
-        b = pym.smoothxy(b,0.2)
-        b = pym.contract(b,25)
-        #pl(b)
+        b1 = pym.ebuxy(vec3(0,100,0).sq(500,200),vec3(100,0,0).sq(200,500))[0]
+        b1 = pym.bisectb(b1)
+        b1 = pym.bisectb(b1)
+        b1 = pym.smoothxy(b1,0.2)
+        b2 = pym.contract(b1,25)
+        pl((b1,b2))
+
+        b1 = vec3(0,0,0).pring(100,8)
+        b2 = pym.contract(b1,10)
+        pl((b1,b2))
 
     #def test_smoothxy(self):
 

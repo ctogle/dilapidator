@@ -4,8 +4,10 @@ from dilap.core import *
 from dilap.core.model import model
 from dilap.io import exporters as io
 from dilap.worldly import *
+import dilap.worldly.blockletters as blett
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
+from math import sqrt
 import argparse
 import random
 import os
@@ -21,9 +23,30 @@ def makecube(p=None, q=None, s=None):
     return sg
 
 
+def makebuilding(seed=0):
+    random.seed(seed)
+
+    fp = vec3(0,0,0).sq(80,60)
+    xpj = vec3(1,0,0).prjps(fp)
+    e = (xpj[1]-xpj[0])/1000.0
+    print('determined e: %f' % e)
+
+    from dilap.worldly.polygen import blgfp
+    fp = blgfp(fp, e)
+
+    ax = plot_axes_xy(100)
+    ax = plot_polygon_full_xy(fp,ax,lw = 2)
+    plt.show()
+
+    #fp,holes = blett.block('C',25,50,50)
+
+    sg = building(fp,e)
+    return sg
+
+
 def makecontinent(seed=0):
     random.seed(seed)
-    b = vec3(0,0,0).pring(250,8)
+    b = vec3(0,0,0).pring(200,8)
     xpj = vec3(1,0,0).prjps(b)
     e = (xpj[1]-xpj[0])/1000.0
     print('determined e: %f' % e)
@@ -45,11 +68,42 @@ def makedemo(args):
     return sg
 
 
+def tropico(seed=0):
+    random.seed(seed)
+    sg = scenegraph()
+
+    def grid(n):
+        d = sqrt(n)
+        if not int(d) == d:
+            d += 1
+        d = int(d)
+        for x,y in ((x,y) for x in range(d) for y in range(d)):
+            yield vec3(x,y,0), None, None
+
+    types = (oak,beach)
+
+    for t, tf in zip(types,grid(len(types))):
+        m = model()
+        g = m.agfxmesh()
+        l = t()
+
+        l.plot()
+        plt.show()
+
+        print('tf',tf)
+
+        treeskin(m, g, l)
+        sgv = sg.avert(*tf, models=[m], parent=sg.root)
+    return sg
+
+
 def main(args):
     print('args\n',args)
     #scenegraph = makecube()
+    #scenegraph = makebuilding(args.seed)
     scenegraph = makecontinent(args.seed)
     #scenegraph = makedemo(args.seed)
+    #scenegraph = tropico(args.seed)
     if not os.path.isdir(args.output):
         os.mkdir(args.output)
     io[args.exporter].build_scenegraph(scenegraph,args.output)

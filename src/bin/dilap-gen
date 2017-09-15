@@ -46,7 +46,7 @@ def makebuilding(seed=0):
 
 def makecontinent(seed=0):
     random.seed(seed)
-    b = vec3(0,0,0).pring(200,8)
+    b = vec3(0,0,0).pring(250,8)
     xpj = vec3(1,0,0).prjps(b)
     e = (xpj[1]-xpj[0])/1000.0
     print('determined e: %f' % e)
@@ -78,22 +78,22 @@ def tropico(seed=0):
             d += 1
         d = int(d)
         for x,y in ((x,y) for x in range(d) for y in range(d)):
-            yield vec3(x,y,0), None, None
+            yield vec3(x*50,y*50,0)
 
-    types = (oak,beach)
+    types = (beach,oak)
 
-    for t, tf in zip(types,grid(len(types))):
+    for t, tfp in zip(types,grid(len(types))):
         m = model()
         g = m.agfxmesh()
-        l = t()
+        
+        i, p, d = 4, vec3(0,0,0), vec3(0,0,1)
+        l = t(i, tfp, d)
 
         l.plot()
         plt.show()
 
-        print('tf',tf)
-
         treeskin(m, g, l)
-        sgv = sg.avert(*tf, models=[m], parent=sg.root)
+        sgv = sg.avert(None, None, None, models=[m], parent=sg.root)
     return sg
 
 

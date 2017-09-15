@@ -25,15 +25,20 @@ class lstate(tree):
         self.tip.term = False
 
 
-    def __init__(self,i,p,d,axiom,rules,**kws):
+    def __init__(self,i,p,d,axiom,rules,grammer=None,**kws):
         tree.__init__(self)
         for k in kws:self.__setattr__(k,kws[k])
+        self.rootp = p.cp()
         self.tip = self.root
         self.tip.p,self.tip.d,self.tip.t,self.tip.ld = p,d,0,d.cp()
+        print('ROOOT',self.tip.p)
         self.tip.term = False
         self.i = i
         self.axiom = axiom
         self.rules = rules
+        if grammer is None:
+            grammer = lgrammer
+        self.grammer = grammer
 
 
     def __call__(self,**kws):
@@ -46,17 +51,18 @@ class lstate(tree):
         for k in kws:
             self.__setattr__(k,kws[k])
         for s in lstring(self.axiom,self.rules,self.i).produce():
-            if s in lgrammer.dic:
-                piece = lgrammer.dic[s](self)
+            if s in self.grammer.dic:
+                piece = self.grammer.dic[s](self)
                 if piece:
                     yield piece
 
 
     def plot(self, v=None, ax=None):
         if ax is None:
-            ax = plot_axes(50)
+            ax = plot_axes(200)
         if v is None:
             v = self.root
+            plot_edges((self.rootp,v.p), ax)
         a = self.above(v)
         if a:
             plot_edges((v.p,a.p), ax)

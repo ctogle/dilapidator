@@ -13,48 +13,51 @@ class terrain(topography):
 
     def raise_earth(self,tips,e,increment = 1.0,
             mingrad = 1.0,mindelz = -5.0,depth = 0,maxdepth = None):
+
         print('... raising earth ... (depth: %d)' % depth)
+        newtips = []
+
         if maxdepth and depth == maxdepth:
             print('... reached max depth (%d)! ...' % maxdepth)
-        newtips = []
-        for tip in tips:
-            dr = abs(mindelz/mingrad)/increment
-            #print('dr',dr)
-            #pdb.set_trace()
-            newloop = [p.cp().ztrn(mindelz) for p in tip.loop]
+            return newtips
 
+        print('... tipcount (%d) ...' % len(tips))
+        for tip in tips:
+            newloop = [p.cp().ztrn(mindelz) for p in tip.loop]
 
             # NEED A ROUTINE FOR WHEN TIP HAS A HOLE REPRESENTED
             # WHEN CREATING LOOPS, CREAT FROM HOLES SO AS TO MEET HALFWAY
+            useless = lambda l : None if (l is None or len(l) < 3) else l
 
-
+            dr = abs(mindelz/mingrad)/increment
+            print('... dr (%f) ...' % dr)
             for j in range(int(dr)):
-                newloop = pym.contract(newloop,increment)
-                newloop = pym.aggregate(newloop,5)
-                #newloop = pym.aggregate(newloop,3)
-                if newloop is None:
+
+                newloop = pym.smart_contract(newloop,increment)
+                #newloop = pym.contract(newloop,increment)
+                #newloop = pym.aggregate(newloop,5)
+                #newloop = useless(newloop)
+
+                if newloop is None or len(newloop) == 3:
                     break
-                elif len(newloop) <= 3:
-                    if len(newloop) < 3:
-                        newloop = None
-                    break
-            if newloop is None:
-                continue
-            uloops = pym.pinchb(newloop,5)
-            #uloops = pym.pinchb(newloop,3)
-            uloops = [u for u in uloops if u]
-            for u in uloops:
-                if not pym.bccw(u):
-                    u.reverse()
-            for u in uloops:
-                ua = pym.bareaxy(u,True)
-                #if ua > increment*10:
-                if ua > 100:
-                    newtip = self.avert(tip,u)
-                    newtips.append(newtip)
+
+            print('... pinchhh () ...')
+            if newloop:
+                #uloops = pym.pinchb2(newloop,10)
+                uloops = pym.pinchb(newloop,10)
+                uloops = [u for u in uloops if u]
+                for u in uloops:
+                    if not pym.bccw(u):
+                        u.reverse()
+                    ua = pym.bareaxy(u,True)
+                    if ua > 100:
+                        newtip = self.avert(tip,u)
+                        newtips.append(newtip)
+
         if newtips:
-            newtips.extend(
-                self.raise_earth(newtips,e,increment,mingrad,mindelz,depth+1))
+            newtips.extend(self.raise_earth(
+                newtips,e,increment,mingrad,mindelz,depth+1))
+
         return newtips
 
 

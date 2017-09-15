@@ -12,13 +12,12 @@ import pdb
 def terraininput(b,e):
 
     def feature(b):
-        i,p,d = 5,vec3(0,0,0),vec3(0,1,0)
+        i,p,d = 6,vec3(0,0,0),vec3(0,1,0)
         axiom,rules = 'X',dict([('X','{[[X}{]X}F]X'),('F','FA'),('A','F')])
         params = dict(dazimuthal = gtl.rad(25.7),drho = 20)
         lsys = lsystem(i, p, d, axiom, rules, **params)
         feat = lsystopy(b, lsys, e)
         vec3(1,1,0).sclps(feat)
-        #feat = lsystopy(b, lsys, e)
         return feat
 
     def scuttle(f,b):
@@ -38,9 +37,9 @@ def terraininput(b,e):
         return pym.sloops(es,2)
 
     tb = pym.contract(b, -e*100)
-    l,r = pym.vsplitb(vec3(0,1,0),b)
-    tl,bl = pym.vsplitb(vec3(1,0,0),l)
-    tr,br = pym.vsplitb(vec3(1,0,0),r)
+    #l,r = pym.vsplitb(vec3(0,1,0),b)
+    #tl,bl = pym.vsplitb(vec3(1,0,0),l)
+    #tr,br = pym.vsplitb(vec3(1,0,0),r)
 
     #trnsclf = lambda b : vec3(0,0,0).com(b).uscl(0.1).trnps(vec3(10,10,0).sclps(feature(b)))
 
@@ -82,20 +81,20 @@ def terraininput(b,e):
     lows  = [x for y in lows for x in y]
 
     ax = plot_axes(300)
+    ax = plot_polygon_xy(tb,ax,lw = 2,col = 'm')
+    ax = plot_polygon_xy(b,ax,lw = 2,col = 'r')
     for l in lows:
         ax = plot_polygon(l,ax,col = 'b')
     for h in highs:
         ax = plot_polygon(h,ax,col = 'g')
-    ax = plot_polygon_xy(tb,ax,lw = 2,col = 'm')
-    ax = plot_polygon_xy(b,ax,lw = 2,col = 'r')
     plt.show()
 
-    scale = 1.0
+    scale = 10.0
     steps = [
         (highs,  scale, ((0.1 , 2), (0.5 , 3), (1.0, None))), 
         #(lows , -scale, ((0.08, 5), (0.02, 3), (0.1, 5), (0.2, None))), ]
         (lows , -scale, ((0.2, None), )), ]
-    sealevel = 8
+    sealevel = 9
     return (tb, e, steps, sealevel)
 
 
@@ -133,7 +132,7 @@ def continent(b,e,
     a = world(b,t,r,e,**kws)
     sg = scenegraph()
 
-    sealevel = 0
+    sealevel = -10
     if includeland:
         for v,depth in t.enum():
             if hasattr(v,'style') and 'sealevel' in v.style:

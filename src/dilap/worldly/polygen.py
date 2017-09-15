@@ -204,15 +204,29 @@ def lsystopy(b,lsys,e = 2):
     for piece in lsys:
         if isinstance(piece,tuple):
             p1,p2 = piece
-            v1,v2 = pg.fp(p1,10),pg.fp(p2,10)
+            v1,v2 = pg.fp(p1,10,w=0.5),pg.fp(p2,10,w=0.5)
             e12 = pg.fe(v1,v2)
         elif isinstance(piece,vec3):
             pass
+    pg.smooth_sticks()
+    #pg.plotxy(l=300)
+    #plt.show()
     # planargraph -> polygon -> smooth -> pinch -> fit
     py = pym.pgtopy(pg,5)[0]
     py = pym.smoothxy(py,0.5,2,0)
-    py = pym.pinchb(py,5)[0]
+    py = pym.aggregate(py,5)
+    #ax = plot_axes_xy(200)
+    #ax = plot_polygon_xy(py, ax, lw=2)
+    #plt.show()
+    #py = pym.pinchb(py,5)[0]
     py = pym.bfitbxy(py,b)
+
+    #print('lsystopy')
+    #ax = plot_axes_xy(300)
+    #ax = plot_polygon_xy(b,ax,col = 'r',lw = 3)
+    #ax = plot_polygon_xy(py,ax,col = 'g')
+    #plt.show()
+
     # return the intersection of the outline and the b
     #py = pym.ebixy(b,py)[0]
     #py = pym.pinchb(py,5)[0]

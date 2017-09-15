@@ -1,3 +1,4 @@
+from dilap.core.plotting import *
 from .vec3 import vec3
 from .planargraph import planargraph
 from .tools import isnear, near, inrng, orient2d, epsilon
@@ -884,11 +885,76 @@ def blimithmin(b,minhmin,maxhmin):
     return b
 
 
+#def bintselfxy(b):
+def bintself(b,e1,e2):
+    segs = [(b[x-1],b[x]) for x in range(len(b))]
+    ips = []
+    for e3,e4 in segs:
+        if e1 == e3 or e1 == e4 or e2 == e3 or e2 == e4:
+            continue
+        else:
+            ip = sintsxyp(e1,e2,e3,e4)
+            if isinstance(ip, vec3):
+                ips.append(ip)
+            elif isinstance(ip, tuple):
+                ips.append(ip[0])
+                ips.append(ip[1])
+    return ips
+
+def pinchb2(b,epsilon = 5):
+    # segments plus intersections -> pg
+    # of the interior loops, select the biggest
+    segs = [(b[x-1],b[x]) for x in range(len(b))]
+
+    pg = planargraph()
+    for e1,e2 in segs:
+        v1,v2 = pg.fp(e1,epsilon),pg.fp(e2,epsilon)
+        ips = bintself(b,e1,e2)
+        if v1 == v2:
+            #print('seg is smaller than epsilon')
+            pass
+        elif ips:
+            etn = e1.tov(e2)
+            e1p = e1.dot(etn)
+            e2p = e2.dot(etn)
+            lf = lambda f : (f - e1p)/(e2p - e1p)
+            iprj = sorted([ip.dot(etn) for ip in ips])
+            iprj = [e1.lerp(e2,lf(ip)) for ip in iprj]
+            ivs = [pg.fp(ip,epsilon) for ip in iprj]
+            ivs.insert(0,v1)
+            ivs.append(v2)
+            for x in range(1,len(ivs)):
+                if not ivs[x] in pg.rings[ivs[x-1]]:
+                    pg.fe(ivs[x-1],ivs[x])
+        elif not v2 in pg.rings[v1]:
+            pg.fe(v1,v2)
+        elif not v1 in pg.rings[v2]:
+            pg.fe(v2,v1)
+
+    uls = pg.uloops('ccw')
+    ols = [[pg.vs[j][1]['p'].cp() for j in ul] for ul in uls]
+
+    print('AAAAA',len(ols))
+
+    for o in ols:
+        ax = plot_axes_xy(300)
+        ax = plot_polygon_xy(o, ax, lw=2, col='b')
+        plt.show()
+    #plt.show()
+
+    #print('PINCHB ACCOMPLISHED')
+    pdb.set_trace()
+
+
 # remove additional loops created by intersections 
 # in an improper boundary polygon
 def pinchb(b,epsilon = 5):
-    pde = lambda p,e1,e2 : abs()
-    new = lambda s1,s2 : not ((s1,s2) in unfin or (s1,s2) in unfin)
+    #THIS NEEDS OPTIMIZATION
+    #THIS NEEDS OPTIMIZATION
+    #THIS NEEDS OPTIMIZATION
+    #THIS NEEDS OPTIMIZATION
+    #THIS NEEDS OPTIMIZATION
+    new = lambda s1,s2 : not ((s1,s2) in unfin or (s2,s1) in unfin)
     unfin = [(b[x-1],b[x]) for x in range(len(b))]
     fin = []
     while unfin:
@@ -1020,6 +1086,83 @@ def contract(b,ds):
 
     #if len(fbnd) > 3:fbnd = pinchb(fbnd,epsilon)
     return fbnd
+
+
+def chopstems(b):
+    '''Remove stems from a boundary polygon'''
+    for x in range(len(b)):
+        e1,e2 = b[x-1],b[x]
+        for y in range(len(b)):
+            e3,e4 = b[y-1],b[y]
+            if e1 == e4 and e2 == e3:
+                print('stEM')
+                pdb.set_trace()
+
+
+def smart_contract(b,increment):
+    print('smart contract increment %f' % increment)
+
+    ax = plot_axes_xy(300)
+    plot_polygon_xy(b,ax,col='r',lw=2)
+
+    nms = []
+    for x in range(len(b)):
+        p1,p2,p3 = b[x-2],b[x-1],b[x]
+        n1 = p1.tov(p2).crs(vec3(0,0,1)).nrm()
+        n2 = p2.tov(p3).crs(vec3(0,0,1)).nrm()
+        n3 = (n1+n2).nrm().uscl(-increment)
+        nms.append(n3)
+
+        '''
+        ax = plot_axes_xy(300)
+        ax = plot_edges_xy((p1,p2),ax,lw=2,col='b')
+        ax = plot_edges_xy((p2,p3),ax,lw=2,col='g')
+        ax = plot_edges_xy((p2,p2.cp().trn(n1)),ax,lw=1,col='b')
+        ax = plot_edges_xy((p2,p2.cp().trn(n2)),ax,lw=1,col='g')
+        ax = plot_edges_xy((p2,p2.cp().trn(n3)),ax,lw=2,col='r')
+        plt.show()
+        '''
+
+    for x in range(len(b)):
+        b[x-1].trn(nms[x])
+
+    segs = [(b[x-1],b[x]) for x in range(len(b))]
+    pg = planargraph.segstopg(segs,1.5*increment)
+
+    uls = pg.uloops('ccw')
+
+    # identify stems in uls and break loops accordingly
+    ulls = sorted(((len(uls[j]),j) for j in range(len(uls))))
+    uls = [uls[u[1]] for u in ulls[:-1]]
+    
+    pdb.set_trace()
+
+    ols = [[pg.vs[j][1]['p'].cp() for j in ul] for ul in uls]
+    ols = [chopstems(o) for o in ols]
+
+    print('OLLLLS',len(ols))
+
+    plot_polygon_xy(b,ax,col='b',lw=2)
+    #pg.plotxy(ax)
+    for o in ols:
+        plot_polygon_xy(o, ax, col='k', lw=2)
+    plt.show()
+
+    bnms = bnrmsxy(b)
+    cnms = [bnms[x-1].cp().trn(bnms[x]).nrm() for x in range(len(bnms))]
+
+    ax = plot_axes_xy(300)
+    plot_polygon_xy(b,ax,col='r',lw=2)
+    for n,p in zip(bnms,b):
+        plot_edges_xy((p,p.cp().trn(n.uscl(10))),ax,col='g',lw=2)
+    for n,p in zip(cnms,b):
+        plot_edges_xy((p,p.cp().trn(n.uscl(10))),ax,col='b',lw=2)
+    plt.show()
+
+    for x in range(len(b)):
+        b1,b2,b3 = b[x-2],b[x-1],b[x]
+        n1,n2 = bnms[x-1],bnms[x]
+    
 
 
 # return an xy plane laplacian smoothed version of a boundary polygon

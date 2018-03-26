@@ -14,7 +14,7 @@ import dilap.geometry.polymath as pym
 import dilap.core.plotting as dtl
 import matplotlib.pyplot as plt
 
-import math,numpy
+import math,numpy,tqdm
 
 cdef class triangulation:
 
@@ -268,11 +268,15 @@ cdef list loop_location(triangulation data,tuple loop,float e):
 
     #prog(0)
 
-    while ptstack:
-        p1 = ptstack.pop(0)
-        point_location(data,p1,e)
+    #for x in range(lcnt):
+    for x in tqdm.trange(lcnt):
+        p = ptstack[x]
+        point_location(data, p, e)
+    #while ptstack:
+    #    p1 = ptstack.pop(0)
+    #    point_location(data,p1,e)
 
-        #prog(len(ptstack)/lcnt)
+    #    #prog(len(ptstack)/lcnt)
 
     return bnd
 
@@ -341,6 +345,7 @@ cdef void constrain_delaunay(triangulation data):
 
 # perform chews first refinement algorithm on a triangulation
 cdef void refine_chews_first(triangulation data,float h,float e):
+    # bottleneck up in here
     cdef list unfinished = [t for t in data.triangles]
     cdef int ucnt = len(unfinished)
     cdef int ufx1,ufx2,ufx3
@@ -350,8 +355,10 @@ cdef void refine_chews_first(triangulation data,float h,float e):
     while ucnt > 0:
         unfin = unfinished.pop(0)
         ucnt -= 1
-        if unfin is None:continue
-        if not unfin in data.triangles:continue
+        if unfin is None:
+            continue
+        if not unfin in data.triangles:
+            continue
         ufx1,ufx2,ufx3 = unfin
         v1,v2,v3 = data.points.gps_c((ufx1,ufx2,ufx3))
 

@@ -1,19 +1,20 @@
 import pdb
 
+'''
+wire graph class (purely topological)
 
-###############################################################################
+wiregraph is a simple data structure for vertices and edges
+connecting them it also provides a means for ordering edges
+'''
 
-# wire graph class (purely topological)
-#
-#   wire graph is a simple data structure 
-#     for vertices and edges connecting them
-#   it also provides a means for ordering edges
-#
 class wiregraph(object):
 
     ###################################
     ### fundamental topological methods
     ###################################
+
+    def orphan(self, vx):
+        return len(self.orings[vx]) == 0 if vx in self.orings else False
 
     # add a new intersection to the graph
     def av(self,**vkws):
@@ -28,12 +29,19 @@ class wiregraph(object):
     # remove vertex u
     def rv(self,u):
         i = self.vs[u]
-        ur = self.rings[u]
-        for v in list(ur.keys()):self.re(u,v)
-        self.vs[u] = None
-        del self.rings[u]
-        del self.orings[u]
-        return i
+        if i is None:
+            print('cannot remove missing vertex', u)
+        else:
+            ur = self.rings[u]
+            for v in set(ur.keys()):
+                if u == v:
+                    print('u == v')
+                else:
+                    self.re(u,v)
+            self.vs[u] = None
+            del self.rings[u]
+            del self.orings[u]
+            return i
 
     # and a new road to the graph
     def ae(self,u,v,**ekws):
@@ -62,7 +70,7 @@ class wiregraph(object):
                     break
             if not f:uor.append(v)
         '''#
-              
+
         vrcnt = len(vor)
         vor.append(u)
         '''#
@@ -80,10 +88,6 @@ class wiregraph(object):
         '''#
 
         self.ecnt += 1
-
-        #self.plotxy(l = 200)
-        #plt.show()
-
         return m
 
     # remove an edge between u and v
@@ -209,6 +213,12 @@ class wiregraph(object):
         self.elook = {}
         self.rings = {}
         self.orings = {}
+
+    def __iter__(self):
+        for vx in range(self.vcnt):
+            v = self.vs[vx]
+            if not v is None:
+                yield v
 
     ###################################
 

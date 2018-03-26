@@ -25,7 +25,7 @@ pkgs = [
     'dilap.geometry',
     'dilap.topology',
     'dilap.io',
-    'dilap.core', 
+    'dilap.core',
     'dilap.worldly', ]
 
 
@@ -53,7 +53,7 @@ def install(*ags):
         license='MIT License',
         long_description='procedural mesh generation for export to other applications (.obj, .fbx)',
         scripts=scripts,
-        packages=pkgs, 
+        packages=pkgs,
         ext_modules=exts,
         cmdclass={'build_ext': build_ext},
         include_dirs=[numpy.get_include()],

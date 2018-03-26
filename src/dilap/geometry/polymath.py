@@ -1,6 +1,6 @@
 from dilap.core.plotting import *
 from .vec3 import vec3
-from .planargraph import planargraph
+#from .planargraph import planargraph
 from .tools import isnear, near, inrng, orient2d, epsilon
 import numpy
 import math
@@ -216,6 +216,7 @@ def ssegsxy(s1,s2,s3,s4):
 
 # produce some number of closed loops from a set of edges
 def sloops(es,epsilon = 0.1):
+    from .planargraph import planargraph
     g = planargraph.segstopg(es,epsilon)
     uls = g.uloops('ccw')
     ols = [[g.vs[j][1]['p'].cp() for j in ul] for ul in uls]
@@ -256,41 +257,79 @@ def sintbxyp(s1,s2,b,ie = True,ieb = True,col = True):
     return ips
 
 
+# determine if a line segment intersects a planar graph
+def sintpgxy(s1, s2, pg, ie=True, ieb=True, col=True):
+    pdb.set_trace()
+
+
 # segment a boundary polygon based on intersections with a line segment
 # return some number of new boundary polygons
-def bsegsxy(b,s1,s2,epsilon = 0.1):
-    bes = bsegbxy(b,(s1,s2))
-    left,right = [],[]
+def bsegsxy(b, s1, s2, epsilon=0.1):
+    bes = bsegbxy(b, (s1, s2))
+    left, right, split = [], [], []
     while bes:
-        u1,u2 = bes.pop(0)
-        u1o = orient2d(s1,s2,u1)
-        u2o = orient2d(s1,s2,u2)
-        if u1o == 0 and u2o == 0:pass
-        elif u1o > 0 or u2o > 0:left.insert(0,(u2,u1))
-        elif u1o < 0 or u2o < 0:right.append((u1,u2))
-        else:raise ValueError
-    if not left or not right:
-        print('seg missed bpoly')
-        bs = [b]
-    else:
-        ips = sintbxyp(s1,s2,b,col = False)
+        u1, u2 = bes.pop(0)
+        u1o = orient2d(s1, s2, u1)
+        u2o = orient2d(s1, s2, u2)
+        u1o = near(u1o, 0, epsilon)
+        u2o = near(u2o, 0, epsilon)
+        if u1o == 0 and u2o == 0:
+            pass
+        elif u1o > 0 or u2o > 0:
+            left.insert(0, (u2, u1))
+        elif u1o < 0 or u2o < 0:
+            right.append((u1, u2))
+        else:
+            split.append((u1, u2))
+
+    '''#
+    ax = plot_axes_xy(400)
+    ax = plot_polygon_xy(b,ax,ls = '--',lw = 2,col = 'k')
+    ax = plot_edges_xy((s1,s2),ax,col = 'g')
+    for e in left:
+        ax = plot_edges_xy(e,ax,lw = 4, col = 'r')
+    for e in right:
+        ax = plot_edges_xy(e,ax,lw = 4, col = 'b')
+    for e in split:
+        ax = plot_edges_xy(e,ax,lw = 4, col = 'g')
+    ax = plot_points_xy(b,ax,number = True)
+    plt.show()
+    '''#
+
+    if left and right:
+        ips = sintbxyp(s1, s2, b, col=False)
         icnt = len(ips)
-        ies = [(ips[x-1].cp(),ips[x].cp()) for x in range(1,icnt) if x % 2 != 0]
-        if ies:bs = sloops(left+ies,epsilon)+sloops(right+ies,epsilon)
-        else:bs = [b]
+        ies = [(ips[x-1].cp(), ips[x].cp()) for x in 
+                    range(1, icnt) if (x % 2 != 0)]
+        if ies:
+            bs = sloops(left + ies, epsilon) + sloops(right + ies, epsilon)
+        else:
+            bs = [b]
+        for b in bs:
+            if bnrm(b).z < 0:
+                b.reverse()
         if len(bs) > 2:
             print('multi bsegsxy...')
 
         '''#
-        ax = dtl.plot_axes_xy(200)
-        ax = dtl.plot_polygon_xy(b,ax,ls = '--',lw = 2,col = 'k')
-        ax = dtl.plot_edges_xy((s1,s2),ax,col = 'g')
-        for e in left:ax = dtl.plot_edges_xy(e,ax,col = 'r')
-        for e in right:ax = dtl.plot_edges_xy(e,ax,col = 'b')
-        ax = dtl.plot_points_xy(b,ax,number = True)
-        for b in bs:ax = dtl.plot_polygon_xy(b,ax,col = 'g')
+        ax = plot_axes_xy(400)
+        ax = plot_polygon_xy(b,ax,ls = '--',lw = 2,col = 'k')
+        ax = plot_edges_xy((s1,s2),ax,col = 'g')
+        for e in left:
+            ax = plot_edges_xy(e,ax,lw = 4, col = 'r')
+        for e in right:
+            ax = plot_edges_xy(e,ax,lw = 4, col = 'b')
+        for e in split:
+            ax = plot_edges_xy(e,ax,lw = 4, col = 'g')
+        ax = plot_points_xy(b,ax,number = True)
+        #for b in bs:
+        #    ax = plot_polygon_xy(b,ax,col = 'm')
         plt.show()
         '''#
+
+    else:
+        print('seg missed bpoly')
+        bs = [b]
 
     return bs
 
@@ -310,7 +349,17 @@ def bintselfxy(b):
 # is a boundary polygon contained within another polygon
 # ie : do edge intersections mean no containment
 # NOTE: WILL NOT WORK FOR ALL CONCAVE BOUNDARIES AS IS...
+# FIX THIS BY COUNTING EDGE INTERSECTIONS?
 def binbxy(b1,b2,ie = True):
+    esects = []
+    for i in range(len(b1)):
+        u, v = b1[i-1], b1[i]
+        for j in range(len(b2)):
+            x, y = b2[j-1], b2[j]
+            if sintsxy(u, v, x, y, ie, ie, ie, True):
+                esects.append((i, j))
+    if esects:
+        return 0
     for p in b1:
         if ie and p.onbxy(b2):return 0
         elif not p.inbxy(b2):return 0
@@ -370,7 +419,7 @@ def badjbxy(b1,b2,minovlp = 1):
 
 
 # translate and scale (in place) b1 to be roughly inscribed by b2
-def bfitbxy(b1,b2):
+def bfitbxy(b1, b2, w=1.0):
     def prj(b):
         prjx = vec3(1,0,0).prjps(b)
         prjy = vec3(0,1,0).prjps(b)
@@ -388,7 +437,7 @@ def bfitbxy(b1,b2):
     d1x = (b1prjx[1]-b1prjx[0])+(b1prjy[1]-b1prjy[0])
     d2x = (b2prjx[1]-b2prjx[0])+(b2prjy[1]-b2prjy[0])
     #scale = 0.5 * d2x / d1x
-    scale = 1.0 * d2x / d1x
+    scale = w * d2x / d1x
     vec3(scale,scale,0).sclps(b1)
     #for p in b1:
     #    p.scl(vec3(scale,scale,0))
@@ -545,23 +594,26 @@ def ebuxy(b1,b2,epsilon = 0.1,debug = False,holes = False):
     else:return dfs
 
 
-# compute difference of boundary polygons
-def ebdxy(b1,b2,epsilon = 0.1):
-    b1segs,b2segs = bsegbxy(b1,b2),bsegbxy(b2,b1)
-    bo = lambda s1,s2,b : s1.mid(s2).inbxy(b)
-    b1only = [p for p in b1segs if not bo(p[0],p[1],b2) and not p in b2segs]
-    b2inb1 = [p for p in b2segs if bo(p[0],p[1],b1)]
+# compute difference of two boundary polygons
+def ebdxy(b1, b2, epsilon=0.1):
+    b1segs, b2segs = bsegbxy(b1,b2), bsegbxy(b2,b1)
+    bo = lambda s1, s2, b: s1.mid(s2).inbxy(b)
+    b1only = [p for p in b1segs if not bo(p[0], p[1], b2) and not p in b2segs]
+    b2inb1 = [p for p in b2segs if bo(p[0], p[1], b1)]
     dfs = sloops(b1only+b2inb1,epsilon)
+
     # need to throw away nonsatisfactory loops
+    # need to throw away duplicates??
     #dfs = [l for l in dfs]
-    '''#
-    ax = dtl.plot_axes(100)
-    ax = dtl.plot_polygon(b1,ax,lw = 2,col = 'b')
-    ax = dtl.plot_polygon(b2,ax,lw = 2,col = 'g')
+
+    ax = plot_axes(100)
+    ax = plot_polygon(b1,ax,lw = 2,col = 'b')
+    ax = plot_polygon(b2,ax,lw = 2,col = 'g')
     for x in range(len(dfs)):
         vec3(0,0,10*x+2).trnps(dfs[x])
-        ax = dtl.plot_polygon(dfs[x],ax,col = 'r')
+        ax = plot_polygon(dfs[x],ax,col = 'r')
     plt.show()
+    '''#
     '''#
     return dfs
 
@@ -625,11 +677,23 @@ def bsuxy(bs,epsilon = 0.1):
 # line segment with the com of b and tangent to v
 def vsplitb(v,b):
     prj = v.prjps(b)
-    com = vec3(0,0,0).com(b)
-    l,r = bsegsxy(b,
-        com.cp().trn(v.cp().nrm().uscl(prj[1]-prj[0])),
-        com.cp().trn(v.cp().nrm().uscl(prj[0]-prj[1])))
-    return l,r
+    com = vec3(0, 0, 0).com(b)
+    s1 = com.cp().trn(v.cp().nrm().uscl(prj[1] - prj[0]))
+    s2 = com.cp().trn(v.cp().nrm().uscl(prj[0] - prj[1]))
+
+    '''#
+    ax = plot_axes(400)
+    ax = plot_polygon_xy(b, ax, lw=2, col='b')
+    ax = plot_vector_xy(com, v.cp().uscl(100), ax, mk='o', lw=1.0)
+    ax = plot_point_xy(com, ax, col='g')
+    ax = plot_point_xy(s1, ax, col='r')
+    ax = plot_point_xy(s2, ax, col='r')
+    ax = plot_point_xy(s2, ax, col='r')
+    plt.show()
+    '''#
+
+    l, r = bsegsxy(b, s1, s2)
+    return l, r
 
 
 # determine whether 3 points are basically colinear in the xy plane
@@ -713,12 +777,13 @@ def cleanbxy(b,epsilon = 0.1):
 
 
 # compute the area of a boundary polygon in the xy plane
-def bareaxy(b,allowzero = False):
+def bareaxy(b, allowzero=False):
     area = 0.0
     for x in range(len(b)):
-        b1,b2 = b[x-1],b[x]
-        area += (b1.x+b2.x)*(b1.y-b2.y)
-    if not allowzero and area == 0:raise ValueError
+        b1, b2 = b[x-1], b[x]
+        area += (b1.x + b2.x)*(b1.y - b2.y)
+    if not allowzero and area == 0:
+        raise ValueError('zero area polygon while allowzero==False')
     return -area/2.0
 
 
@@ -777,26 +842,97 @@ def bdistpxy(b,p):
 
 # find the nearest edge of a boundary polygon to a point
 # return the index of the edge and the associated distance
-def bnearpxy(b,p):
+def bnearpxy(b, p):
     mind = 1e10
     minx = None
     for x in range(len(b)):
         b1,b2 = b[x-1],b[x]
+
+        pd1 = p.d(b1)
+        if pd1 < mind:
+            mind, minx = pd1, x-1
+            # fuzzy normal just points back to the point
+
+        pd2 = p.d(b2)
+        if pd2 < mind:
+            mind, minx = pd2, x
+            # fuzzy normal just points back to the point
+
         btn = b1.tov(b2)
+        ptn = p.dot(btn)
         b1p = b1.dot(btn)
         b2p = b2.dot(btn)
-        ptn = p.dot(btn)
-        pd1 = p.d(b1)
-        pd2 = p.d(b2)
-        if pd1 < mind:mind,minx = pd1,x-1
-        if pd2 < mind:mind,minx = pd2,x
         if (b1p <= ptn and ptn <= b2p) or (b1p >= ptn and ptn >= b2p):
             bnm = vec3(0,0,1).crs(btn).nrm()
-            bed = abs(p.dot(bnm)-b1.dot(bnm))
+            # calculate the fuzzy normal...
+            # interpolate from the last normal to this normal to the next normal
+            # based on where the projection of p is on this edge
+            bed = abs(p.dot(bnm) - b1.dot(bnm))
             if bed < mind:
                 mind = bed
                 minx = x
-    return minx,mind
+    return minx, mind
+
+
+# given a boundary polygon and a point, find a smooth normal between them
+# and return the normal and the point on the polygon it connects to
+def bnearpxy_smooth(b, p):
+    mind = 1e10
+    minx = None
+    minn = None
+    for x in range(len(b)):
+        b1, b2, b3, b4 = b[x-3], b[x-2], b[x-1], b[x]
+
+        pd2 = p.d(b2)
+        pd3 = p.d(b3)
+
+        b1tn = b1.tov(b2)
+        b2tn = b2.tov(b3)
+        b3tn = b3.tov(b4)
+
+        b1nm = vec3(0, 0, 1).crs(b1tn)
+        b2nm = vec3(0, 0, 1).crs(b2tn)
+        b3nm = vec3(0, 0, 1).crs(b3tn)
+
+        prj, l, r = p.dot(b2tn), b2.dot(b2tn), b3.dot(b2tn)
+        between = (l < prj and prj < r) or (r < prj and prj < l)
+        if between:
+            y = abs(l - prj) / abs(l - r)
+            if y < 0.5:
+                smooth_nm = b1nm.lerp(b2nm, 2 * y)
+                print('lerp from b1nm to b2nm', smooth_nm)
+                pdb.set_trace()
+            elif y > 0.5:
+                smooth_nm = b2nm.lerp(b3nm, 2 * (y - 0.5))
+                print('lerp from b2nm to b3nm', smooth_nm)
+                pdb.set_trace()
+            else:
+                pd_nm = abs(p.dot(b2nm) - b2.dot(b2nm))
+                if pd_nm < mind:
+                    mind, minx, minn = pd_nm, x, b2nm
+        else:
+            if pd2 < mind:
+                mind, minx, minn = pd2, x - 2, b[x - 2].tov(p)
+            if pd3 < mind:
+                mind, minx, minn = pd3, x - 1, b[x - 1].tov(p)
+
+
+        '''
+        btn = b1.tov(b2)
+        ptn = p.dot(btn)
+        b1p = b1.dot(btn)
+        b2p = b2.dot(btn)
+        if (b1p <= ptn and ptn <= b2p) or (b1p >= ptn and ptn >= b2p):
+            bnm = vec3(0,0,1).crs(btn).nrm()
+            # calculate the fuzzy normal...
+            # interpolate from the last normal to this normal to the next normal
+            # based on where the projection of p is on this edge
+            bed = abs(p.dot(bnm) - b1.dot(bnm))
+            if bed < mind:
+                mind = bed
+                minx = x
+        '''
+    return minx, mind, minn
 
 
 # make a new boundary polygon including the midpoints of every edge
@@ -1052,8 +1188,8 @@ def contract(b,ds):
         #if ip is None:
         if ip is None or isnear(abs(w1t.dot(w2t)),1,epsilon):
             pn = p2.cp().trn(w1n)
-
-        else:pn = ip.cp()
+        else:
+            pn = ip.cp()
         pns.append(pn)
     for x in range(len(b)):
         p1,p2,p3 = b[x-2],b[x-1],b[x]
@@ -1062,14 +1198,14 @@ def contract(b,ds):
 
         '''#
         print('amen5')
-        ax = dtl.plot_axes_xy(500)
-        ax = dtl.plot_polygon_xy(fbnd,ax,lw = 2)
-        ax = dtl.plot_point_xy_annotate(p1,ax,'p1')
-        ax = dtl.plot_point_xy(p1,ax)
-        ax = dtl.plot_point_xy_annotate(p2,ax,'p2')
-        ax = dtl.plot_point_xy(p2,ax)
-        ax = dtl.plot_point_xy_annotate(p3,ax,'p3')
-        ax = dtl.plot_point_xy(p3,ax)
+        ax = plot_axes_xy(500)
+        ax = plot_polygon_xy(fbnd,ax,lw = 2)
+        ax = plot_point_xy_annotate(p1,ax,'p1')
+        ax = plot_point_xy(p1,ax)
+        ax = plot_point_xy_annotate(p2,ax,'p2')
+        ax = plot_point_xy(p2,ax)
+        ax = plot_point_xy_annotate(p3,ax,'p3')
+        ax = plot_point_xy(p3,ax)
         plt.show()
         print('amen6')
         '''#
@@ -1078,8 +1214,8 @@ def contract(b,ds):
 
     '''#
     print('amen3')
-    ax = dtl.plot_axes_xy(500)
-    ax = dtl.plot_polygon_xy(fbnd,ax,lw = 2)
+    ax = plot_axes_xy(500)
+    ax = plot_polygon_xy(fbnd,ax,lw = 2)
     plt.show()
     print('amen4')
     '''#
@@ -1100,10 +1236,9 @@ def chopstems(b):
 
 
 def smart_contract(b,increment):
+    from .planargraph import planargraph
     print('smart contract increment %f' % increment)
-
-    ax = plot_axes_xy(300)
-    plot_polygon_xy(b,ax,col='r',lw=2)
+    bcp = [p.cp() for p in b]
 
     nms = []
     for x in range(len(b)):
@@ -1127,27 +1262,87 @@ def smart_contract(b,increment):
         b[x-1].trn(nms[x])
 
     segs = [(b[x-1],b[x]) for x in range(len(b))]
-    pg = planargraph.segstopg(segs,1.5*increment)
+    pg = planargraph.segstopg(segs,increment/2.0)
 
     uls = pg.uloops('ccw')
 
     # identify stems in uls and break loops accordingly
     ulls = sorted(((len(uls[j]),j) for j in range(len(uls))))
-    uls = [uls[u[1]] for u in ulls[:-1]]
-    
-    pdb.set_trace()
+    uls = [uls[u[1]] for u in ulls]
 
-    ols = [[pg.vs[j][1]['p'].cp() for j in ul] for ul in uls]
-    ols = [chopstems(o) for o in ols]
+    stemless = []
+    for u in uls:
+        tips = []
+        ulen = len(u)
+        wrap = lambda j: j + ulen if j < 0 else (j - ulen if j >= ulen else j)
+        stemy = lambda j: any(j in t for i, t in tips)
+        print('u', u)
+        for j in range(ulen):
+            if u[wrap(j - 2)] == u[j]:
+                tip = (j - 1, [j - 1])
+                print('found tip', j - 1, u[j - 1])
+                for i in range(1, ulen):
+                    t1, t2 = wrap(tip[0] - i), wrap(tip[0] + i)
+                    if u[t1] == u[t2]:
+                        tip[1].append(t1)
+                    else:
+                        tips.append(tip)
+                        break
+        else:
+            if tips:
+                nu = [v for j, v in enumerate(u) if not stemy(j)]
+                print('u', u)
+                print('nu', nu)
+                stemless.append(nu)
+            else:
+                stemless.append(u)
+            print('done with %d tips' % len(tips))
+    #uls = stemless
 
-    print('OLLLLS',len(ols))
+    #ax = plot_axes_xy(300)
+    #plot_polygon_xy(b,ax,col='r',lw=2)
+    #pg.plotxy(ax)
+    #plt.show()
 
+    ols = [[pg.vs[j][1]['p'].cp() for j in ul] for ul in stemless]
+    #ols = [chopstems(o) for o in ols]
+
+    oas = [(j, len(o)) for j, o in enumerate(ols)]
+    if len(ols) == 1:
+        ax = plot_axes_xy(300)
+        pg.plotxy(ax)
+        plot_polygon_xy(bcp,ax,col='r',lw=2)
+        plot_polygon_xy(b,ax,col='b',lw=2)
+        #pg.plotxy(ax)
+        for o in ols:
+            plot_polygon_xy(o, ax, col='g', lw=4)
+        plt.show()
+
+        chosen = ols[0]
+    else:
+        choseni = sorted(oas, key=lambda i: i[1])
+        print('sorted', choseni)
+        chosen = ols[choseni[1][0]]
+    chosen2 = [p for p in chosen if p.inbxy(bcp)]
+
+    print('OLLLLS',len(ols), tuple(len(o) for o in ols))
+
+    ax = plot_axes_xy(300)
+    pg.plotxy(ax)
+    plot_polygon_xy(bcp,ax,col='r',lw=2)
     plot_polygon_xy(b,ax,col='b',lw=2)
     #pg.plotxy(ax)
     for o in ols:
-        plot_polygon_xy(o, ax, col='k', lw=2)
+        plot_polygon_xy(o, ax, col='g', lw=4)
+    plot_polygon_xy(chosen,ax,col='m',lw=5)
+    plot_polygon_xy(chosen2,ax,col='c',lw=5)
     plt.show()
+    '''#
+    '''#
 
+    return ols[0]
+
+    '''#
     bnms = bnrmsxy(b)
     cnms = [bnms[x-1].cp().trn(bnms[x]).nrm() for x in range(len(bnms))]
 
@@ -1162,6 +1357,7 @@ def smart_contract(b,increment):
     for x in range(len(b)):
         b1,b2,b3 = b[x-2],b[x-1],b[x]
         n1,n2 = bnms[x-1],bnms[x]
+    '''#
     
 
 
@@ -1186,7 +1382,6 @@ def smoothxy(b,w = 0.1,epsilon = 0.1,constraint = 0):
 def smoothxyi(b,w = 0.1,epsilon = 0.1,i = 10,constraint = 0):
     for j in range(i):
         b = smoothxy(b,w,epsilon,constraint)
-        print('smoothxyi',i)
     return b
 
 
@@ -1223,7 +1418,7 @@ def aggregate(b,ds,da = numpy.pi/4):
 
 # generate a full polygon from a planar graph
 ##### why is it sometimes useful to flip z???
-def pgtopy(pg,r,epsilon = 0.1,z = vec3(0,0,1),findeseam = False):
+def _______pgtopy(pg,r,epsilon = 0.1,z = vec3(0,0,1),findeseam = False):
     loops,seams,eseam = pg.uloops('ccw'),[],None
     for lp in loops:
         seam = []

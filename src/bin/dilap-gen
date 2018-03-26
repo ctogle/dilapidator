@@ -97,18 +97,6 @@ def tropico(seed=0):
     return sg
 
 
-def main(args):
-    print('args\n',args)
-    #scenegraph = makecube()
-    #scenegraph = makebuilding(args.seed)
-    scenegraph = makecontinent(args.seed)
-    #scenegraph = makedemo(args.seed)
-    #scenegraph = tropico(args.seed)
-    if not os.path.isdir(args.output):
-        os.mkdir(args.output)
-    io[args.exporter].build_scenegraph(scenegraph,args.output)
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -130,4 +118,6 @@ if __name__ == '__main__':
         type=int,
         help='Random seed used in procedural decision making', )
     args = parser.parse_args()
-    main(args)
+
+    generator = makecontinent
+    generator(args.seed).output(args.exporter, args.output)

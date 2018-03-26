@@ -433,8 +433,8 @@ class model:
                 p1,p2,p3 = eb
                 n = gtl.nrm(p1,p2,p3)
                 v1,v2,v3 = av(p1,n),av(p2,n),av(p3,n)
-                if rv:f1 = tm.aface(v1,v3,v2,fm = fm) 
-                else:f1  = tm.aface(v1,v2,v3,fm = fm) 
+                if rv:f1 = tm.aface(v1,v3,v2,fm = fm)
+                else:f1  = tm.aface(v1,v2,v3,fm = fm)
                 ngvs.append(v1);ngvs.append(v2);ngvs.append(v3)
 
             elif len(eb) == 4:
@@ -442,11 +442,11 @@ class model:
                 n = gtl.nrm(p1,p2,p3)
                 v1,v2,v3,v4 = av(p1,n),av(p2,n),av(p3,n),av(p4,n)
                 if rv:
-                    f1 = tm.aface(v1,v3,v2,fm = fm) 
-                    f2 = tm.aface(v1,v4,v3,fm = fm) 
+                    f1 = tm.aface(v1,v3,v2,fm = fm)
+                    f2 = tm.aface(v1,v4,v3,fm = fm)
                 else:
-                    f1  = tm.aface(v1,v2,v3,fm = fm) 
-                    f2  = tm.aface(v1,v3,v4,fm = fm) 
+                    f1  = tm.aface(v1,v2,v3,fm = fm)
+                    f2  = tm.aface(v1,v3,v4,fm = fm)
                 ngvs.append(v1);ngvs.append(v2);ngvs.append(v3);ngvs.append(v4)
 
         else:
@@ -460,15 +460,17 @@ class model:
                     print('hmin is below threshold of surface->foregoing triangulation')
                     return []
 
+            print('start triangulation')
             tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo,e)
+            print('end triangulation')
             if not tris:
                 print('asurf: empty surface')
             for tri in tris:
                 p1,p2,p3 = tri
                 n = gtl.nrm(p1,p2,p3)
                 v1,v2,v3 = av(p1,n),av(p2,n),av(p3,n)
-                if rv:f1 = tm.aface(v1,v3,v2,fm = fm) 
-                else:f1  = tm.aface(v1,v2,v3,fm = fm) 
+                if rv:f1 = tm.aface(v1,v3,v2,fm = fm)
+                else:f1  = tm.aface(v1,v2,v3,fm = fm)
 
         # need to somehow require all loops are placed before doing this
         # need to somehow require all loops are placed before doing this

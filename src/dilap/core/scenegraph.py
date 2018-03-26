@@ -1,5 +1,7 @@
 from dilap.geometry import *
 from dilap.topology import *
+from dilap.io import exporters as io
+import os
 
 
 class scenevert(vert):
@@ -70,3 +72,9 @@ class scenegraph(tree):
         yield from vrt.worldspace(wtform)
         for x in self.below(vrt):
             yield from self.worldspace(x,wtform)
+
+
+    def output(self, exporter, output):
+        if not os.path.isdir(output):
+            os.mkdir(output)
+        io[exporter].build_scenegraph(self, output)

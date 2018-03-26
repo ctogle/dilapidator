@@ -7,7 +7,6 @@ from numpy import pi, cos, sin, arctan
 
 class lstate(tree):
 
-
     drho = 1
     dpolar     = pi/2
     dazimuthal = pi/2
@@ -16,7 +15,6 @@ class lstate(tree):
     dyaw       = pi/2
     droll      = pi/2
 
-
     def avert(self):
         if not hasattr(self,'tip'):self.tip = self.root
         oldtip = self.tip.p.cp(),self.tip.d.cp(),self.tip.t,self.tip.ld
@@ -24,14 +22,13 @@ class lstate(tree):
         self.tip.p,self.tip.d,self.tip.t,self.tip.ld = oldtip
         self.tip.term = False
 
-
     def __init__(self,i,p,d,axiom,rules,grammer=None,**kws):
         tree.__init__(self)
         for k in kws:self.__setattr__(k,kws[k])
         self.rootp = p.cp()
         self.tip = self.root
         self.tip.p,self.tip.d,self.tip.t,self.tip.ld = p,d,0,d.cp()
-        print('ROOOT',self.tip.p)
+        #print('lsystem ROOT',self.tip.p)
         self.tip.term = False
         self.i = i
         self.axiom = axiom
@@ -40,12 +37,10 @@ class lstate(tree):
             grammer = lgrammer
         self.grammer = grammer
 
-
     def __call__(self,**kws):
         for s in self.__iter__(**kws):
             pass
         return self
-
 
     def __iter__(self,**kws):
         for k in kws:
@@ -55,7 +50,6 @@ class lstate(tree):
                 piece = self.grammer.dic[s](self)
                 if piece:
                     yield piece
-
 
     def plot(self, v=None, ax=None):
         if ax is None:
@@ -72,12 +66,10 @@ class lstate(tree):
 
 class lstring:
 
-
     def __init__(self,axiom,rules,i = 3):
         self.axiom = axiom
         self.rules = rules
         self.i = i
-        
 
     def produce(self):
         state = self.axiom[:]
@@ -104,11 +96,9 @@ class lgrammer:
         ls.tip.ld = d.cp()
         ed = ls.tip.p.trn(d.uscl(ls.drho))
         return st,ed
-    #edge = lambda ls : (ls.tip.p.cp(),ls.tip.p.trn(ls.tip.d.cp().uscl(ls.drho)))
     def term(ls):
         ls.tip.term = True
         return ls.tip.p.cp()
-    #term = lambda ls : ls.tip.p.cp()
 
     def twist(ls, f=1.0):
         ls.tip.t += f*ls.dtwist
@@ -134,12 +124,12 @@ class lgrammer:
     azimuthal_d = lambda ls : lgrammer.azimuthal(ls,-1)
     azimuthal_f = lambda ls : lgrammer.azimuthal(ls,pi/ls.dazimuthal)
 
-    pitch_u = lambda ls : d.rot(quat(0,0,0,0).av( ls.dpitch,vec3(1,0,0)))
-    pitch_d = lambda ls : d.rot(quat(0,0,0,0).av(-ls.dpitch,vec3(1,0,0)))
-    yaw_u   = lambda ls : d.rot(quat(0,0,0,0).av( ls.dyaw,  vec3(0,0,1)))
-    yaw_d   = lambda ls : d.rot(quat(0,0,0,0).av(-ls.dyaw,  vec3(0,0,1)))
-    roll_u  = lambda ls : d.rot(quat(0,0,0,0).av( ls.droll, vec3(0,1,0)))
-    roll_d  = lambda ls : d.rot(quat(0,0,0,0).av(-ls.droll, vec3(0,1,0)))
+    pitch_u = lambda ls : ls.tip.d.rot(quat(0,0,0,0).av( ls.dpitch,vec3(1,0,0)))
+    pitch_d = lambda ls : ls.tip.d.rot(quat(0,0,0,0).av(-ls.dpitch,vec3(1,0,0)))
+    yaw_u   = lambda ls : ls.tip.d.rot(quat(0,0,0,0).av( ls.dyaw,  vec3(0,0,1)))
+    yaw_d   = lambda ls : ls.tip.d.rot(quat(0,0,0,0).av(-ls.dyaw,  vec3(0,0,1)))
+    roll_u  = lambda ls : ls.tip.d.rot(quat(0,0,0,0).av( ls.droll, vec3(0,1,0)))
+    roll_d  = lambda ls : ls.tip.d.rot(quat(0,0,0,0).av(-ls.droll, vec3(0,1,0)))
 
     dic = {
         '{':push,'}':pop,'F':edge,'Q':term,

@@ -1,37 +1,35 @@
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-from dilap.geometry import *
+from dilap.geometry import vec3
 
 
 # create a mpl 2d axes object
-def plot_axes_xy(x = 5,o = (0,0),f = None,aspect = None):
+def plot_axes_xy(x=5 ,o=(0, 0), f=None, aspect=None):
     if f is None:
-        ax = plt.figure().add_subplot(111)
+        ax = plt.figure(figsize=(16, 16)).add_subplot(111)
     else:
         ax = f.add_subplot(111)
-    ax.set_xlim([-x+o[0],x+o[0]])
-    ax.set_ylim([-x+o[1],x+o[1]])
+    ax.set_xlim([-x + o[0], x + o[0]])
+    ax.set_ylim([-x + o[1], x + o[1]])
     if aspect == 'equal':
         ax.set_aspect('equal')
     return ax
 
 
 # create a mpl 3d axes object
-def plot_axes(x = 5,f = None):
+def plot_axes(x=5, f=None):
     if f is None:
-        ax = plt.figure().add_subplot(111,projection = '3d')
+        ax = plt.figure(figsize=(16, 16)).add_subplot(111, projection='3d')
     else:
-        ax = f.add_subplot(111,projection = '3d')
-    ax.set_xlim([-x,x])
-    ax.set_ylim([-x,x])
-    ax.set_zlim([-(9.0/16.0)*x,(9.0/16.0)*x])
+        ax = f.add_subplot(111, projection='3d')
+    ax.set_xlim([-x, x])
+    ax.set_ylim([-x, x])
+    ax.set_zlim([-(9.0 / 16.0) * x, (9.0 / 16.0) * x])
     return ax
 
 
-def plot_point_xy(pt,ax,mk = 'o',col = None):
-    if col is None:
-        col = 'black'
-    ax.plot([pt.x],[pt.y],marker = mk,color = col)
+def plot_point_xy(pt, ax, mk='o', col=None):
+    ax.plot([pt.x], [pt.y], marker=mk, color=(col if col else 'black'))
     return ax
 
 
@@ -123,13 +121,14 @@ def plot_polygon(points,ax = None,center = False,mk = None,lw = 1.0,ls = '-',col
     return ax
 
 
-def plot_polygon_full_xy(poly,ax = None,center = False,lw = 1.0,ls = '-',col = None):
+def plot_polygon_full_xy(poly,ax = None,center = False,
+                         lw = 1.0,ls = '-',col = None,mk = 'o'):
     if ax is None:
         ax = plot_axes_xy()
     ebnd,ibnds = poly
-    plot_polygon_xy(list(ebnd),ax,center = True,lw = lw,ls = ls,col = col)
+    plot_polygon_xy(list(ebnd),ax,center = True,lw = lw,ls = ls,col = col,mk = mk)
     for ib in ibnds:
-        plot_polygon_xy(list(ib),ax,center = True,lw = lw,ls = ls,col = col)
+        plot_polygon_xy(list(ib),ax,center = True,lw = lw,ls = ls,col = col,mk = mk)
     return ax
 
 

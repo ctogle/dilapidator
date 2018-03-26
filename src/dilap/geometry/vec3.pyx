@@ -153,7 +153,7 @@ cdef class vec3:
         elif gtl.isnear_c(sod,-1.0,gtl.epsilon_c):a = numpy.pi
         else:a = numpy.arccos(sod)
         if vd < 0.0:a *= -1.0
-        return a                    
+        return a
 
 
     cpdef float angxy(self,vec3 o):

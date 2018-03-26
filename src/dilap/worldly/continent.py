@@ -4,12 +4,207 @@ from .infrastructure import roadmap
 from .partitiongraph import world
 from dilap.geometry import *
 import dilap.geometry.polymath as pym
+import dilap.geometry.planarmesh as pme
 import dilap.geometry.tools as gtl
 from dilap.core import *
+import numpy
+import random
+import math
 import pdb
 
 
 def terraininput(b,e):
+
+
+    def regionize(boundary, max_unsplittable_size, show=False):
+        # create set of convex non-overlapping polygons touching b
+        wide_boundary = pym.contract(boundary, -e*100)
+        tb = pym.splitb(wide_boundary, 20)
+
+        i = 3
+        p,d = vec3(0,0,0),vec3(0,1,0)
+        axiom = 'X'
+        rules = dict([('X','F]{{X}[X}[F{[FX}]X'),('F','FF')])
+        params = dict(dazimuthal=gtl.rad(25), drho=32)
+        lsys = lsystem(i, p, d, axiom, rules, **params)
+        pg = planargraph()
+        for piece in lsys:
+            if isinstance(piece, tuple):
+                p1, p2 = piece
+                v1 = pg.fp(p1, 16, w=0.5)
+                v2 = pg.fp(p2, 16, w=0.5)
+                e12 = pg.fe(v1, v2)
+            elif isinstance(piece, vec3):
+                pass
+        pg.smooth_sticks()
+        pg.fitbxy(wide_boundary, 1.1)
+        py = pym.pgtopy(pg, 10, epsilon=1, z=vec3(0,0,1))
+        smooth = lambda b: pym.smoothxy(pym.splitb(b, 20), 0.5)
+        py = [pym.smoothxy(smooth(py[0]), 0.5), [smooth(h) for h in py[1]]]
+
+        waters = [py]
+        lands = pym.ebdxy(tb, py[0])
+        islands = py[1][:]
+
+        highs, lows = [], []
+        highs.extend([l for l in lands if pym.bareaxy(l) > ((e * 100) ** 2)])
+        #highs.extend([i for i in islands if pym.bareaxy(i) > ((e * 100) ** 2)])
+        lows.append(py[0])
+
+        print('regions', len(lands), len(islands), len(waters))
+        if show:
+            ax = plot_axes_xy(300)                 
+            ax = plot_polygon_xy(wide_boundary, ax, lw=2, col='m', mk='o')
+            ax = plot_polygon_xy(boundary, ax, lw=2, col='r', mk='o')
+            #for land in lands:
+            #    ax = plot_polygon_xy(land, ax, lw=3, col='g', mk='o')
+            #for water in waters:
+            #    ax = plot_polygon_full_xy(water, ax, lw=2, col='b', mk='o')
+            #for island in islands:
+            #    ax = plot_polygon_xy(island, ax, lw=3, col='g', mk='o')
+            for l in lows:
+                ax = plot_polygon_xy(l, ax, lw=3, col='b', mk='o')
+            for h in highs:
+                ax = plot_polygon_xy(h, ax, lw=3, col='g', mk='o')
+            plt.show()
+
+            for land in lands:
+                ax = plot_axes_xy(300)                 
+                ax = plot_polygon_xy(wide_boundary, ax, lw=2, col='m')
+                ax = plot_polygon_xy(boundary, ax, lw=2, col='r')
+                for island in islands:
+                    ax = plot_polygon_xy(island, ax, lw=3, col='y')
+                for water in waters:
+                    ax = plot_polygon_full_xy(water, ax, lw=2, col='b')
+                ax = plot_polygon_xy(land, ax, lw=5, col='g')
+                plt.show()
+
+        return [(pym.bareaxy(h), h) for h in highs], [(pym.bareaxy(l), l) for l in lows]
+
+    def map_regions(boundary, max_unsplittable_size, show=False):
+        # create set of convex non-overlapping polygons touching b
+        wide_boundary = pym.contract(boundary, -e*100)
+
+        #pm = pme.planarmesh()
+        #pm.al(wide_boundary)
+        #pm.pattern_split()
+        #pm.plotxy(l=400)
+        #plt.show()
+
+        unfinished = [tuple(p.cp() for p in wide_boundary)]
+        unfinished = [(pym.bareaxy(py), py) for py in unfinished]
+        finished = []
+        while unfinished:
+            a, py = unfinished.pop(0)
+            if a < max_unsplittable_size:
+                finished.append((a, py))
+            else:
+                v = vec3(random.uniform(-1, 1), random.uniform(-1, 1), 0).nrm()
+                l, r = pym.vsplitb(v, py)
+                if pym.bnrm(l).z < 0:
+                    l.reverse()
+                if pym.bnrm(r).z < 0:
+                    r.reverse()
+                unfinished.append((pym.bareaxy(l), l))
+                unfinished.append((pym.bareaxy(r), r))
+        dl = 5
+        #finish = lambda a, b: pym.smart_contract(pym.splitb(b, dl * 3), dl)
+        #finished = [(a, finish(a, b)) for a, b in finished]
+        print('regions')
+        if show:
+            ax = plot_axes(300)                 
+            ax = plot_polygon_xy(wide_boundary, ax, lw=2, col='m')
+            ax = plot_polygon_xy(boundary, ax, lw=2, col='b')
+            for a, fpy in finished:
+                ax = plot_polygon_xy(fpy, ax, lw=2, col='g')
+            for a, upy in unfinished:
+                ax = plot_polygon_xy(upy, ax, lw=2, col='r')
+            plt.show()
+        return finished
+
+    def designate_regions(regions, feature_scale, show=True):
+        i = 3
+        p,d = vec3(0,0,0),vec3(0,1,0)
+        axiom = 'X'
+        rules = dict([('X','F]{{X}[X}[F{[FX}]X'),('F','FF')])
+        params = dict(dazimuthal=gtl.rad(25), drho=20)
+        lsys = lsystem(i, p, d, axiom, rules, **params)
+
+        pg = planargraph()
+        for piece in lsys:
+            if isinstance(piece, tuple):
+                p1, p2 = piece
+                v1 = pg.fp(p1, 16, w=0.5)
+                v2 = pg.fp(p2, 16, w=0.5)
+                e12 = pg.fe(v1, v2)
+            elif isinstance(piece, vec3):
+                pass
+        pg.smooth_sticks()
+
+        highs = regions[:]
+        lows = []
+        # find regions which touch the pg!
+        for v in pg.vs:
+            p = v[1]['p']
+            while True:
+                for j, (a, region) in enumerate(highs):
+                    if p.inbxy(region) or p.onbxy(region):
+                        lows.append(highs.pop(j))
+                        break
+                else:
+                    break
+        py = pym.pgtopy(pg, 10, epsilon=1, z=vec3(0,0,1))
+
+        newlows = []
+        for a, l in lows:
+            newlows.extend(pym.ebdxy(l, py[0]))
+
+        if show:
+            ax = plot_axes(300)
+            ax = pg.plotxy(ax)
+            for a, h in highs:
+                ax = plot_polygon_xy(h, ax, lw=2, col='g')
+            for l in newlows:
+                ax = plot_polygon_xy(l, ax, lw=4, col='r')
+            for a, l in lows:
+                ax = plot_polygon_xy(l, ax, lw=2, col='r')
+            ax = plot_polygon_full_xy(py, ax, lw=3, col='b')
+            ax = plot_polygon_xy(py[0], ax, lw=5, col='m')
+            plt.show()
+
+        return highs, [(pym.bareaxy(b), b) for b in newlows]
+
+    # do all this stuff with a planarmesh instance...?
+
+    feature_scale = 0.02
+    wide_boundary = pym.contract(b, -e*100)
+    max_unsplittable_size = feature_scale*pym.bareaxy(wide_boundary)
+
+    #regions = map_regions(b, max_unsplittable_size, True)
+    #highs, lows = designate_regions(regions, max_unsplittable_size)
+    highs, lows = regionize(b, max_unsplittable_size, False)
+
+    ax = plot_axes(300)
+    ax = plot_polygon_xy(wide_boundary,ax,lw = 2,col = 'm')
+    ax = plot_polygon_xy(b,ax,lw = 2,col = 'r')
+    for a, l in lows:
+        ax = plot_polygon(l,ax,col = 'b')
+    for a, h in highs:
+        ax = plot_polygon(h,ax,col = 'g')
+    plt.show()
+
+    print('figure out highs and lows')
+
+    scale = 10.0
+    steps = [
+        ([h[1] for h in highs],  scale, ((0.1 , 2), (0.5 , 3), (0.1, None))), 
+        #(lows , -scale, ((0.08, 5), (0.02, 3), (0.1, 5), (0.2, None))), ]
+        ([l[1] for l in lows], -scale, ((0.2, None), )), ]
+    sealevel = 9
+    return (wide_boundary, e, steps, sealevel)
+
+
+
 
     def feature(b):
         i,p,d = 6,vec3(0,0,0),vec3(0,1,0)
@@ -36,7 +231,7 @@ def terraininput(b,e):
         es = [(f[k-1],f[k]) for k in range(len(f))]
         return pym.sloops(es,2)
 
-    tb = pym.contract(b, -e*100)
+
     #l,r = pym.vsplitb(vec3(0,1,0),b)
     #tl,bl = pym.vsplitb(vec3(1,0,0),l)
     #tr,br = pym.vsplitb(vec3(1,0,0),r)
@@ -123,9 +318,12 @@ def continent(b,e,
     a partition; vertices in the partition can be deterministically 
     represented by models in a scenegraph (self)'''
     if includeland:
-        targs = terraininput(b,e)
-        t = terrain(*targs,**kws)
+        print('generating terrain')
+        #targs = terraininput(b, e)
+        #t = terrain(*targs,**kws)
+        t = terrain.from_boundary(b, e)
     else:
+        print('skipping terrain')
         t = None
 
     r = roadmap(t,e,**kws) if includeroads else None
@@ -165,6 +363,17 @@ def continent(b,e,
                 land(sg,v,t.interpolate,a)
 
     return sg
+
+
+def deform(b, e, dr_0=50):
+    sb = pym.splitb(b, dr_0)
+    nb = []
+    for p in sb:
+        n = p.cpxy().nrm()
+        theta = 2 * numpy.arctan(n.y / n.x)
+        dr = p.mag() + ((dr_0 / 2.0) * numpy.sin(theta))
+        nb.append(n.uscl(dr))
+    return nb
 
 
 def ocean(sg,loop,sealevel,depth = 2.0,bleed = 5.0):
@@ -244,7 +453,7 @@ def land(sg,v,z,a):
     # WHY DO I GET COLINEAR TRIANGLES WITH HMIN == 4 (did i fix this?)
     print('generating land')
     ngvs = m.asurf((vb,vibs),tm,
-        fm = 'grass2',ref = True,hmin = 8,hmax = 16,minhmin = 0.1,
+        fm = 'grass2',ref = True,hmin = 16,hmax = 32,minhmin = 0.1,
         zfunc = z,rv = pym.bnrm(vb).z < 0,
         uvstacked = None,autoconnect = True)
     lockf = lambda p : p.onpxy((vb,vibs)) 

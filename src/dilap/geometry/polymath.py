@@ -218,7 +218,21 @@ def ssegsxy(s1,s2,s3,s4):
 def sloops(es,epsilon = 0.1):
     from .planargraph import planargraph
     g = planargraph.segstopg(es,epsilon)
+
+    '''
+    ax = plot_axes_xy(30, (35, 35))
+    g.plotxy(ax)
+    for e in es:
+        plot_edges_xy(e, ax, col='b')
+    plt.show()
+    '''
+
     uls = g.uloops('ccw')
+    #print('llll', len(uls))
+
+    #for u in uls:
+    #    print(len(u), u)
+
     ols = [[g.vs[j][1]['p'].cp() for j in ul] for ul in uls]
     #for ol in ols:
     #    if bnrm(ol).z < 0:
@@ -1390,7 +1404,7 @@ def smoothxyi(b,w = 0.1,epsilon = 0.1,i = 10,constraint = 0):
 def aggregate(b,ds,da = numpy.pi/4):
     if len(b) <= 3:
         #print('polygon could not be further aggregated')
-        return 
+        return
         #return b[:]
 
     edists = [b[x-1].d(b[x]) for x in range(len(b))]

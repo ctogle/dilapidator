@@ -2,10 +2,44 @@ from dilap.core import *
 from dilap.geometry import *
 import dilap.geometry.tools as gtl
 import dilap.geometry.polymath as pym
+from .lsysgen import lsys_to_pg, grass_lsys
 import math
 import numpy
 import random
 import pdb
+
+
+def boundaries(l=100):
+    '''
+    generate a boundary for reliable generation,
+    a boundary for any generation,
+    and boundaries for the land and water
+    '''
+
+    def rivers(b, e):
+        lsys = grass_lsys()
+        pg = lsys_to_pg(lsys)
+        pg.smooth_sticks(i=4)
+        pg.fitbxy(b, 1)
+        py = pg.polygon(20 * e)[0]
+        pg.trn(vec3(0, 0, -10))
+        return (pg, ), (py, )
+
+    def lands(b, rpys):
+        pys = pym.ebdxy(b, rpys[0])
+        return pys
+        pys = [[p.cp() for p in b]]
+        for rpy in rpys:
+            pys = [x for y in pys for x in pym.ebdxy(y, rpy)]
+        return pys
+
+    b = vec3(0, 0, 0).pring(l / 2.0, 8)
+    xprj = vec3(1, 0, 0).prjps(b)
+    e = (xprj[1] - xprj[0]) / 1000
+    t_b = pym.splitb(pym.contract(b, -100*e), 50*e)
+    rpgs, rpys = rivers(t_b, e)
+    lmpys = lands(b, rpys)
+    return e, b, t_b, rpys, lmpys
 
 
 # return geometry describing a wall from p1 to p2 of height wh with holes hs

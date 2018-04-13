@@ -1,6 +1,8 @@
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from dilap.geometry import vec3
+import numpy
 
 
 # create a mpl 2d axes object
@@ -29,7 +31,8 @@ def plot_axes(x=5, f=None):
 
 
 def plot_point_xy(pt, ax, mk='o', col=None):
-    ax.plot([pt.x], [pt.y], marker=mk, color=(col if col else 'black'))
+    color = 'k' if col is None else col
+    ax.plot([pt.x], [pt.y], marker=mk, color=color)
     return ax
 
 
@@ -126,9 +129,14 @@ def plot_polygon_full_xy(poly,ax = None,center = False,
     if ax is None:
         ax = plot_axes_xy()
     ebnd,ibnds = poly
-    plot_polygon_xy(list(ebnd),ax,center = True,lw = lw,ls = ls,col = col,mk = mk)
-    for ib in ibnds:
-        plot_polygon_xy(list(ib),ax,center = True,lw = lw,ls = ls,col = col,mk = mk)
+    if col == 'rainbow':
+        ecol = 'k'
+        icols = plt.cm.jet(numpy.linspace(0, 1, len(ibnds)))
+    else:
+        ecol, icols = col, [col] * len(ibnds)
+    plot_polygon_xy(list(ebnd),ax,center = True,lw = lw,ls = ls,col = ecol,mk = mk)
+    for ib, icol in zip(ibnds, icols):
+        plot_polygon_xy(list(ib),ax,center = True,lw = lw,ls = ls,col = icol,mk = mk)
     return ax
 
 

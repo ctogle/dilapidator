@@ -458,6 +458,15 @@ class model:
                     print('newhmin < hmin ...',newhmin)
                 if newhmin < minhmin:
                     print('hmin is below threshold of surface->foregoing triangulation')
+
+                    xs, ys, zs = zip(*eb)
+                    xmin, xmax = min(xs), max(xs)
+                    ax = plot_axes_xy(xmax - xmin, ((xmax + xmin / 2), 0))
+                    plot_polygon_xy(eb, ax, col='r', lw=3)
+                    for ib in ibs:
+                        plot_polygon_xy(ib, ax, col='b', lw=3)
+                    plt.show()
+
                     return []
 
             print('start triangulation')

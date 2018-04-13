@@ -115,9 +115,11 @@ cdef class vec3:
         cdef float pself = gtl.near(gtl.near(self.dot(tn),eleft,gtl.epsilon_c),eright,gtl.epsilon_c)
         cdef float ds
         if ie and (pself == eleft or pself == eright):
-            ds = self.dot(nm)-e1.dot(nm)
+            #ds = self.dot(nm)-e1.dot(nm)
+            ds = abs(self.dot(nm)-e1.dot(nm))
         elif eleft < pself and pself < eright:
-            ds = self.dot(nm)-e1.dot(nm)
+            #ds = self.dot(nm)-e1.dot(nm)
+            ds = abs(self.dot(nm)-e1.dot(nm))
         else:ds = -1.0
         return ds
 

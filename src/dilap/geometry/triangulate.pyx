@@ -560,27 +560,40 @@ def split_nondelauney_edges(eb,ibs):
     nibs = [handle_loop(ib) for ib in ibs]
     return tuple(neb),tuple(tuple(nib) for nib in nibs)
 
-def split_nondelauney_edges_chew1(eb,ibs,hmax = 16):
+cdef list split_loop(float hmin, list loop):
+    cdef list o = []
+    cdef vec3 l = loop[-1]
+    cdef vec3 n
+    cdef float el
+    cdef int m
+    cdef list ps
+    cdef vec3 dp
+    cdef int c = len(loop)
+    cdef int j
+    for j in range(c):
+        n = loop[j]
+        el = n.d(l)
+        m = 1
+        while el / m > hmin:
+            m += 1
+        ps = l.pline(n, m - 1)
+        if ps:
+            for dp in ps:
+                o.append(dp)
+        o.append(n)
+        l = n
+    return o
+
+cpdef split_nondelauney_edges_chew1(eb, ibs, hmax=16):
     els = [eb[x-1].d(eb[x]) for x in range(len(eb))]
-    for ib in ibs:els.extend([ib[x-1].d(ib[x]) for x in range(len(ib))])
-    hmin = min(els)*math.sqrt(3)
-    hmin = min(hmax,hmin)
+    for ib in ibs:
+        els.extend([ib[x-1].d(ib[x]) for x in range(len(ib))])
+    hmin = min(els) * math.sqrt(3)
+    hmin = min(hmax, hmin)
 
-    def split_loop(loop):
-        oloop = [loop[0]]
-        for x in range(1,len(loop)+1):
-            if x == len(loop):x = 0
-            p1,p2 = oloop[-1],loop[x]
-            el = p1.d(p2)
-            m = 1
-            while el/m > hmin:m += 1
-            divpts = p1.pline(p2,m-1)
-            if divpts:
-                for dvp in divpts:
-                    oloop.append(dvp)
-            if not x == 0:oloop.append(p2)
-        return oloop
+    print('split nondelauney edges chew1 with hmin: ', hmin, min(els), max(els))
+    print(len(els), len(eb), len(ibs))
 
-    neb = split_loop(list(eb))
-    nibs = [split_loop(list(ib)) for ib in ibs]
-    return hmin,tuple(neb),tuple(tuple(nib) for nib in nibs)
+    neb = tuple(split_loop(hmin, list(eb)))
+    nibs = tuple([tuple(split_loop(hmin, list(ib))) for ib in ibs])
+    return hmin, neb, nibs

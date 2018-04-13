@@ -184,22 +184,26 @@ class wiregraph(object):
     def uloops(self,d = 'cw'):
         loops = {}
         unfn = [x for x in range(self.ecnt)]
-        for vx in range(self.vcnt):
-            v = self.vs[vx]
-            if v is None:continue
+        for vx, v in self:
             for ox in self.orings[vx]:
                 r = self.rings[vx][ox]
                 rx,rkws = r
                 if rx in unfn:
                     #lp = self.loop(vx,ox,'ccw')
                     lp = self.loop(vx,ox,d)
-                    lpk = tuple(set(lp))
+                    #lpk = tuple(set(lp))
+                    lpk = set(lp)
                     #if not lpk in loops:
                     if newloopkey(lpk,loops):
-                        loops[lpk] = lp
+                        loops[tuple(lpk)] = lp
                     unfn.remove(rx)
                 else:continue
             if not unfn:break
+
+        for key in loops:
+            if 149 in key and not 150 in key and 121 in key:
+                print('key', key)
+
         lps = [loops[lpk] for lpk in loops]
         return lps
 
@@ -218,16 +222,14 @@ class wiregraph(object):
         for vx in range(self.vcnt):
             v = self.vs[vx]
             if not v is None:
-                yield v
+                yield vx, v
 
     ###################################
 
 def newloopkey(key,loops):
-    keylen = len(key)
     for loop in loops:
-        looplen = len(loop)
-        if loop == key:return False
-        elif set(loop) == set(key):return False
+        if set(loop) == set(key):
+            return False
     return True
 
 def seqmatch(l = list(range(10))+list(range(5))):

@@ -10,11 +10,17 @@ import pdb
 # planar wire graph class (topological + xy-projected geometry)
 class planargraph(wiregraph):
 
+    def __getitem__(self, j):
+        if j < self.vcnt:
+            return self.vs[j][1]['p']
+        else:
+            raise IndexError('only %d vertices in planargraph!' % self.vcnt)
+
     @classmethod
     def segstopg(cls, segs, epsilon=0.1):
         pg = cls()
         for e1, e2 in segs:
-            v1, v2 = pg.fp(e1, epsilon), pg.fp(e2, epsilon)
+            v1, v2 = pg.fp(e1, epsilon, ie=False), pg.fp(e2, epsilon, ie=False)
             if v1 == v2:
                 #print('seg is smaller than epsilon')
                 pass
@@ -23,6 +29,71 @@ class planargraph(wiregraph):
             elif not v1 in pg.rings[v2]:
                 pg.fe(v2, v1)
         return pg
+
+    def pgtosegs(self):
+        es = set()
+        for j, x in self:
+            for o in self.rings[j]:
+                if j < o:
+                    es.add((j, o))
+        segs = [(self[x], self[y]) for x, y in es]
+        es = list(es)
+        return segs, es
+
+    def aggregate(self, e=1.0, a=0.98):
+        found = True
+        while found:
+            found = False
+            for j, v in self:
+                ring = self.rings[j]
+                os = set(ring.keys())
+                if len(os) > 0 and len(os) < 3:
+                    vp = self[j]
+                    ops = [self[o] for o in os]
+                    es = [vp.tov(op) for op in ops]
+                    ods = [t.mag() for t in es]
+                    if any(o < e for o in ods):
+                        if len(os) == 1:
+                            self.rv(j)
+                            found = True
+                            break
+                        elif len(os) == 2:
+                            e1, e2 = es
+                            alpha = abs(e1.ang(e2))
+                            if alpha > a * numpy.pi:
+                                self.rv(j)
+                                self.ae(*os)
+                                found = True
+                                break
+
+    @staticmethod
+    def aggregate_polygon(polygon, e, a):
+        pg = planargraph()
+        u = pg.av(p=polygon[-1])
+        for j in range(len(polygon)):
+            v = pg.av(p=polygon[j])
+            uv = pg.ae(u, v)
+            u = v
+
+        xs, ys, zs = zip(*polygon)
+
+        ax = plot_axes_xy((max(xs) - min(xs)), (sum(xs) / len(xs), sum(ys) / len(ys)))
+        plot_polygon_xy(polygon, ax, col='b', lw=3)
+        pg.plotxy(ax)
+
+        plt.show()
+
+        pg.aggregate(e, a)
+        py = pg.polygon(0)[0]
+
+        ax = plot_axes_xy((max(xs) - min(xs)), (sum(xs) / len(xs), sum(ys) / len(ys)))
+        plot_polygon_xy(polygon, ax, col='b', lw=4)
+        plot_polygon_xy(py, ax, col='y', lw=2)
+        pg.plotxy(ax)
+
+        plt.show()
+
+        return py
 
     def fitbxy(self, b, w=1.0):
         ps = [v[1]['p'] for v in self.vs if v is not None]
@@ -91,50 +162,49 @@ class planargraph(wiregraph):
 
         '''
         for u in loops:
-            ax = plot_axes_xy(700)
+            ax = plot_axes_xy(50)
             for v in loops:
-                v = [self.vs[x][1]['p'] for x in v]
+                v = [self[x] for x in v]
                 ax = plot_polygon_xy(v, ax, lw=2, col='b')
-            u = [self.vs[x][1]['p'] for x in u]
+            u = [self[x] for x in u]
             ax = plot_polygon_xy(u, ax, lw=4, col='g')
             plt.show()
         '''
 
+        print('lp cnt', len(loops))
         for lp in loops:
             seam = []
             seams.append(seam)
-
-            # IF PG IS NONPLANAR, PY SHOULD BE NONPLANAR
-            # NONPLANAR PG CAUSES ISSUES IN THIS COMPUTATION CURRENTLY
-            # MODIFY TO USE XY PROJECTION OF PG INSTEAD!!!
-
             for lpx in range(len(lp)):
-                lp0,lp1,lp2 = lp[lpx-2],lp[lpx-1],lp[lpx]
-                lpp0 = self.vs[lp0][1]['p']
-                lpp1 = self.vs[lp1][1]['p']
-                lpp2 = self.vs[lp2][1]['p']
-                lptn1,lptn2 = lpp0.tov(lpp1).nrm(),lpp1.tov(lpp2).nrm()
-                lpnm1,lpnm2 = z.crs(lptn1).uscl(r),z.crs(lptn2).uscl(r)
+                lp0, lp1, lp2 = lp[lpx-2], lp[lpx-1], lp[lpx]
+                lpp0, lpp1, lpp2 = self[lp0], self[lp1], self[lp2]
+                lptn1, lptn2 = lpp0.tov(lpp1).nrm(), lpp1.tov(lpp2).nrm()
+                lpnm1, lpnm2 = z.crs(lptn1).uscl(r), z.crs(lptn2).uscl(r)
                 if lp0 == lp2:
                     stemoffset = lptn1.cp().uscl(r)
                     seam.append(lpp1.cp().trn(lpnm1+stemoffset))
                     seam.append(lpp1.cp().trn(lpnm2+stemoffset))
                 else:
-                    if lpnm1.isnear(lpnm2):cnm = lpnm1
+                    if lpnm1.isnear(lpnm2):
+                        cnm = lpnm1
                     else:
                         s1 = lpp0.cp().trn(lpnm1).trn(lptn1.cp().uscl(-1000))
                         s2 = lpp1.cp().trn(lpnm1).trn(lptn1.cp().uscl( 1000))
                         s3 = lpp1.cp().trn(lpnm2).trn(lptn2.cp().uscl(-1000))
                         s4 = lpp2.cp().trn(lpnm2).trn(lptn2.cp().uscl( 1000))
-                        ip = sintsxyp(s1,s2,s3,s4,col = 0)
+                        ip = sintsxyp(s1, s2, s3, s4, col=0)
                         cnm = lpp1.tov(ip)
                     seam.append(lpp1.cp().trn(cnm))
-            if not bccw(seam):seam.reverse()
-            if eseam is None:eseam = 0
+            if not bccw(seam):
+                seam.reverse()
+            if eseam is None:
+                print('eseam was none; asserted 0')
+                eseam = 0
             else:
                 try:
-                    if binbxy(seams[eseam],seam):
-                        eseam = len(seams)-1
+                    if binbxy(seams[eseam], seam):
+                        eseam = len(seams) - 1
+                        print('eseam rechosen as latest loop;', eseam)
                 except:
 
                     print('crap', len(loops))
@@ -157,16 +227,20 @@ class planargraph(wiregraph):
                 #print(seam[0] == seams[eseam][0])
                 #print(seam[-1], seam[0], seam[1])
                 #print(seams[eseam][-1], seams[eseam][0], seams[eseam][1])
+
         if eseam is None:
             print('no eseam!')
             self.plotxy(l=700)
             plt.show()
             return None
-        if findeseam:return eseam,seams,loops
-        py = [seams.pop(eseam),seams]
-        return py
 
-    def edge_segments(self):
+        if findeseam:
+            return eseam, seams, loops
+        else:
+            py = [seams.pop(eseam),seams]
+            return py
+
+    def _____edge_segments(self):
         edges = []
         for vx in range(self.vcnt):
             v = self.vs[vx]
@@ -266,21 +340,29 @@ class planargraph(wiregraph):
     # find a vertex within epsilon of p or create one
     # ie : 0 - split edges if sufficiently close to an edge
     def fp(self,p,epsilon,ie = 1,**vkws):
-        for j in range(self.vcnt):
-            if self.vs[j][1]['p'].d(p) < epsilon:
-                return j
-        nv = self.av(p = p.cp(),**vkws)
-        if ie:
-            for u,v in self.elook:
-                up,vp = self.vs[u][1]['p'],self.vs[v][1]['p']
-                ped = p.dexy(up,vp)
-                if ped > -1 and ped < epsilon:
-                    self.se(u,v,nv)
-                    break
+        for j, v in self:
+            if self[j].d(p) < epsilon:
+                nv = j
+                break
+        else:
+            nv = self.av(p = p.cp(),**vkws)
+        if ie and nv == self.vcnt - 1:
+            found = True
+            while found:
+                found = False
+                for u, v in self.elook:
+                    up,vp = self[u], self[v]
+                    ped = p.dexy(up, vp)
+                    if ped > -1 and ped < epsilon:
+                        self.se(u, v, nv)
+                        found = True
+                        break
         return nv
 
     # find an edge between two vertices or create one 
     def fe(self,u,v,**ekws):
+        if u == v:
+            print('attempted fe with u == v??')
         if   (u,v) in self.elook:return self.elook[(u,v)]
         elif (v,u) in self.elook:return self.elook[(v,u)]
         return self.ae(u,v,**ekws)
@@ -318,20 +400,22 @@ class planargraph(wiregraph):
         return self
 
     # plot the vertices and edges of the graph
-    def plotxy(self,ax = None,l = 10,s = 1.0,number = True, col='g', **kws):
+    def plotxy(self,ax = None,l = 10,s = 1.0,number = True, col='g', marker=None, **kws):
         import dilap.core.plotting as dtl
         if ax is None:ax = dtl.plot_axes_xy(l,**kws)
         for j in range(self.vcnt):
             i = self.vs[j]
             if i is None:continue
             ip = i[1]['p']
-            if number:
+            if number and (len(tuple(self.rings[j].keys())) > 2):
                 jstr = str(j)+str([v for v in self.rings[j]])
                 jstrccw = str([self.ccw(j,v) for v in self.rings[j]])
                 jstrcw = str([self.cw(j,v) for v in self.rings[j]])
                 jstr += '\n'+jstrccw+'\n'+jstrcw
                 ax = dtl.plot_point_xy_annotate(ip,ax,jstr)
-            ax = dtl.plot_point_xy(ip,ax,col = 'r')
+                ax = dtl.plot_point_xy(ip,ax,col = 'r')
+            if marker:
+                ax = dtl.plot_point_xy(ip, ax, col='r', mk=marker)
         for k in self.rings:
             vr = self.rings[k]
             for ov in vr:
@@ -339,7 +423,7 @@ class planargraph(wiregraph):
                 re = (self.vs[k][1]['p'].cp(),self.vs[ov][1]['p'].cp())
                 rn = vec3(0,0,1).crs(re[0].tov(re[1])).nrm().uscl(s)
                 re = (re[0].trn(rn),re[1].trn(rn))
-                ax = dtl.plot_edges_xy(re, ax, lw=2, col=col)
+                ax = dtl.plot_edges_xy(re, ax, lw=4, col=col)
         return ax
 
     # plot the vertices and edges of the graph

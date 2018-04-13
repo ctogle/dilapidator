@@ -13,6 +13,26 @@ import math
 import pdb
 
 
+def land_model(b, hs=[], z=(lambda x, y: p.z)):
+    m = model()
+    tm = m.agfxmesh()
+    ngvs = m.asurf((b, hs), tm, fm='grass2',
+        ref=True, hmin=4, hmax=8, minhmin=0.1,
+        zfunc=z, rv=pym.bnrm(b).z < 0, uvstacked=None, autoconnect=True)
+    lockf = lambda p: p.onpxy((b, hs))
+    m.subdiv(tm, False, True, lockf)
+    m.uvs(tm)
+    return m
+
+def ocean_model(b, hs=[], z=10):
+    m = model()
+    tm = m.agfxmesh()
+    ngvs = m.asurf((b, hs), tm, fm='generic',
+                   ref=False, hmin=100, zfunc=(lambda x, y: z),
+                   rv=pym.bnrm(b).z < 0)
+    return m
+
+
 def terraininput(b,e):
 
 

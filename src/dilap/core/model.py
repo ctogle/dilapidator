@@ -1,7 +1,8 @@
 from dilap.core.plotting import *
 from dilap.topology import *
 from dilap.geometry import *
-import dilap.geometry.triangulate as dtg
+#import dilap.geometry.triangulate as dtg
+from dilap.geometry.triangulation import triangulation
 import dilap.geometry.polymath as pym
 import dilap.geometry.tools as gtl
 import functools
@@ -404,6 +405,19 @@ class model:
         return u
 
 
+    def atrisurf(self, triangles, tm=None, fm='generic'):
+        tm = self.agfxmesh() if tm is None else tm
+        u = None
+        for x, y, z in triangles:
+            n = x.tov(y).crs(x.tov(z)).nrm()
+            x = tm.avert(*self.avert(x, n, u))
+            y = tm.avert(*self.avert(y, n, u))
+            z = tm.avert(*self.avert(z, n, u))
+            tm.aface(x, y, z, fm=fm)
+        self.uvs(tm)
+        return self
+
+
     # add a triangulated surface to a trimesh
     def asurf(self,poly,tm = None,fm = 'generic',rv = False,
             ref = False,smo = False,hmin = 1,hmax = 16,minhmin = 0.1,
@@ -416,7 +430,7 @@ class model:
         pset = pointset()
         def av(p,n):
             if autoconnect:
-                px = pset.fp(p)
+                px = pset.fp(p, e)
                 if px > -1:v = ngvs[px]
                 else:
                     pset.ap(p)
@@ -450,9 +464,13 @@ class model:
                 ngvs.append(v1);ngvs.append(v2);ngvs.append(v3);ngvs.append(v4)
 
         else:
-            eb,ibs = dtg.split_nondelauney_edges(eb,ibs)
+
+
+
+            '''
+            eb,ibs = dtg.split_nondelauney_edges(eb, ibs, e)
             if ref:
-                newhmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb,ibs,hmax)
+                newhmin,eb,ibs = dtg.split_nondelauney_edges_chew1(eb, ibs, hmax)
                 if newhmin < hmin:
                     hmin = newhmin
                     print('newhmin < hmin ...',newhmin)
@@ -468,10 +486,21 @@ class model:
                     plt.show()
 
                     return []
+            '''
 
             print('start triangulation')
-            tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo,e)
+            #tris,bnds = dtg.triangulate(eb,ibs,hmin,ref,smo,e)
+
+            #, 0.001, 8, 1000
+            t = triangulation(poly, 0.001, 8, 1000)
+            tris = t.simplices()
+            #m = model().atrisurf(t.simplices())
+
             print('end triangulation')
+
+
+
+
             if not tris:
                 print('asurf: empty surface')
             for tri in tris:

@@ -38,8 +38,21 @@ cdef class vec3:
     def __is_equal(self,o):return self.isnear(o)
     # could use <,> for lexicographic ordering?
     def __richcmp__(x,y,op):
-        if op == 2:return x.__is_equal(y)
+        if op == 0:return x.__lt(y)
+        elif op == 2:return x.__is_equal(y)
         else:assert False
+
+    def __lt(self, o):
+        if self.x == o.x:
+            if self.y == o.y:
+                if self.z == o.z:
+                    return False
+                else:
+                    return self.z < o.z
+            else:
+                return self.y < o.y
+        else:
+            return self.x < o.x
 
     ###########################################################################
 
@@ -135,9 +148,13 @@ cdef class vec3:
             return 0.0
         cdef float sod = (self.x*o.x + self.y*o.y + self.z*o.z)/(sm*om)
         cdef float a
-        if   gtl.isnear_c(sod, 1.0,gtl.epsilon_c):a = 0.0
-        elif gtl.isnear_c(sod,-1.0,gtl.epsilon_c):a = numpy.pi
-        else:a = numpy.arccos(sod)
+
+        sod = max(-1.0, min(1.0, sod))
+        a = numpy.arccos(sod)
+
+        #if   gtl.isnear_c(sod, 1.0,gtl.epsilon_c / 1000.0):a = 0.0
+        #elif gtl.isnear_c(sod,-1.0,gtl.epsilon_c / 1000.0):a = numpy.pi
+        #else:a = numpy.arccos(sod)
         return a
 
 
@@ -278,6 +295,14 @@ cdef class vec3:
         return 1
 
 
+    cpdef tuple nearest(self, ps):
+        return self.nearest_c(ps)
+    cdef tuple nearest_c(self, list ps):
+        cdef list ds = [self.d(p) for p in ps]
+        cdef int which = ds.index(min(ds))
+        return which, ds[which]
+
+
     # is self within the edges between any two adjacent points in ps
     cpdef bint inbxy(self,ps):
         '''determine if self is within the edges between any two adjacent points in ps'''
@@ -333,9 +358,12 @@ cdef class vec3:
             '''#
         else:
             u,v = self.baryxy_c(a,b,c)
-            if u > 0 or abs(u) < gtl.epsilon_c:
-                if v > 0 or abs(v) < gtl.epsilon_c:
-                    if 1-u-v > 0 or abs(1-u-v) < gtl.epsilon_c:
+            #if u > 0 or abs(u) < gtl.epsilon_c:
+            #    if v > 0 or abs(v) < gtl.epsilon_c:
+            #        if 1-u-v > 0 or abs(1-u-v) < gtl.epsilon_c:
+            if u > 0 or abs(u) < e:
+                if v > 0 or abs(v) < e:
+                    if 1-u-v > 0 or abs(1-u-v) < e:
                         return 1
             return 0
 
@@ -345,18 +373,29 @@ cdef class vec3:
         '''is self on an edge between any two points'''
         return self.onsxy_c(s1,s2,ie)
     # is self on an edge between any two points
-    cdef bint onsxy_c(self,vec3 s1,vec3 s2,bint ie = 0):
-        if not gtl.orient2d_c(self,s1,s2) == 0:return 0
-        if self.isnear(s1) or self.isnear(s2):
-            if ie:return 1
-            else:return 0
-        #if (s1.x != s2.x): # S is not  vertical
-        if not gtl.isnear_c(s1.x,s2.x,gtl.epsilon_c): # S is not  vertical
-            if (s1.x <= self.x and self.x <= s2.x):return 1
-            if (s1.x >= self.x and self.x >= s2.x):return 1
-        else: # S is vertical, so test y  coordinate
-            if (s1.y <= self.y and self.y <= s2.y):return 1
-            if (s1.y >= self.y and self.y >= s2.y):return 1
+    cdef bint onsxy_c(self, vec3 s1, vec3 s2, bint ie = 0):
+        #e = gtl.epsilon_c
+        e = 0.01
+        if gtl.orient2d_c(self, s1, s2) == 0:
+            tn = s1.tov(s2)
+            selfprj, s1prj, s2prj = self.dot(tn), s1.dot(tn), s2.dot(tn)
+            if s2prj < s1prj:
+                s1prj, s2prj = s2prj, s1prj
+            selfprj = gtl.near_c(selfprj, s1prj, e)
+            selfprj = gtl.near_c(selfprj, s2prj, e)
+            if s1prj <= selfprj and selfprj <= s2prj:
+                #if self.isnear(s1) or self.isnear(s2):
+                if (selfprj - s1prj < e) or (s2prj - selfprj < e):
+                    return (1 if ie else 0)
+
+                #if (s1.x != s2.x): # S is not  vertical
+                #if not gtl.isnear_c(s1.x,s2.x,gtl.epsilon_c): # S is not  vertical
+                #    if (s1.x <= self.x and self.x <= s2.x):return 1
+                #    if (s1.x >= self.x and self.x >= s2.x):return 1
+                #else: # S is vertical, so test y  coordinate
+                #    if (s1.y <= self.y and self.y <= s2.y):return 1
+                #    if (s1.y >= self.y and self.y >= s2.y):return 1
+
         return 0
 
 
@@ -365,15 +404,14 @@ cdef class vec3:
         '''determine if self on an edge between any two adjacent points in ps'''
         return self.onbxy_c(ps)
     # is self on an edge between any two adjacent points in ps
-    cdef bint onbxy_c(self,ps):
+    cdef bint onbxy_c(self, ps):
         cdef int px
         cdef int pcnt = len(ps)
-        cdef vec3 p1,p2
+        cdef vec3 u, v
         for px in range(pcnt):
-            p1,p2 = ps[px-1],ps[px]
-            if p1.isnear_c(self):return 1
-            if self.onsxy_c(p1,p2,1):return 1
-            #if gtl.inseg_xy_c(self,p1,p2):return 1
+            u, v = ps[px-1], ps[px]
+            if self.onsxy_c(u, v, 1):
+                return 1
         return 0
 
 
@@ -383,10 +421,12 @@ cdef class vec3:
         return self.onpxy_c(py)
     # is self on the boundary or any holes of a polygon
     cdef bint onpxy_c(self,py):
-        eb,ibs = py
-        if self.onbxy(eb):return 1
+        eb, ibs = py
+        if self.onbxy(eb):
+            return 1
         for ib in ibs:
-            if self.onbxy(ib):return 1
+            if self.onbxy(ib):
+                return 1
         return 0
 
     # return the squared magintude of self
@@ -590,8 +630,8 @@ cdef class vec3:
         self.ptime_c([self,p2,p3,o],tim,alpha)
 
         cox = self.catmull_rom_c(cox,tim,n)[1:-1]
-        coy = self.catmull_rom_c(coy,tim,n)[1:-1] 
-        coz = self.catmull_rom_c(coz,tim,n)[1:-1] 
+        coy = self.catmull_rom_c(coy,tim,n)[1:-1]
+        coz = self.catmull_rom_c(coz,tim,n)[1:-1]
 
         cdef list spline = [vec3(*i) for i in zip(cox,coy,coz)]
         return spline

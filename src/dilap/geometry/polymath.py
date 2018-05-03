@@ -350,6 +350,21 @@ def bsegsxy(b, s1, s2, epsilon=0.1):
 
 # determine if a boundary polygon intersects itself
 def bintselfxy(b):
+    c = len(b)
+
+    for i in range(c):
+        u, v = b[i - 1], b[i]
+        for j in range(c):
+
+            if (j == 0 and i == c - 1) or (i == 0 and j == c - 1) or abs(i - j) < 2:
+                continue
+
+            p, q = b[j - 1], b[j]
+            if sintsxy(u, v, p, q, True, True, True):
+                print('(i, j), (u, v), (p, q)', (i, j), (u, v), (p, q))
+                return 1
+
+    '''
     for b1x in range(len(b)):
         b1p1,b1p2 = b[b1x-1],b[b1x]
         for b2x in range(len(b)):
@@ -357,7 +372,49 @@ def bintselfxy(b):
             b2p1,b2p2 = b[b2x-1],b[b2x]
             if sintsxy(b1p1,b1p2,b2p1,b2p2,True,True,True):
                 return 1
+    '''
+
     return 0
+
+
+z = vec3(0, 0, 1)
+def circumscribe_tri(u, v, w, e, l=1000):
+    uv = u.tov(v)
+    uvnm = z.crs(uv).nrm()
+    uvm = u.mid(v)
+    vw = v.tov(w)
+    vwnm = z.crs(vw).nrm()
+    vwm = v.mid(w)
+
+    a, b = uvm.cp().trn(uvnm.cp().uscl(-l)), uvm.cp().trn(uvnm.cp().uscl(l))
+    c, d = vwm.cp().trn(vwnm.cp().uscl(-l)), vwm.cp().trn(vwnm.cp().uscl(l))
+    i = sintsxyp(a, b, c, d)
+    r = i.d(u)
+
+    if not all((isnear(i.d(u), r, e), isnear(i.d(v), r, e), isnear(i.d(w), r, e))):
+        print('circumscribe_tri!', i, r, i.d(u), i.d(v), i.d(w))
+        ax = plot_axes_xy(1.2 * r, (i.x, i.y))
+        plot_polygon_xy((u, v, w), ax, col='m', lw=6)
+        plot_circle_xy(i, r, ax, center=True, col='k', lw=4)
+        plt.show()
+
+    return i, r
+
+
+def tinbxy(u, v, w, b):
+    '''
+    determine if the triangle uvw is contained by simple polygon b
+    '''
+    if not (u.inbxy(b) or u.onbxy(b)):
+        return 0
+    elif not (v.inbxy(b) or v.onbxy(b)):
+        return 0
+    elif not (w.inbxy(b) or w.onbxy(b)):
+        return 0
+    if vec3(0,0,0).com((u, v, w)).inbxy(b):
+        return 1
+    else:
+        return 0
 
 
 # is a boundary polygon contained within another polygon
@@ -490,7 +547,7 @@ def ebuxy_special(bs,epsilon = 5,cellperimlength = 2):
                 clear = False
                 break
             elif sintsxy(u1,u2,e1,e2,ie = False,ieb = False):
-                plt.show()
+                #plt.show()
                 '''#
                 ax = dtl.plot_axes_xy(200)
                 for u in unfin:
@@ -620,6 +677,7 @@ def ebdxy(b1, b2, epsilon=0.1):
     # need to throw away duplicates??
     #dfs = [l for l in dfs]
 
+    '''#
     ax = plot_axes(100)
     ax = plot_polygon(b1,ax,lw = 2,col = 'b')
     ax = plot_polygon(b2,ax,lw = 2,col = 'g')
@@ -627,7 +685,6 @@ def ebdxy(b1, b2, epsilon=0.1):
         vec3(0,0,10*x+2).trnps(dfs[x])
         ax = plot_polygon(dfs[x],ax,col = 'r')
     plt.show()
-    '''#
     '''#
     return dfs
 
@@ -779,7 +836,7 @@ def bvalidxy(b,epsilon = 0.1):
 
 
 # fix an invalid polygon such that it bvalidxy(b) returns True
-def cleanbxy(b,epsilon = 0.1):
+def ____cleanbxy(b,epsilon = 0.1):
     r = bvalidxy(b)
     while not r > 0:
         if   r == 0:raise ValueError
@@ -1051,7 +1108,11 @@ def bintself(b,e1,e2):
                 ips.append(ip[1])
     return ips
 
-def pinchb2(b,epsilon = 5):
+def longestb(pys):
+    lengths = [sum(l[j - 1].d(l[j]) for j in range(len(l))) for l in pys]
+    return pys[lengths.index(max(lengths))]
+
+def ____pinchb2(b,epsilon = 5):
     # segments plus intersections -> pg
     # of the interior loops, select the biggest
     segs = [(b[x-1],b[x]) for x in range(len(b))]
@@ -1098,7 +1159,7 @@ def pinchb2(b,epsilon = 5):
 
 # remove additional loops created by intersections 
 # in an improper boundary polygon
-def pinchb(b,epsilon = 5):
+def ___pinchb(b,epsilon = 5):
     #THIS NEEDS OPTIMIZATION
     #THIS NEEDS OPTIMIZATION
     #THIS NEEDS OPTIMIZATION
@@ -1389,7 +1450,7 @@ def smoothxy(b,w = 0.1,epsilon = 0.1,constraint = 0):
         else:db.append(b1.tov(ecom).uscl(w))
     db.append(db.pop(0))
     sb = [p.cp().trn(ds) for p,ds in zip(b,db)]
-    if len(sb) > 3:sb = pinchb(sb,epsilon)[0]
+    #if len(sb) > 3:sb = pinchb(sb,epsilon)[0]
     return sb
 
 

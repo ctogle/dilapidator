@@ -6,6 +6,10 @@ from dilap.geometry import *
 import dilap.geometry.polymath as pym
 import dilap.geometry.planarmesh as pme
 import dilap.geometry.tools as gtl
+
+from dilap.core.scenegraph import scenegraph
+from dilap.worldly.polygen import boundaries
+
 from dilap.core import *
 import numpy
 import random
@@ -17,8 +21,8 @@ def land_model(b, hs=[], z=(lambda x, y: p.z)):
     m = model()
     tm = m.agfxmesh()
     ngvs = m.asurf((b, hs), tm, fm='grass2',
-        ref=True, hmin=4, hmax=8, minhmin=0.1,
-        zfunc=z, rv=pym.bnrm(b).z < 0, uvstacked=None, autoconnect=True)
+        ref=True, hmin=8, hmax=8, minhmin=0.1,
+        zfunc=z, rv=pym.bnrm(b).z < 0, uvstacked=None, autoconnect=True, e=0.001)
     lockf = lambda p: p.onpxy((b, hs))
     m.subdiv(tm, False, True, lockf)
     m.uvs(tm)
@@ -31,6 +35,18 @@ def ocean_model(b, hs=[], z=10):
                    ref=False, hmin=100, zfunc=(lambda x, y: z),
                    rv=pym.bnrm(b).z < 0)
     return m
+
+def land_and_sea(t_b, fp, z_f, sealevel=1, sg=None):
+    lands = [land_model(t_b, [fp[0]], z_f)]
+    lands.extend([land_model(ifp, [], z_f) for ifp in fp[1]])
+    waters = [ocean_model(t_b, [], sealevel)]
+    sg = sg if sg else scenegraph()
+    sgv = sg.avert(None, None, None, models=lands, parent=sg.root)
+    sgv = sg.avert(None, None, None, models=waters, parent=sg.root)
+    return sg
+
+
+
 
 
 def terraininput(b,e):

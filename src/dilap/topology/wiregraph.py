@@ -9,12 +9,21 @@ connecting them it also provides a means for ordering edges
 
 class wiregraph(object):
 
+    def __getitem__(self, j):
+        if j < self.vcnt:
+            return self.vs[j][1]['p']
+        else:
+            raise IndexError('only %d vertices in planargraph!' % self.vcnt)
+
     ###################################
     ### fundamental topological methods
     ###################################
 
     def orphan(self, vx):
         return len(self.orings[vx]) == 0 if vx in self.orings else False
+
+    def edgekeys(self):
+        return tuple((u, v) for u, v in self.elook.keys() if u < v)
 
     # add a new intersection to the graph
     def av(self,**vkws):
@@ -54,39 +63,10 @@ class wiregraph(object):
         self.elook[(v,u)] = m
         if not v in ur:ur[v] = r
         if not u in vr:vr[u] = r
-
         urcnt = len(uor)
         uor.append(v)
-        '''#
-        if urcnt < 2:uor.append(v)
-        else:
-            w = uor[0]
-            nea = self.ea(u,w,v)
-            f = False
-            for eax in range(1,urcnt):
-                if nea < self.ea(u,w,uor[eax]):
-                    uor.insert(eax,v)
-                    f = True
-                    break
-            if not f:uor.append(v)
-        '''#
-
         vrcnt = len(vor)
         vor.append(u)
-        '''#
-        if vrcnt < 2:vor.append(u)
-        else:
-            w = vor[0]
-            nea = self.ea(v,w,u)
-            f = False
-            for eax in range(1,vrcnt):
-                if nea < vor[eax]:
-                    vor.insert(eax,u)
-                    f = True
-                    break
-            if not f:vor.append(u)
-        '''#
-
         self.ecnt += 1
         return m
 
@@ -120,6 +100,18 @@ class wiregraph(object):
         rwv = self.ae(w,v,**ruv[1])
         return ruw,rwv
 
+    # dissolve the edge u, v
+    def de(self, u, v, e=0.01):
+        os = list(self.rings[u].keys())
+        for o in os:
+            if o == v:
+                self.re(u, o)
+            else:
+                self.ae(v, o)
+        self[v].trn(self[v].tov(self[u]).uscl(0.5))
+        self.rv(u)
+        return v
+
     ###################################
     ### edge ordering mechanisms
     ###################################
@@ -130,7 +122,6 @@ class wiregraph(object):
         return 0
 
     def cw(self,u,v):
-        #uor = self.orings[u]
         vor = self.orings[v]
         uori = vor.index(u)
         ror = vor[uori+1:]+vor[:uori]
@@ -139,7 +130,6 @@ class wiregraph(object):
         return tip
 
     def ccw(self,u,v):
-        #uor = self.orings[u]
         vor = self.orings[v]
         uori = vor.index(u)
         ror = vor[uori+1:]+vor[:uori]
@@ -151,7 +141,9 @@ class wiregraph(object):
     #   the first edge will be from u to v, turns of direction 
     #   d (clockwise or counterclockwise) form the loop
     def loop(self,u,v,d = 'cw',usematch = False):
-        if not v in self.rings[u]:raise ValueError
+        if not v in self.rings[u]:
+            raise ValueError
+
         lp = [u,v]
 
         c = 0
@@ -189,21 +181,13 @@ class wiregraph(object):
                 r = self.rings[vx][ox]
                 rx,rkws = r
                 if rx in unfn:
-                    #lp = self.loop(vx,ox,'ccw')
                     lp = self.loop(vx,ox,d)
-                    #lpk = tuple(set(lp))
                     lpk = set(lp)
-                    #if not lpk in loops:
                     if newloopkey(lpk,loops):
                         loops[tuple(lpk)] = lp
                     unfn.remove(rx)
                 else:continue
             if not unfn:break
-
-        for key in loops:
-            if 149 in key and not 150 in key and 121 in key:
-                print('key', key)
-
         lps = [loops[lpk] for lpk in loops]
         return lps
 

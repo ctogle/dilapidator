@@ -12,6 +12,7 @@ import opensimplex
 class transform:
 
     def __init__(self, b, zmin=0, zmax=10):
+        self.b = b
         self.xmin, self.xmax = vec3(1, 0, 0).prjps(b)
         self.ymin, self.ymax = vec3(0, 1, 0).prjps(b)
         self.zmin, self.zmax = zmin, zmax
@@ -145,6 +146,8 @@ def perlin(rx, ry):
     img = affine_filter(img, 0, 255)
     return img
 
+# create mask for interior of m (if m, else b)
+# both b and m should be in world space
 def proximal(rx, ry, b, m=None):
     m = m if m else b
     tform = transform(b, 0, 1)
@@ -158,9 +161,13 @@ def proximal(rx, ry, b, m=None):
             #img[j, i] = numpy.sqrt(max(0, d)) + numpy.exp(0.1 * max(0, d / 2.0))
     return img
 
+def dilate(img, kernal=(8, 8), r=10):
+    return cv2.dilate(img, kernal, r)
+
 def pixel_polygon(mask):
     pixels = mask.astype(numpy.uint8) * 255
-    pixels = cv2.dilate(pixels, (8, 8), 10)
+    #pixels = cv2.dilate(pixels, (8, 8), 10)
+    pixels = dilate(pixels, (8, 8), 10)
     ret, thresh = cv2.threshold(pixels, 127, 255, 0)
     im2, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if contours:

@@ -28,6 +28,7 @@ cdef quat q_to_xy_c(vec3 v)
 cdef vec3 nrm_c(vec3 c1,vec3 c2,vec3 c3)
 
 
+cpdef float incircle(vec3 a,vec3 b,vec3 c,vec3 d)
 
 
 

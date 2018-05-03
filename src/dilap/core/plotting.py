@@ -130,13 +130,13 @@ def plot_polygon_full_xy(poly,ax = None,center = False,
         ax = plot_axes_xy()
     ebnd,ibnds = poly
     if col == 'rainbow':
-        ecol = 'k'
+        ecol = 'r'
         icols = plt.cm.jet(numpy.linspace(0, 1, len(ibnds)))
     else:
         ecol, icols = col, [col] * len(ibnds)
-    plot_polygon_xy(list(ebnd),ax,center = True,lw = lw,ls = ls,col = ecol,mk = mk)
+    plot_polygon_xy(list(ebnd), ax, center=True, lw=(lw + 2), ls=ls, col=ecol, mk=mk)
     for ib, icol in zip(ibnds, icols):
-        plot_polygon_xy(list(ib),ax,center = True,lw = lw,ls = ls,col = icol,mk = mk)
+        plot_polygon_xy(list(ib), ax, center=True, lw=lw, ls=ls, col=icol, mk=mk)
     return ax
 
 
@@ -168,7 +168,7 @@ def plot_line(l1,l2,r = 25,ax = None,center = False,lw = 1.0,col = None):
 
 def plot_circle_xy(c,r,ax = None,center = False,lw = 1.0,col = None):
     circ = c.pring(r,32)
-    ax = plot_polygon_xy(circ,ax,center,lw,col)
+    ax = plot_polygon_xy(circ, ax, center=center, lw=lw, ls='--', col=col)
     return ax
 
 

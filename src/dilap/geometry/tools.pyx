@@ -32,23 +32,21 @@ cdef float maxfloat_c = maxfloat
 # else return False
 cdef bint isnear_c(float a,float b,float c):
     cdef float d = a-b
-    d *= d
-    if d < c:return 1
-    else:return 0
+    return 1 if (d * d) < c else 0
 
 # if a is within c of b, return b
 # else return a
 cdef float near_c(float a,float b,float c):
-    cdef d = a-b
-    d *= d
-    if d < c:return b
-    else:return a
+    cdef float d = a-b
+    return b if (d * d) < c else a
 
 # convert an angle from degrees to radians
-cdef float rad_c(float deg):return PI*deg/180.0
+cdef float rad_c(float deg):
+    return PI*deg/180.0
 
 # convert an angle from radians to degrees
-cdef float deg_c(float rad):return 180.0*rad/PI
+cdef float deg_c(float rad):
+    return 180.0*rad/PI
 
 # keep the value val bounded by f and c by flooring
 cdef float clamp_c(float v,float f,float c):
@@ -61,7 +59,7 @@ cdef float wrap_c(float v,float f,float c):
     period = c - f
     while v < f:v += period
     while v > c:v -= period
-    else:return v                                  
+    else:return v
 
 # is a on the interior of (a,b) given an error of d
 cdef bint inrng_c(float a,float b,float c,float d):
@@ -75,9 +73,8 @@ cdef float adist_c(float a1,float a2):
     cdef float da = wrap_c(a1-a2,0.0,twoPI)
     return da if da < PI else twoPI - da
 
-# given 3 points and a plane, determine the center and radius
-# of the circumcenter found in the plane plane by projecting p1,p2,p3
-# in the plane
+# given 3 points in a plane, determine the center and radius
+# of the circumcenter found in the plane by projecting p1,p2,p3
 cdef tuple circumscribe_tri_c(vec3 p1,vec3 p2,vec3 p3):
     cdef vec3 cp1 = p1.cpxy()
     cdef vec3 cp2 = p2.cpxy()
@@ -85,10 +82,21 @@ cdef tuple circumscribe_tri_c(vec3 p1,vec3 p2,vec3 p3):
     cdef vec3 e1 = cp3.tovxy_c(cp1)
     cdef vec3 e2 = cp3.tovxy_c(cp2)
     cdef float th = e1.angxy_c(e2)
-    if isnear_c(numpy.sin(th),0,epsilon_c):
-        print('caught you')
+    if isnear_c(numpy.sin(th),0,epsilon_c / 1000.0):
+        print('circumscribing colinear triangle:', p1, p2, p3)
+        if isnear_c(e1.mag(), 0, epsilon_c) or isnear_c(e2.mag(), 0, epsilon_c):
+            return cp1.mid(cp2), cp1.d(cp2) / 2.0
+        else:
+            return cp1.mid(cp3), cp1.d(cp3) / 2.0
+
+        from dilap.core.plotting import plot_axes_xy, plot_edges_xy, plt
+        ax = plot_axes_xy(10, (p3.x, p3.y))
+        plot_edges_xy((p1, p3, p2), ax, lw=5, col='m')
+        plt.show()
+
+        print('caught you', th)
         #raise ValueError('caught you')
-        return vec3(0,0,0),0
+        return vec3(0,0,-100),0
     cdef float cr = cp1.dxy_c(cp2)/(2*numpy.sin(th))
     cdef vec3 cp = e2.cp_c().uscl_c(e1.mag2_c())-e1.cp_c().uscl_c(e2.mag2_c())
     cdef vec3 fp = p3+cp.crs_c(e1.crs_c(e2)).uscl_c(1.0/(2.0*(e1.crs_c(e2).mag2())))
@@ -99,12 +107,15 @@ cdef tuple circumscribe_tri_c(vec3 p1,vec3 p2,vec3 p3):
 # return 0 if a,b,c are colinear
 # this assumes theyre in the xy plane!!!
 cdef float orient2d_c(vec3 a,vec3 b,vec3 c):
+    cdef float e = epsilon_c
+    #cdef float e = 0.0001
     cdef float m11 = a.x-c.x
     cdef float m12 = a.y-c.y
     cdef float m21 = b.x-c.x
     cdef float m22 = b.y-c.y
     cdef float det = m11*m22-m12*m21
-    return near_c(det,0,epsilon_c)
+    #return near_c(det,0,epsilon_c)
+    return near_c(det,0,e)
 
 # determine if d is inside the circumcircle of the triangle a,b,c
 cdef float incircle_c(vec3 a,vec3 b,vec3 c,vec3 d):
@@ -133,7 +144,7 @@ cdef tuple rot_poly_c(tuple polygon,quat q):
     cdef int ex
     cdef int islen = len(ibnds)
     cdef int ibx
-    cdef int ilen 
+    cdef int ilen
     cdef int ix
     for ex in range(elen):
         ebnd[ex].rot(q)

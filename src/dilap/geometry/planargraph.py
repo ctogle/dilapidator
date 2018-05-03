@@ -1,8 +1,8 @@
 from .tools import isnear, epsilon
 from .vec3 import vec3
-from .polymath import sintsxyp, binbxy, bccw
+from .polymath import sintsxyp, binbxy, bintselfxy, bccw
 from dilap.topology import wiregraph
-from dilap.core.plotting import plot_axes_xy, plot_polygon_xy, plt
+from dilap.core.plotting import plot_axes_xy, plot_polygon_xy, plot_point_xy, plt
 import numpy
 import pdb
 
@@ -10,11 +10,177 @@ import pdb
 # planar wire graph class (topological + xy-projected geometry)
 class planargraph(wiregraph):
 
-    def __getitem__(self, j):
-        if j < self.vcnt:
-            return self.vs[j][1]['p']
-        else:
-            raise IndexError('only %d vertices in planargraph!' % self.vcnt)
+    @staticmethod
+    def orderkey(x, y):
+        return (x, y) if x < y else ((y, x) if y < x else None)
+
+    def check_disconnected(self, x, y):
+        key = self.orderkey(x, y)
+        if key in self.elook:
+            return self.re(x, y)
+
+    def check_connected(self, x, y):
+        key = self.orderkey(x, y)
+        if key and not key in self.elook:
+            return self.fe(x, y)
+
+    def addintersection(self, u, v, p, q, i):
+        self.check_disconnected(u, v)
+        self.check_disconnected(u, i)
+        self.check_disconnected(i, v)
+        self.check_disconnected(p, q)
+        self.check_disconnected(p, i)
+        self.check_disconnected(i, q)
+        self.check_connected(u, i)
+        self.check_connected(i, v)
+        self.check_connected(p, i)
+        self.check_connected(i, q)
+        return self
+
+    def addintersections(self, e=0.001):
+        found = True
+        while found:
+            found = False
+            edges = self.edgekeys()
+            for u, v in edges:
+                for p, q in edges:
+                    if u in (p, q) or v in (p, q):
+                        continue
+                    up, vp, qp, pp = self[u], self[v], self[q], self[p]
+                    ip = sintsxyp(up, vp, qp, pp, e=e)
+                    if isinstance(ip, tuple):
+                        raise ValueError
+                    elif isinstance(ip, vec3):
+                        nv = self.fp(ip, e)
+                        self.addintersection(u, v, q, p, nv)
+                        found = True
+                        break
+
+    def interiorpoints(self):
+        loops = [[self[p] for p in l] for l in self.uloops('ccw')]
+        marked = []
+        for j, v in self:
+            for l in loops:
+                if self[j].inbxy(l):
+                    marked.append(j)
+                    break
+        return marked
+
+    @staticmethod
+    def zipb(py, e=0.01):
+        c = len(py)
+        ss = [(py[j - 1], py[j]) for j in range(c)]
+        pg = planargraph.segstopg(ss, e)
+        pg.addintersections(e)
+        for j in pg.interiorpoints():
+            pg.rv(j)
+        uloops = pg.uloops('ccw')
+        if len(uloops) > 1:
+            loopls = [len(l) for l in uloops]
+            uloops.pop(loopls.index(max(loopls)))
+        ploops = [[pg[v] for v in l] for l in uloops]
+        '''
+        import dilap.core.plotting as plt
+        from dilap.geometry.polymath import longestb
+        ax = plt.plot_axes_xy(60, (-60, 20))
+        for j, l in enumerate(ploops):
+            plt.plot_polygon_xy(l, ax, lw=2, col='b')
+            plt.plot_point_xy_annotate(vec3(0, 0, 0).com(l), ax, 'polygon: %d' % j)
+        best = longestb(ploops)
+        plt.plot_polygon_xy(best, ax, lw=8, col='g')
+        plt.plt.show()
+        '''
+        return ploops
+
+    @staticmethod
+    def aggb(py, r, e=0.01, a=numpy.pi/3.0):
+        g = planargraph.pytopg(py)
+        found = True
+        while found:
+            found = False
+            edgekeys = g.edgekeys()
+            if not edgekeys:
+                return
+            edges, lengths = [], []
+            for u, v in edgekeys:
+                edges.append((u, v))
+                lengths.append(g[u].d(g[v]))
+            shortest = lengths.index(min(lengths))
+            #print('shortest', r, lengths[shortest], [('%.2f' % l) for l in lengths])
+            #print('shortest', r, lengths[shortest], 'pcnt', len(lengths))
+            if lengths[shortest] < r:
+                g.de(*edges[shortest])
+                found = True
+            if not found:
+                for j, v in g:
+                    ves = [(v, o) for o in g.rings[j]]
+                    assert(len(ves) == 2)
+                    x, y, z = g[ves[0][1]], g[j], g[ves[1][1]]
+                    t = y.tov(x).angxy(y.tov(z))
+                    if t < a:
+                        g.miterv(j, r, e)
+                        found = True
+                        break
+            if found and len(list(g)) < 3:
+                #print('polygon collapsed')
+                return
+        py = g.boundary()
+        return py
+
+    def miterv(self, v, r, e):
+        x, y = tuple(self.rings[v].keys())
+        p, q = self[v].tov(self[x]), self[v].tov(self[y])
+        a = numpy.arccos(p.cp().nrm().dot(q.cp().nrm()))
+        d = r / numpy.tan(a)
+        d = min(d, p.mag(), q.mag())
+        dx = self[v].cp().trn(p.cp().nrm().uscl(d))
+        dy = self[v].cp().trn(q.cp().nrm().uscl(d))
+        nx = self.fp(dx, e)
+        ny = self.fp(dy, e)
+        ne = self.fe(nx, ny)
+        self.rv(v)
+
+    def boundary(self):
+        loops = [[self[p] for p in l] for l in self.uloops('ccw')]
+        # find loop such that none of its points are inside any other loop
+        foundloops = []
+        for j, u in enumerate(loops):
+            found = False
+            for p in u:
+                for i, v in enumerate(loops):
+                    if i == j:
+                        continue
+                    if p.inbxy(v):
+                        found = True
+                        break
+            if not found:
+                foundloops.append(u)
+        loopls = [len(l) for l in foundloops]
+        u = foundloops[loopls.index(max(loopls))]
+        return u
+
+    @staticmethod
+    def merge_pgs(u, v, e=0.1):
+        ues, uevs = u.pgtosegs()
+        ves, vevs = v.pgtosegs()
+        ips = []
+        for (a, b), ue in zip(ues, uevs):
+            for (c, d), ve in zip(ves, vevs):
+                ip = sintsxyp(a, b, c, d)
+                if isinstance(ip, tuple):
+                    raise ValueError
+                elif ip:
+                    ips.append((ip, ue, ve))
+        new = planargraph.segstopg(ues + ves)
+        for ip, (p, q), (r, s) in ips:
+            ipv = new.fp(ip, e)
+            up, uq = u[p], u[q]
+            vr, vs = v[r], v[s]
+            nup, nuq = new.fp(up, e), new.fp(uq, e)
+            nvr, nvs = new.fp(vr, e), new.fp(vs, e)
+            if not (ipv == new.vcnt - 1):
+                new.addintersection(nup, nuq, nvr, nvs, ipv)
+        return new
 
     @classmethod
     def segstopg(cls, segs, epsilon=0.1):
@@ -29,6 +195,11 @@ class planargraph(wiregraph):
             elif not v1 in pg.rings[v2]:
                 pg.fe(v2, v1)
         return pg
+
+    @classmethod
+    def pytopg(cls, py, epsilon=0.1):
+        segs = [(py[j - 1], py[j]) for j in range(len(py))]
+        return planargraph.segstopg(segs, epsilon)
 
     def pgtosegs(self):
         es = set()
@@ -171,7 +342,8 @@ class planargraph(wiregraph):
             plt.show()
         '''
 
-        print('lp cnt', len(loops))
+        #print('planargraph loop count: %d' % len(loops))
+
         for lp in loops:
             seam = []
             seams.append(seam)
@@ -195,6 +367,10 @@ class planargraph(wiregraph):
                         ip = sintsxyp(s1, s2, s3, s4, col=0)
                         cnm = lpp1.tov(ip)
                     seam.append(lpp1.cp().trn(cnm))
+
+            #if bintselfxy(seam):
+            #    print('self intersecting polygon!!')
+
             if not bccw(seam):
                 seam.reverse()
             if eseam is None:
@@ -239,20 +415,6 @@ class planargraph(wiregraph):
         else:
             py = [seams.pop(eseam),seams]
             return py
-
-    def _____edge_segments(self):
-        edges = []
-        for vx in range(self.vcnt):
-            v = self.vs[vx]
-            if v:
-                vp = v[1]['p']
-                ring = self.rings[vx]
-                for r in ring:
-                    u = self.vs[r]
-                    if u:
-                        up = u[1]['p']
-                        edges.append((vp, up))
-        return edges
 
     def trn(self, t):
         for x in range(self.vcnt):
@@ -356,6 +518,12 @@ class planargraph(wiregraph):
                     if ped > -1 and ped < epsilon:
                         self.se(u, v, nv)
                         found = True
+
+                        #print('se', ped)
+                        #ax = plot_axes_xy(5, (3, 0))
+                        #self.plotxy(ax, lw=3, col='b', s=0)
+                        #plt.show()
+
                         break
         return nv
 
@@ -405,13 +573,15 @@ class planargraph(wiregraph):
         if ax is None:ax = dtl.plot_axes_xy(l,**kws)
         for j in range(self.vcnt):
             i = self.vs[j]
-            if i is None:continue
+            if i is None:
+                continue
             ip = i[1]['p']
-            if number and (len(tuple(self.rings[j].keys())) > 2):
+            #if number and (len(tuple(self.rings[j].keys())) > 2):
+            if number:
                 jstr = str(j)+str([v for v in self.rings[j]])
-                jstrccw = str([self.ccw(j,v) for v in self.rings[j]])
-                jstrcw = str([self.cw(j,v) for v in self.rings[j]])
-                jstr += '\n'+jstrccw+'\n'+jstrcw
+                #jstrccw = str([self.ccw(j,v) for v in self.rings[j]])
+                #jstrcw = str([self.cw(j,v) for v in self.rings[j]])
+                #jstr += '\n'+jstrccw+'\n'+jstrcw
                 ax = dtl.plot_point_xy_annotate(ip,ax,jstr)
                 ax = dtl.plot_point_xy(ip,ax,col = 'r')
             if marker:
@@ -419,7 +589,8 @@ class planargraph(wiregraph):
         for k in self.rings:
             vr = self.rings[k]
             for ov in vr:
-                if vr[ov] is None:continue
+                if vr[ov] is None:
+                    continue
                 re = (self.vs[k][1]['p'].cp(),self.vs[ov][1]['p'].cp())
                 rn = vec3(0,0,1).crs(re[0].tov(re[1])).nrm().uscl(s)
                 re = (re[0].trn(rn),re[1].trn(rn))

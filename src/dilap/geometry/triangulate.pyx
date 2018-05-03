@@ -29,9 +29,7 @@ cdef class triangulation:
             gst = self.ghosts[gdx]
             if gst is None:continue
             gx1,gx2,gx3 = gst
-            #g1,g2 = self.points.get_points(gx1,gx2)
             g1,g2 = self.points.gps_c((gx1,gx2))
-            #if gtl.inseg_xy_c(up,g1,g2):
             if up.onsxy_c(g1,g2,ie = False):
                 return gdx
         return -1
@@ -66,7 +64,8 @@ cdef class triangulation:
                 #    return triv
         if ekey in self.eg_ghost_lookup:
             tri = self.eg_ghost_lookup[ekey]
-            if not tri is None:return -2
+            if not tri is None:
+                return -2
         return -1
 
     def __cinit__(self,vec3 p0,vec3 pn):
@@ -86,7 +85,6 @@ cdef class triangulation:
         #print('flipping an edge')
         o1 = self.adjacent(u,v)
         o2 = self.adjacent(v,u)
-        #vs = self.points.get_points(u,v,o1,o2)
         vs = self.points.gps_c((u,v,o1,o2))
         #tcp1,tcr1 = dpr.circumscribe_tri_c(vs[0],vs[1],vs[2])
         #tcp2,tcr2 = dpr.circumscribe_tri_c(vs[1],vs[0],vs[3])
@@ -102,7 +100,6 @@ cdef class triangulation:
     # u is the vertex to insert. vwx is a positively oriented triangle whose
     # circumcircle encloses u
     cdef void insert_vertex(self,int u,int v,int w,int x):
-        #vu,vv,vw,vx = self.points.get_points(u,v,w,x)
         vu,vv,vw,vx = self.points.gps_c((u,v,w,x))
         self.delete_triangle(v,w,x)
         self.dig_cavity(u,v,w)
@@ -140,7 +137,8 @@ cdef class triangulation:
     # delete a positively oriented triangle u,v,w
     cdef void delete_triangle(self,int u,int v,int w):
         tri = self.eg_tri_lookup[(u,v)]
-        if not tri is None:self.triangles[tri] = None
+        if not tri is None:
+            self.triangles[tri] = None
         self.eg_tri_lookup[(u,v)] = None
         self.eg_tri_lookup[(v,w)] = None
         self.eg_tri_lookup[(w,u)] = None
@@ -154,7 +152,8 @@ cdef class triangulation:
     # delete a positively oriented ghost triangle u,v,g
     cdef void delete_ghost(self,int u,int v):
         ghost = self.eg_ghost_lookup[(u,v)]
-        if not ghost is None:self.ghosts[ghost] = None
+        if not ghost is None:
+            self.ghosts[ghost] = None
         self.eg_ghost_lookup[(u,v)] = None
 
     # u is a new vertex; is the oriented triangle u,v,w delaunay?
@@ -162,10 +161,11 @@ cdef class triangulation:
         # find triangle wvx opposite the facet vw from u
         vu,vv,vw = self.points.gps_c((u,v,w))
         x = self.adjacent(w,v)
-        if x == -1:return
-        elif x == -2:self.add_triangle(u,v,w)
+        if x == -1:
+            return
+        elif x == -2:
+            self.add_triangle(u,v,w)
         else:
-            #vu,vv,vw,vx = self.points.get_points(u,v,w,x)
             vu,vv,vw,vx = self.points.gps_c((u,v,w,x))
             # uvw is not delaunay, dig the adjacent two triangles
             if gtl.incircle_c(vu,vv,vw,vx) > 0:
@@ -173,7 +173,8 @@ cdef class triangulation:
                 self.dig_cavity(u,v,x)
                 self.dig_cavity(u,x,w)
             # w,v is a facet of the cavity and uvw is delaunay
-            else:self.add_triangle(u,v,w)
+            else:
+                self.add_triangle(u,v,w)
 
 # initialize a triangulation data structure 
 # based on a list of vectors bnd
@@ -205,9 +206,13 @@ cdef void initialize(triangulation data,list bnd):
 cdef list point_location(triangulation data,vec3 y,float e):
     cdef int pretricnt,nv,onb,tdx,gdx,u,v,w,x,tu
     cdef vec3 vu,vv,vw
+
     pretricnt = data.tricnt
-    if not data.points.fp_c(y) == -1:return []
+    if not data.points.fp_c(y, e) == -1:
+        print('point %s located twice...' % str(y))
+        return []
     nv = data.points.ap_c(y)
+
     onb = data.point_on_boundary(nv)
     if not onb == -1:
         v,w,x = data.ghosts[onb]
@@ -222,8 +227,10 @@ cdef list point_location(triangulation data,vec3 y,float e):
 
     for tdx in range(data.tricnt-1,-1,-1):
         tri = data.triangles[tdx]
-        if tri is None:continue
-        else:u,v,w = tri
+        if tri is None:
+            continue
+        else:
+            u,v,w = tri
         vu,vv,vw = data.points.gps_c((u,v,w))
         if y.intrixy_c(vu,vv,vw,e):
             data.insert_vertex(nv,u,v,w)
@@ -258,13 +265,17 @@ cdef list point_location(triangulation data,vec3 y,float e):
 # and return the line segments which bound the loop
 cdef list loop_location(triangulation data,tuple loop,float e):
     cdef list bnd = []
-    cdef int lcnt = len(loop)
-    cdef int x
-    for x in range(lcnt):
-        p1,p2 = loop[x-1],loop[x]
-        bnd.append((p1.cp(),p2.cp()))
-    cdef list ptstack = [lp.cp() for lp in loop]
+    cdef list ptstack = [p.cp() for p in loop]
     #cdef list ptstack = gtl.lexicographic([lp.cp() for lp in loop])
+    cdef int lcnt = len(loop)
+    cdef int j
+    for j in range(lcnt):
+        u, v = loop[j - 1], loop[j]
+        bnd.append((u.cp(), v.cp()))
+
+    #for x in range(lcnt):
+    #    p1, p2 = loop[x-1], loop[x]
+    #    bnd.append((p1.cp(), p2.cp()))
 
     #prog(0)
 
@@ -290,14 +301,18 @@ cdef list polygon_location(triangulation data,tuple ebnd,tuple ibnds,float e):
         bnd.extend(loop_location(data,ibnds[ix],e))
     return bnd
 
-# is a triangle basically inside a boundary polygon
-#cdef bint tinbxy(a,b,c,bnd):
-cpdef bint tinbxy(a,b,c,bnd):
-    if   not (a.inbxy(bnd) or a.onbxy(bnd)):return 0
-    elif not (b.inbxy(bnd) or b.onbxy(bnd)):return 0
-    elif not (c.inbxy(bnd) or c.onbxy(bnd)):return 0
-    if vec3(0,0,0).com_c((a,b,c)).inbxy(bnd):return 1
-    else:return 0
+# is a triangle inside a boundary polygon
+cpdef bint tinbxy(a, b, c, bnd):
+    if   not (a.inbxy(bnd) or a.onbxy(bnd)):
+        return 0
+    elif not (b.inbxy(bnd) or b.onbxy(bnd)):
+        return 0
+    elif not (c.inbxy(bnd) or c.onbxy(bnd)):
+        return 0
+    if vec3(0,0,0).com_c((a, b, c)).inbxy(bnd):
+        return 1
+    else:
+        return 0
 
 # given the exterior bound and interior bounds (holes) of a concave polygon
 # remove triangles which are not part of the cover of the polygon
@@ -315,24 +330,29 @@ cdef void cover_polygon(triangulation data,tuple ebnd,tuple ibnds):
                 if tinbxy(pt1,pt2,pt3,ibnd):
                     extras.append(tdx)
                     break
-    for x in extras:data.delete_triangle_by_index(x)
+    for x in extras:
+        data.delete_triangle_by_index(x)
 
 # delete all ghosts and add new ghosts according to where they
 # should be after covering the plc edges
-cdef void ghost_border(triangulation data,list edges):
+cdef void ghost_border(triangulation data, list edges, float e):
     for gst in data.ghosts:
-        if gst is None:continue
+        if gst is None:
+            continue
         g1,g2,g = gst
         data.delete_ghost(g1,g2)
     for plce in edges:
-        if plce is None:continue
+        if plce is None:
+            continue
         plce1,plce2 = plce
-        e1 = data.points.fp_c(plce1)
-        e2 = data.points.fp_c(plce2)
+        e1 = data.points.fp_c(plce1, e)
+        e2 = data.points.fp_c(plce2, e)
         eadj = data.adjacent(e1,e2)
-        if eadj == -1:data.add_ghost(e1,e2)
+        if eadj == -1:
+            data.add_ghost(e1,e2)
         eadj = data.adjacent(e2,e1)
-        if eadj == -1:data.add_ghost(e2,e1)
+        if eadj == -1:
+            data.add_ghost(e2,e1)
 
 # apply the flip algorithm until all edges are locally delaunay
 cdef void constrain_delaunay(triangulation data):
@@ -362,10 +382,10 @@ cdef void refine_chews_first(triangulation data,float h,float e):
         ufx1,ufx2,ufx3 = unfin
         v1,v2,v3 = data.points.gps_c((ufx1,ufx2,ufx3))
 
-        #if pym.colinear(v1,v2,v3):
-        #    data.delete_triangle(ufx1,ufx2,ufx3)
-        #    print('removed colinear triangle from triangulation')
-        #    continue
+        if gtl.orient2d_c(v1, v2, v3) == 0:
+            data.delete_triangle(ufx1,ufx2,ufx3)
+            print('removed colinear triangle from triangulation')
+            continue
 
         tcp,tcr = gtl.circumscribe_tri_c(v1,v2,v3)
         if tcr/h > 1.0:
@@ -436,18 +456,22 @@ cdef triangulation tridata_c(tuple ebnd,tuple ibnds,
     prot = quat(0,0,0,0).toxy_c(pn)
     gtl.rot_poly_c((ebnd,ibnds),prot)
     pn = pym.bnrm(ebnd)
+
+
+
     data = triangulation(p0,pn)
+
     #print('initializing')
     initialize(data,list(ebnd))
     #print('initialized')
     #print('locating polygon')
-    plcedges = polygon_location(data,ebnd,ibnds,e)
+    plcedges = polygon_location(data, ebnd, ibnds, e)
     #print('located polygon')
     #print('covering polygon')
-    cover_polygon(data,ebnd,ibnds)
+    cover_polygon(data, ebnd, ibnds)
     #print('covered polygon')
     #print('ghost bordering')
-    ghost_border(data,plcedges)              
+    ghost_border(data, plcedges, e)
     #print('ghost bordered')
     #print('constraining delaunay')
     constrain_delaunay(data)
@@ -470,10 +494,12 @@ cdef triangulation tridata_c(tuple ebnd,tuple ibnds,
         plt.show()
 
     #print('refined chew')
-    if smooth:smooth_laplacian(data,vertex_rings(data),100,0.5)
+    if smooth:
+        smooth_laplacian(data, vertex_rings(data), 100, 0.5)
     prot.flp_c()
-    for p in data.points.ps:p.rot(prot)
-    gtl.rot_poly_c((ebnd,ibnds),prot)
+    for p in data.points.ps:
+        p.rot(prot)
+    gtl.rot_poly_c((ebnd, ibnds),prot)
     return data
 
 cpdef triangulation tridata(tuple ebnd,tuple ibnds,
@@ -501,12 +527,13 @@ cdef tuple triangulate_c(tuple ebnd,tuple ibnds,
         smps.append(smp)
     if not smps:
         print('empty surface!')
-        ax = dtl.plot_axes_xy(300)
-        ax = dtl.plot_polygon_full_xy((ebnd,ibnds),ax,lw = 3)
-        plt.show()
+        #ax = dtl.plot_axes_xy(300)
+        #ax = dtl.plot_polygon_full_xy((ebnd,ibnds),ax,lw = 3)
+        #plt.show()
     for gdx in range(data.ghostcnt):
         gst = data.ghosts[gdx]
-        if gst is None:continue
+        if gst is None:
+            continue
         gpair = data.points.gps_c((gst[0],gst[1]))
         gsts.append(gpair)
     return smps,gsts
@@ -526,33 +553,40 @@ cpdef tuple triangulate(tuple ebnd,tuple ibnds,
     #    return ([],[])
     return triangulate_c(ebnd,ibnds,hmin,refine,smooth,e)
 
-def split_nondelauney_edges(eb,ibs):
+def split_nondelauney_edges(eb, ibs, e):
     aps = list(eb)
-    for ib in ibs:aps.extend(list(ib))
+    for ib in ibs:
+        aps.extend(list(ib))
 
     def split_loop(loop):
         x = 0
         while x < len(loop):
             p1,p2 = loop[x-1],loop[x]
+            cc = p1.mid(p2)
+            cr = cc.d(p1)
             found = False
             for p in aps:
-                if p.isnear(p1) or p.isnear(p2):continue
-                cc = p1.mid(p2)
-                cr = cc.d(p1)
-                if p.inneighborhood(cc,cr):
-                    loop.insert(x,cc)
+                #if p.isnear(p1) or p.isnear(p2):
+                #    continue
+                if p.inneighborhood(p1, e) or p.inneighborhood(p2, e):
+                    continue
+                if p.inneighborhood(cc, cr):
+                    loop.insert(x, cc)
                     aps.append(cc)
                     found = True
                     break
-            if found:continue
-            else:x += 1
+            if found:
+                continue
+            else:
+                x += 1
         return loop
 
     def handle_loop(loop):
         nloop = split_loop(list(loop))
         while True:
             nxtnloop = split_loop(nloop)
-            if len(nxtnloop) == len(nloop):break
+            if len(nxtnloop) == len(nloop):
+                break
             nloop = nxtnloop
         return nloop
 
@@ -584,15 +618,38 @@ cdef list split_loop(float hmin, list loop):
         l = n
     return o
 
+def check_edge_lengths(b, ax):
+    for j in range(len(b)):
+        u, v = b[j - 1], b[j]
+        dtl.plot_edges_xy((u, v), ax, col='r', lw=2)
+        if u.d(v) < 1.0:
+            s = '%0.6f' % u.d(v)
+            w = u.lerp(v, 0.5)
+            dtl.plot_point_xy_annotate(w, ax, s)
+            dtl.plot_point_xy(w, ax, col='b')
+
 cpdef split_nondelauney_edges_chew1(eb, ibs, hmax=16):
     els = [eb[x-1].d(eb[x]) for x in range(len(eb))]
     for ib in ibs:
         els.extend([ib[x-1].d(ib[x]) for x in range(len(ib))])
+
     hmin = min(els) * math.sqrt(3)
     hmin = min(hmax, hmin)
 
-    print('split nondelauney edges chew1 with hmin: ', hmin, min(els), max(els))
-    print(len(els), len(eb), len(ibs))
+
+    if hmin < 1.0:
+        xs, ys, zs = zip(*eb)
+        xmin, xmax, ymin, ymax = min(xs), max(xs), min(ys), max(ys)
+        xmean, ymean = sum(xs) / len(xs), sum(ys) / len(ys)
+        #ax = dtl.plot_axes_xy(xmax - xmin, (xmean, ymean))
+        ax = dtl.plot_axes_xy(4, (-67, 22))
+        check_edge_lengths(eb, ax)
+        for ib in ibs:
+            check_edge_lengths(ib, ax)
+        plt.show()
+
+        print('dangerous split nondelauney edges chew1 with hmin: ', hmin, min(els), max(els))
+        print(len(els), len(eb), len(ibs))
 
     neb = tuple(split_loop(hmin, list(eb)))
     nibs = tuple([tuple(split_loop(hmin, list(ib))) for ib in ibs])

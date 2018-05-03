@@ -9,7 +9,7 @@ stuff = 'hi'
 # dilapidators implementation of a vector in R3
 cdef class vec3:
 
-    cdef public float x    
+    cdef public float x
     cdef public float y
     cdef public float z
 
@@ -31,6 +31,7 @@ cdef class vec3:
     cdef bint inneighborhood_c(self,vec3 o,float e)
     cdef bint isnear_c(self,vec3 o)
     cdef bint isnearxy_c(self,vec3 o)
+    cdef tuple nearest_c(self, list ps)
     cdef bint inbxy_c(self,ps)
     cdef bint intrixy_c(self,vec3 a,vec3 b,vec3 c,float e)
     cdef bint onsxy_c(self,vec3 s1,vec3 s2,bint ie = ?)
@@ -88,6 +89,7 @@ cdef class vec3:
     cpdef bint inneighborhood(self,vec3 o,float e)
     cpdef bint isnear(self,vec3 o)
     cpdef bint isnearxy(self,vec3 o)
+    cpdef tuple nearest(self, ps)
     cpdef bint inbxy(self,ps)
     cpdef bint intrixy(self,vec3 a,vec3 b,vec3 c,float e)
     cpdef bint onsxy(self,vec3 s1,vec3 s2,bint ie = ?)

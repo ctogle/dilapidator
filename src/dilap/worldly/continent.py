@@ -36,13 +36,26 @@ def ocean_model(b, hs=[], z=10):
                    rv=pym.bnrm(b).z < 0)
     return m
 
+def road_models(b, hs, z):
+    m = model()
+    tm = m.agfxmesh()
+    ngvs = m.asurf((b, hs), tm, fm='concrete1', ref=True, hmin=8, hmax=8, minhmin=0.1,
+                   zfunc=z, rv=pym.bnrm(b).z < 0, uvstacked=None, autoconnect=True, e=0.001)
+    lockf = lambda p: p.onpxy((b, hs))
+    m.subdiv(tm, False, True, lockf)
+    m.uvs(tm)
+    return [m]
+
 def land_and_sea(t_b, fp, z_f, sealevel=1, sg=None):
-    lands = [land_model(t_b, [fp[0]], z_f)]
-    lands.extend([land_model(ifp, [], z_f) for ifp in fp[1]])
+    fp_b, fp_hs = fp
+    lands = [land_model(t_b, [fp_b], z_f)]
+    lands.extend([land_model(ifp, [], z_f) for ifp in fp_hs])
     waters = [ocean_model(t_b, [], sealevel)]
+    roads = road_models(fp_b, fp_hs, z_f)
     sg = sg if sg else scenegraph()
     sgv = sg.avert(None, None, None, models=lands, parent=sg.root)
     sgv = sg.avert(None, None, None, models=waters, parent=sg.root)
+    sgv = sg.avert(None, None, None, models=roads, parent=sg.root)
     return sg
 
 

@@ -378,7 +378,7 @@ def bintselfxy(b):
 
 
 z = vec3(0, 0, 1)
-def circumscribe_tri(u, v, w, e, l=1000):
+def circumscribe_tri(u, v, w, e, l=10000):
     uv = u.tov(v)
     uvnm = z.crs(uv).nrm()
     uvm = u.mid(v)
